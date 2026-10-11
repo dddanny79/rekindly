@@ -4,7 +4,10 @@ import type { Db } from './db/client';
 import type { Deps } from './env';
 import { RateLimiter } from './lib/rate-limit';
 
-export function createDeps(db: Db, config: Pick<ServerConfig, 'publicUrl' | 'trustProxy'>): Deps {
+export function createDeps(
+  db: Db,
+  config: Pick<ServerConfig, 'publicUrl' | 'trustProxy' | 'dataDir'>,
+): Deps {
   return {
     db,
     config,

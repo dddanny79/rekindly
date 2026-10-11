@@ -3,7 +3,6 @@ import { LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ApiStatus } from '@/components/api-status';
 import { LanguageRadioGroup } from '@/components/language-controls';
-import { PageHeader } from '@/components/page-header';
 import { PasskeySettings } from '@/components/passkey-list';
 import { PasswordForm } from '@/components/password-form';
 import { SettingsSection } from '@/components/settings-section';
@@ -19,8 +18,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.settings')} />
-      <div className="max-w-xl">
+      <div>
         <SettingsSection title={t('account.title')}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

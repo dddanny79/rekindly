@@ -10,3 +10,32 @@ export const errorResponseSchema = z.object({
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
 export const isoDateTimeSchema = z.iso.datetime();
+
+export const idSchema = z.string().min(1).max(100);
+
+/** Optional free text: trimmed; empty becomes null. */
+export const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullable()
+    .transform((value) => (value ? value : null));
+
+/** `YYYY-MM-DD`. */
+export const dateOnlySchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/);
+
+/** `--MM-DD` or `YYYY-MM-DD` (year optional). */
+export const birthdaySchema = z.string().regex(/^(\d{4}|-)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/);
+
+/** `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. */
+export const partialDateSchema = z
+  .string()
+  .regex(/^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/);
+
+/** Seeded rows carry an i18n key, user-created ones a name. */
+export const labelRefSchema = z.object({
+  name: z.string().nullable(),
+  nameKey: z.string().nullable(),
+});
+export type LabelRef = z.infer<typeof labelRefSchema>;

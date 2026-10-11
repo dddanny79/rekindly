@@ -8,6 +8,19 @@ const KNOWN = [
   'invalid_current_password',
   'invalid_passkey',
   'setup_completed',
+  'unknown_space',
+  'space_mismatch',
+  'organization_cycle',
+  'space_not_empty',
+  'last_space',
+  'tag_exists',
+  'invalid_field_value',
+  'invalid_image',
+  'file_too_large',
+  'name_required',
+  'unknown_organization',
+  'unknown_person',
+  'passkeys_disabled',
 ] as const;
 
 /** User-facing message for a failed request or WebAuthn ceremony. */

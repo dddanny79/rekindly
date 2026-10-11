@@ -43,6 +43,20 @@ Contrast measured against `background`. AA = 4.5:1 for text, 3:1 for controls.
 | `--area-business`                      | `#2A4869`   | `#93B3D8`   | 9.1 / 8.4      | Space dot, initials, kicker                    |
 | `--overlay`                            | `#14141466` | `#0000009E` | —              | Scrim behind ⌘K and sheets                     |
 
+Spaces pick a colour from a palette of six; each key maps to a token with light/dark
+values (all ≥ 6:1 against the background):
+
+| Palette key | Token           | Light     | Dark      |
+| ----------- | --------------- | --------- | --------- |
+| `olive`     | `--space-olive` | `#53632A` | `#B9C67E` |
+| `navy`      | `--space-navy`  | `#2A4869` | `#93B3D8` |
+| `plum`      | `--space-plum`  | `#6E3A62` | `#D6A8CB` |
+| `teal`      | `--space-teal`  | `#1F5F5A` | `#86C9C1` |
+| `ochre`     | `--space-ochre` | `#7A5410` | `#DDBB6E` |
+| `slate`     | `--space-slate` | `#4A5058` | `#B6BCC4` |
+
+`--area-private` / `--area-business` are aliases of olive / navy (the seeded spaces).
+
 `--primary` is the ink (primary button filled dark). `--accent` stays the shadcn hover
 surface and points to `--muted`. The red pencil is its own token `--signal` so it never
 shows up as a hover colour by accident. Space colours are assigned per space later;

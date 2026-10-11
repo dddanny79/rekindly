@@ -74,6 +74,12 @@
   --color-signal-tint: var(--signal-tint);
   --color-area-private: var(--area-private);
   --color-area-business: var(--area-business);
+  --color-space-olive: var(--space-olive);
+  --color-space-navy: var(--space-navy);
+  --color-space-plum: var(--space-plum);
+  --color-space-teal: var(--space-teal);
+  --color-space-ochre: var(--space-ochre);
+  --color-space-slate: var(--space-slate);
   --color-overlay: var(--overlay);
 }
 
@@ -100,8 +106,14 @@
   --signal: #b23a1c;
   --signal-tint: #f6e1d8;
   --destructive: #a3231a;
-  --area-private: #53632a;
-  --area-business: #2a4869;
+  --space-olive: #53632a;
+  --space-navy: #2a4869;
+  --space-plum: #6e3a62;
+  --space-teal: #1f5f5a;
+  --space-ochre: #7a5410;
+  --space-slate: #4a5058;
+  --area-private: var(--space-olive);
+  --area-business: var(--space-navy);
   --overlay: rgb(20 20 20 / 0.4);
 }
 
@@ -120,8 +132,12 @@
   --signal: #f08a6c;
   --signal-tint: #3a231c;
   --destructive: #ff8a7a;
-  --area-private: #b9c67e;
-  --area-business: #93b3d8;
+  --space-olive: #b9c67e;
+  --space-navy: #93b3d8;
+  --space-plum: #d6a8cb;
+  --space-teal: #86c9c1;
+  --space-ochre: #ddbb6e;
+  --space-slate: #b6bcc4;
   --overlay: rgb(0 0 0 / 0.62);
 }
 

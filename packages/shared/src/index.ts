@@ -3,3 +3,8 @@ export * from './schemas/auth';
 export * from './schemas/common';
 export * from './schemas/health';
 export * from './schemas/settings';
+export * from './schemas/catalog';
+export * from './schemas/organizations';
+export * from './schemas/people';
+export * from './schemas/spaces';
+export * from './text';

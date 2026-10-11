@@ -16,7 +16,7 @@ export function createTestApp(options: { webDistDir?: string | null } = {}) {
   const { db, sqlite } = createDb(dataDir);
   runMigrations(db, MIGRATIONS_DIR);
   seed(db);
-  const deps = createDeps(db, { publicUrl: TEST_PUBLIC_URL, trustProxy: false });
+  const deps = createDeps(db, { publicUrl: TEST_PUBLIC_URL, trustProxy: false, dataDir });
   const app = createApp({ deps, webDistDir: options.webDistDir ?? null });
 
   let cookie: string | null = null;
@@ -74,4 +74,33 @@ export async function setupOwner(t: TestApp) {
   const res = await t.request('/api/v1/auth/setup', { method: 'POST', json: OWNER });
   if (res.status !== 201) throw new Error(`setup failed: ${res.status}`);
   return res;
+}
+
+/** Signed-in app with ids of the seeded spaces and relationship types. */
+export async function createSignedInApp() {
+  const t = createTestApp();
+  await setupOwner(t);
+  const json = async <T>(res: Response | Promise<Response>, status = 200): Promise<T> => {
+    const r = await res;
+    if (r.status !== status) {
+      throw new Error(`expected ${status}, got ${r.status}: ${await r.text()}`);
+    }
+    return (await r.json()) as T;
+  };
+  const { spaces } = await json<{ spaces: { id: string; nameKey: string | null }[] }>(
+    t.request('/api/v1/spaces'),
+  );
+  const { relationshipTypes } = await json<{
+    relationshipTypes: { id: string; nameKey: string | null }[];
+  }>(t.request('/api/v1/relationship-types'));
+  const spaceId = (key: string) => spaces.find((s) => s.nameKey === `seed.spaces.${key}`)!.id;
+  const typeId = (key: string) =>
+    relationshipTypes.find((r) => r.nameKey === `seed.relationshipTypes.${key}`)!.id;
+  return {
+    ...t,
+    json,
+    privateSpace: spaceId('private'),
+    businessSpace: spaceId('business'),
+    typeId,
+  };
 }

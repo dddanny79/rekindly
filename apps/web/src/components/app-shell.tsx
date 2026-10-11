@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { APP_NAME } from '@app/shared';
 import { LanguageToggle } from '@/components/language-controls';
+import { SpaceSwitcherList, SpaceSwitcherSheet } from '@/components/space-switcher';
 import type { Translations } from '@/i18n/locales/en';
 import { useAuthStatus } from '@/lib/auth';
 import { modKeyLabel } from '@/lib/platform';
@@ -69,7 +70,7 @@ function Sidebar() {
             <li key={key}>
               <Link
                 to={to}
-                activeOptions={{ exact: to === '/' }}
+                activeOptions={{ exact: to === '/', includeSearch: false }}
                 className="flex h-9 items-center gap-2.5 px-2.5 no-underline hover:bg-muted hover:text-foreground"
                 activeProps={{
                   className:
@@ -84,6 +85,8 @@ function Sidebar() {
           ))}
         </ul>
       </nav>
+
+      <SpaceSwitcherList />
 
       <div className="flex-1" />
 
@@ -102,8 +105,9 @@ function Sidebar() {
 
 function MobileTopBar() {
   return (
-    <div className="flex h-12.5 items-center px-4.5 md:hidden">
+    <div className="flex h-12.5 items-center justify-between gap-3 px-4.5 md:hidden">
       <AppName className="text-[1.3125rem]" />
+      <SpaceSwitcherSheet />
     </div>
   );
 }
@@ -121,7 +125,7 @@ function MobileTabBar() {
           <li key={key} className="flex">
             <Link
               to={to}
-              activeOptions={{ exact: to === '/' }}
+              activeOptions={{ exact: to === '/', includeSearch: false }}
               className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[0.71875rem] no-underline"
               activeProps={{
                 className: 'font-bold text-foreground shadow-[inset_0_2px_0_var(--signal)]',

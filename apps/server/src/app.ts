@@ -8,8 +8,16 @@ import { API_PREFIX } from '@app/shared';
 import { loadSession, requireSession } from './auth/middleware';
 import { accountRoutes, protectedAuthRoutes, publicAuthRoutes } from './auth/routes';
 import type { AppEnv, Deps } from './env';
+import { DomainError } from './lib/errors';
 import { healthRoutes } from './health/routes';
+import { fieldRoutes } from './catalog/fields';
+import { relationshipTypeRoutes } from './catalog/relationship-types';
+import { tagRoutes } from './catalog/tags';
+import { fileRoutes } from './files/routes';
+import { organizationRoutes } from './organizations/routes';
+import { peopleRoutes } from './people/routes';
 import { settingsRoutes } from './settings/routes';
+import { spaceRoutes } from './spaces/routes';
 
 export interface AppOptions {
   deps: Deps;
@@ -21,6 +29,7 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   const app = new Hono<AppEnv>();
 
   app.onError((error, c) => {
+    if (error instanceof DomainError) return c.json({ error: error.code }, error.status);
     if (error instanceof HTTPException) return error.getResponse();
     console.error(error);
     return c.json({ error: 'internal_error' }, 500);
@@ -45,6 +54,13 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/auth', protectedAuthRoutes(deps));
   v1.route('/account', accountRoutes(deps));
   v1.route('/settings', settingsRoutes(deps));
+  v1.route('/spaces', spaceRoutes(deps));
+  v1.route('/people', peopleRoutes(deps));
+  v1.route('/organizations', organizationRoutes(deps));
+  v1.route('/tags', tagRoutes(deps));
+  v1.route('/relationship-types', relationshipTypeRoutes(deps));
+  v1.route('/field-definitions', fieldRoutes(deps));
+  v1.route('/files', fileRoutes(deps));
   api.route('/v1', v1);
 
   // Catch-all so unknown API paths never fall through to the SPA.

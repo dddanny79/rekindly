@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { KeyRound } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
@@ -12,7 +13,7 @@ import { safeRedirect } from '@/lib/redirect';
 
 const route = getRouteApi('/login');
 
-export function LoginPage() {
+export function LoginPage(): ReactElement {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { redirect } = route.useSearch();

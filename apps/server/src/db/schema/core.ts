@@ -93,6 +93,7 @@ export const contactPoints = sqliteTable(
     value: text('value').notNull(),
     isPrimary: bool('is_primary').notNull().default(false),
     sort: integer('sort').notNull().default(0),
+    deletedAt: deletedAt(),
     ...timestamps,
   },
   (t) => [
@@ -143,6 +144,7 @@ export const addresses = sqliteTable(
     region: text('region'),
     country: text('country'),
     sort: integer('sort').notNull().default(0),
+    deletedAt: deletedAt(),
     ...timestamps,
   },
   (t) => [
@@ -166,6 +168,7 @@ export const affiliations = sqliteTable(
     startedOn: text('started_on'),
     endedOn: text('ended_on'),
     isPrimary: bool('is_primary').notNull().default(false),
+    deletedAt: deletedAt(),
     ...timestamps,
   },
   (t) => [
@@ -277,6 +280,11 @@ export const relationshipTypes = sqliteTable(
   ],
 );
 
+/**
+ * Directed relationship: `to` is `type.name` of `from` (e.g. from = A, to = B,
+ * type = parent: B is A's parent). From B's side it reads `type.reverseName` (A is
+ * B's child).
+ */
 export const relationships = sqliteTable(
   'relationships',
   {
@@ -291,6 +299,7 @@ export const relationships = sqliteTable(
       .notNull()
       .references(() => relationshipTypes.id),
     note: text('note'),
+    deletedAt: deletedAt(),
     ...timestamps,
   },
   (t) => [
@@ -306,9 +315,14 @@ export const tags = sqliteTable(
     id: id(),
     name: text('name').notNull(),
     color: text('color'),
+    deletedAt: deletedAt(),
     ...timestamps,
   },
-  (t) => [uniqueIndex('tags_name_unique').on(sql`lower(${t.name})`)],
+  (t) => [
+    uniqueIndex('tags_name_unique')
+      .on(sql`lower(${t.name})`)
+      .where(sql`${t.deletedAt} is null`),
+  ],
 );
 
 export const personTags = sqliteTable(

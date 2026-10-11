@@ -14,8 +14,19 @@ import { safeRedirect } from '@/lib/redirect';
 import { LoginPage } from '@/routes/login-page';
 import { MorePage } from '@/routes/more-page';
 import { NotFoundPage } from '@/routes/not-found-page';
+import { OrganizationPage } from '@/routes/organization-page';
+import { OrganizationsPage } from '@/routes/organizations-page';
+import { PeoplePage } from '@/routes/people-page';
+import { PersonPage } from '@/routes/person-page';
 import { PlaceholderPage } from '@/routes/placeholder-page';
 import { SettingsPage } from '@/routes/settings-page';
+import {
+  FieldsSettingsPage,
+  RelationshipTypesSettingsPage,
+  SpacesSettingsPage,
+  TagsSettingsPage,
+} from '@/routes/settings/catalog-pages';
+import { SettingsLayout } from '@/routes/settings/settings-layout';
 import { SetupPage } from '@/routes/setup-page';
 
 export interface RouterContext {
@@ -71,23 +82,45 @@ const appRoute = createRoute({
   component: AppShell,
 });
 
-const page = (path: string, titleKey: Parameters<typeof PlaceholderPage>[0]['titleKey']) =>
+const page = <P extends string>(
+  path: P,
+  titleKey: Parameters<typeof PlaceholderPage>[0]['titleKey'],
+) =>
   createRoute({
     getParentRoute: () => appRoute,
     path,
     component: () => <PlaceholderPage titleKey={titleKey} />,
   });
 
+const child = <P extends string>(path: P, component: () => React.ReactNode) =>
+  createRoute({ getParentRoute: () => appRoute, path, component });
+
+const settingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings',
+  component: SettingsLayout,
+});
+const settingsChild = <P extends string>(path: P, component: () => React.ReactNode) =>
+  createRoute({ getParentRoute: () => settingsRoute, path, component });
+
 const routeTree = rootRoute.addChildren([
   setupRoute,
   loginRoute,
   appRoute.addChildren([
     page('/', 'today'),
-    page('/people', 'people'),
-    page('/organizations', 'organizations'),
+    child('/people', PeoplePage),
+    child('/people/$personId', PersonPage),
+    child('/organizations', OrganizationsPage),
+    child('/organizations/$organizationId', OrganizationPage),
     page('/search', 'search'),
-    createRoute({ getParentRoute: () => appRoute, path: '/settings', component: SettingsPage }),
-    createRoute({ getParentRoute: () => appRoute, path: '/more', component: MorePage }),
+    settingsRoute.addChildren([
+      settingsChild('/', SettingsPage),
+      settingsChild('/spaces', SpacesSettingsPage),
+      settingsChild('/tags', TagsSettingsPage),
+      settingsChild('/relationship-types', RelationshipTypesSettingsPage),
+      settingsChild('/fields', FieldsSettingsPage),
+    ]),
+    child('/more', MorePage),
   ]),
 ]);
 
