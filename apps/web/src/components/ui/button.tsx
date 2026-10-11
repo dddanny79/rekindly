@@ -4,28 +4,32 @@ import { cn } from '@/lib/utils';
 import { Slot } from 'radix-ui';
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  // Design: docs/design.md › States › Buttons. Focus ring comes from the global :focus-visible.
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-sm border text-sm whitespace-nowrap transition-colors disabled:pointer-events-none aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive:
-          'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40',
+        default:
+          'border-foreground bg-foreground font-semibold text-background hover:border-foreground-2 hover:bg-foreground-2 disabled:border-border disabled:bg-muted disabled:text-muted-foreground',
+        secondary:
+          'border-input bg-transparent text-foreground hover:border-foreground hover:bg-muted disabled:border-dashed disabled:border-border disabled:text-muted-foreground',
         outline:
-          'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-        link: 'text-primary underline-offset-4 hover:underline',
+          'border-input bg-transparent text-foreground hover:border-foreground hover:bg-muted disabled:border-dashed disabled:border-border disabled:text-muted-foreground',
+        ghost:
+          'border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground disabled:text-muted-foreground disabled:line-through',
+        destructive:
+          'border-destructive bg-transparent font-semibold text-destructive hover:bg-destructive hover:text-background',
+        link: 'border-transparent text-foreground underline underline-offset-3 hover:decoration-current',
       },
       size: {
-        default: 'h-9 px-4 py-2 has-[>svg]:px-3',
-        xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: 'h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5',
-        lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',
+        default: 'h-9 px-3.5',
+        xs: "h-6 gap-1 px-2 text-meta [&_svg:not([class*='size-'])]:size-3",
+        sm: 'h-8 gap-1.5 px-2.5',
+        lg: 'h-11 px-5',
         icon: 'size-9',
-        'icon-xs': "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
+        'icon-xs': "size-6 [&_svg:not([class*='size-'])]:size-3",
         'icon-sm': 'size-8',
-        'icon-lg': 'size-10',
+        'icon-lg': 'size-11',
       },
     },
     defaultVariants: {

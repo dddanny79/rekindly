@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import '@/i18n';
 import '@/index.css';
 import { App } from '@/app';
+import { initTheme } from '@/lib/theme';
+
+initTheme();
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Root element missing');

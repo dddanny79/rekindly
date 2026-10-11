@@ -6,7 +6,9 @@ import {
 } from '@tanstack/react-router';
 import { AppShell } from '@/components/app-shell';
 import { NotFoundPage } from '@/routes/not-found-page';
+import { MorePage } from '@/routes/more-page';
 import { PlaceholderPage } from '@/routes/placeholder-page';
+import { SettingsPage } from '@/routes/settings-page';
 
 const rootRoute = createRootRoute({
   component: AppShell,
@@ -31,7 +33,32 @@ const organizationsRoute = createRoute({
   component: () => <PlaceholderPage titleKey="organizations" />,
 });
 
-const routeTree = rootRoute.addChildren([todayRoute, peopleRoute, organizationsRoute]);
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: SettingsPage,
+});
+
+const searchRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/search',
+  component: () => <PlaceholderPage titleKey="search" />,
+});
+
+const moreRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/more',
+  component: MorePage,
+});
+
+const routeTree = rootRoute.addChildren([
+  todayRoute,
+  peopleRoute,
+  organizationsRoute,
+  settingsRoute,
+  searchRoute,
+  moreRoute,
+]);
 
 export function createAppRouter(history?: RouterHistory) {
   return createRouter({ routeTree, history });

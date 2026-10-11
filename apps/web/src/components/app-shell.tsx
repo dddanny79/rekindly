@@ -1,63 +1,148 @@
-import { Link, Outlet } from '@tanstack/react-router';
-import { Building2, Sun, Users } from 'lucide-react';
+import { Link, Outlet, type LinkProps } from '@tanstack/react-router';
+import {
+  Building2,
+  CalendarDays,
+  Menu,
+  Search,
+  Settings,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { APP_NAME } from '@app/shared';
 import { ApiStatus } from '@/components/api-status';
-import { LanguageSwitcher } from '@/components/language-switcher';
+import { LanguageToggle } from '@/components/language-controls';
+import type { Translations } from '@/i18n/locales/en';
+import { modKeyLabel } from '@/lib/platform';
 
-const NAV_ITEMS = [
-  { to: '/', key: 'today', icon: Sun },
+interface NavItem {
+  to: LinkProps['to'];
+  key: keyof Translations['nav'];
+  icon: LucideIcon;
+}
+
+const SIDEBAR_ITEMS: NavItem[] = [
+  { to: '/', key: 'today', icon: CalendarDays },
   { to: '/people', key: 'people', icon: Users },
   { to: '/organizations', key: 'organizations', icon: Building2 },
-] as const;
+  { to: '/settings', key: 'settings', icon: Settings },
+];
 
-export function AppShell() {
+const TAB_ITEMS: NavItem[] = [
+  { to: '/', key: 'today', icon: CalendarDays },
+  { to: '/people', key: 'people', icon: Users },
+  { to: '/search', key: 'search', icon: Search },
+  { to: '/more', key: 'more', icon: Menu },
+];
+
+function AppName({ className }: { className: string }) {
+  return (
+    <Link
+      to="/"
+      className={`truncate font-serif font-semibold tracking-[-0.01em] whitespace-nowrap italic no-underline hyphens-none ${className}`}
+    >
+      {APP_NAME}
+    </Link>
+  );
+}
+
+function Sidebar() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
-          <Link to="/" className="font-semibold tracking-tight">
-            {APP_NAME}
-          </Link>
-          <LanguageSwitcher />
-        </div>
-      </header>
+    <aside className="sticky top-0 hidden h-dvh w-59 shrink-0 flex-col gap-5.5 border-r px-4 py-5.5 md:flex">
+      <AppName className="px-2 text-[1.375rem]" />
 
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col md:flex-row">
-        <nav
-          aria-label={t('nav.label')}
-          className="border-b px-2 py-2 md:w-56 md:shrink-0 md:border-r md:border-b-0 md:py-4"
-        >
-          <ul className="flex gap-1 overflow-x-auto md:flex-col">
-            {NAV_ITEMS.map(({ to, key, icon: Icon }) => (
-              <li key={to}>
-                <Link
-                  to={to}
-                  activeOptions={{ exact: true }}
-                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap hover:bg-accent hover:text-accent-foreground"
-                  activeProps={{ className: 'bg-accent font-medium text-accent-foreground' }}
-                  inactiveProps={{ className: 'text-muted-foreground' }}
-                >
-                  <Icon className="size-4" aria-hidden />
-                  {t(`nav.${key}`)}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+      <Link
+        to="/search"
+        className="flex h-9.5 items-center gap-2 rounded-sm border bg-transparent pr-2 pl-2.5 text-sm text-muted-foreground no-underline hover:border-input"
+      >
+        <Search className="size-4" aria-hidden />
+        <span className="flex-1">{t('search.open')}</span>
+        <span className="kbd">{modKeyLabel()}K</span>
+      </Link>
 
-        <main className="flex-1 px-4 py-6 md:px-8">
+      <nav aria-label={t('nav.label')}>
+        <ul className="flex flex-col gap-0.5">
+          {SIDEBAR_ITEMS.map(({ to, key, icon: Icon }) => (
+            <li key={key}>
+              <Link
+                to={to}
+                activeOptions={{ exact: to === '/' }}
+                className="flex h-9 items-center gap-2.5 px-2.5 no-underline hover:bg-muted hover:text-foreground"
+                activeProps={{
+                  className:
+                    'bg-muted font-bold text-foreground shadow-[inset_2px_0_0_var(--signal)]',
+                }}
+                inactiveProps={{ className: 'text-foreground-2' }}
+              >
+                <Icon className="size-4" aria-hidden />
+                <span className="flex-1">{t(`nav.${key}`)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <div className="flex-1" />
+
+      <div className="flex items-center justify-between gap-2 border-t px-2.5 pt-3">
+        <ApiStatus compact />
+        <LanguageToggle />
+      </div>
+    </aside>
+  );
+}
+
+function MobileTopBar() {
+  return (
+    <div className="flex h-12.5 items-center px-4.5 md:hidden">
+      <AppName className="text-[1.3125rem]" />
+    </div>
+  );
+}
+
+function MobileTabBar() {
+  const { t } = useTranslation();
+
+  return (
+    <nav
+      aria-label={t('nav.label')}
+      className="fixed inset-x-0 bottom-0 z-10 border-t border-border-strong bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+    >
+      <ul className="grid h-14 grid-cols-4">
+        {TAB_ITEMS.map(({ to, key, icon: Icon }) => (
+          <li key={key} className="flex">
+            <Link
+              to={to}
+              activeOptions={{ exact: to === '/' }}
+              className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[0.71875rem] no-underline"
+              activeProps={{
+                className: 'font-bold text-foreground shadow-[inset_0_2px_0_var(--signal)]',
+              }}
+              inactiveProps={{ className: 'text-foreground-2' }}
+            >
+              <Icon className="size-4.5" aria-hidden />
+              {t(`nav.${key}`)}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+export function AppShell() {
+  return (
+    <div className="flex min-h-dvh">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <MobileTopBar />
+        <main className="flex-1 px-4.5 pt-2 pb-[calc(3.5rem+env(safe-area-inset-bottom)+2rem)] md:px-11 md:pt-6.5 md:pb-14">
           <Outlet />
         </main>
       </div>
-
-      <footer className="border-t">
-        <div className="mx-auto max-w-6xl px-4 py-3">
-          <ApiStatus />
-        </div>
-      </footer>
+      <MobileTabBar />
     </div>
   );
 }

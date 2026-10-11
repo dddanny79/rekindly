@@ -59,7 +59,9 @@ defines scope and acceptance criteria. Do not build features from later tasks.
 - Business logic in services, not in route handlers.
 - Every API route has a test; every task adds or updates E2E coverage for its
   main user flow.
-- UI: shadcn/ui components, light/dark via system preference, mobile-first.
+- UI: shadcn/ui components, visual rules in `docs/design.md`. Light/dark follows the
+  system preference by default, with a per-device override (System / Light / Dark).
+  Mobile-first.
   Keyboard first: `⌘K`/`Ctrl+K` command palette, sensible shortcuts.
 - Dates stored as ISO strings in UTC; birthdays as `--MM-DD` or `YYYY-MM-DD`
   (year optional).

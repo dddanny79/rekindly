@@ -1,16 +1,58 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import '@fontsource-variable/newsreader/opsz.css';
+@import '@fontsource-variable/newsreader/opsz-italic.css';
+@import '@fontsource-variable/source-sans-3/wght.css';
 
-/* Light/dark follows the system preference. */
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/*
+ * Design reference: docs/design.md. The theme is set on <html data-theme="light|dark">
+ * (resolved from the user's choice or the system preference, see src/lib/theme.ts).
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: 'Source Sans 3 Variable', system-ui, sans-serif;
+  --font-serif: 'Newsreader Variable', Georgia, serif;
+
+  --text-display: 3.5rem;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.025em;
+  --text-display--font-weight: 500;
+  --text-title: 2.5rem;
+  --text-title--line-height: 1.05;
+  --text-title--letter-spacing: -0.02em;
+  --text-title--font-weight: 500;
+  --text-h2: 1.875rem;
+  --text-h2--line-height: 1.2;
+  --text-h2--font-weight: 500;
+  --text-lead: 1.375rem;
+  --text-lead--line-height: 1.4;
+  --text-deck: 1.3125rem;
+  --text-deck--line-height: 1.4;
+  --text-read: 1.0625rem;
+  --text-read--line-height: 1.5;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.45;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.45;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.4;
+  --text-kbd: 0.6875rem;
+  --text-kbd--line-height: 18px;
+
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 3px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+
+  --shadow-overlay: 0 18px 48px rgb(0 0 0 / 0.22);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-foreground-2: var(--foreground-2);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -25,60 +67,108 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-signal: var(--signal);
+  --color-signal-tint: var(--signal-tint);
+  --color-area-private: var(--area-private);
+  --color-area-business: var(--area-business);
+  --color-overlay: var(--overlay);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: #faf9f6;
+  --foreground: #141414;
+  --foreground-2: #3b3a36;
+  --muted: #f1eee6;
+  --muted-foreground: #5c5a54;
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  --card: var(--popover);
+  --card-foreground: var(--foreground);
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --border: #d6d2c8;
+  --border-strong: #141414;
+  --input: #8a867c;
+  --ring: #141414;
+  --signal: #b23a1c;
+  --signal-tint: #f6e1d8;
+  --destructive: #a3231a;
+  --area-private: #53632a;
+  --area-business: #2a4869;
+  --overlay: rgb(20 20 20 / 0.4);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-  }
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #121314;
+  --foreground: #eae6de;
+  --foreground-2: #c6c1b7;
+  --muted: #1c1d1f;
+  --muted-foreground: #a09b90;
+  --popover: #1b1c1e;
+  --border: #34332f;
+  --border-strong: #8c877d;
+  --input: #6e6a62;
+  --ring: #eae6de;
+  --signal: #f08a6c;
+  --signal-tint: #3a231c;
+  --destructive: #ff8a7a;
+  --area-private: #b9c67e;
+  --area-business: #93b3d8;
+  --overlay: rgb(0 0 0 / 0.62);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+  html {
+    color-scheme: light;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background font-sans text-base text-foreground antialiased;
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+  a {
+    text-decoration-color: var(--border);
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    text-decoration-color: currentColor;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  mark {
+    background: var(--signal-tint);
+    color: inherit;
+  }
+}
+
+@layer components {
+  /* Section label: “Briefing”, “Verlauf”, “Wiedervorlagen”. */
+  .kicker {
+    @apply font-sans text-label font-bold tracking-[0.12em] uppercase;
+  }
+  /* Key hint: ⌘K, J, K, Esc. */
+  .kbd {
+    @apply inline-block min-w-[18px] rounded-sm border border-border px-[5px] text-center font-sans text-kbd font-semibold text-muted-foreground;
+  }
+  /* Tabular, lining figures for dates, times, phone numbers and counters. */
+  .num {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  /* End of a page header. */
+  .rule-double {
+    border-bottom: 3px double var(--border-strong);
   }
 }

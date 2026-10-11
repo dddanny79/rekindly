@@ -1,5 +1,4 @@
-import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
@@ -26,8 +25,8 @@ export function createApp(options: AppOptions = {}) {
     const root = relative(process.cwd(), webDistDir) || '.';
     app.use('*', serveStatic({ root }));
     // SPA fallback: client-side routes get index.html.
-    const indexHtml = readFile(join(webDistDir, 'index.html'), 'utf8');
-    app.get('*', async (c) => c.html(await indexHtml));
+    const indexHtml = readFileSync(join(webDistDir, 'index.html'), 'utf8');
+    app.get('*', (c) => c.html(indexHtml));
   }
 
   return app;
