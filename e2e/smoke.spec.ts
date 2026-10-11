@@ -13,7 +13,6 @@ test.describe('desktop', () => {
     await page.goto('/');
     const sidebar = page.getByRole('complementary');
     await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
-    await expect(sidebar.getByTestId('api-status')).toContainText('API reachable');
 
     await sidebar.getByRole('link', { name: 'People' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'People' })).toBeVisible();
@@ -31,7 +30,7 @@ test.describe('desktop', () => {
   test('loads bundled fonts without external requests', async ({ page }) => {
     const external: string[] = [];
     page.on('request', (req) => {
-      if (!req.url().startsWith('http://127.0.0.1')) external.push(req.url());
+      if (!req.url().startsWith('http://localhost')) external.push(req.url());
     });
     await page.goto('/');
     await page.evaluate(() => document.fonts.ready);
@@ -53,6 +52,7 @@ test.describe('appearance', () => {
 
   test('follows the system, can be overridden and persists', async ({ page }) => {
     await page.goto('/settings');
+    await expect(page.getByTestId('api-status')).toContainText('API reachable');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     expect(await background(page)).toBe('rgb(250, 249, 246)');
 

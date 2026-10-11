@@ -10,9 +10,9 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { APP_NAME } from '@app/shared';
-import { ApiStatus } from '@/components/api-status';
 import { LanguageToggle } from '@/components/language-controls';
 import type { Translations } from '@/i18n/locales/en';
+import { useAuthStatus } from '@/lib/auth';
 import { modKeyLabel } from '@/lib/platform';
 
 interface NavItem {
@@ -48,6 +48,7 @@ function AppName({ className }: { className: string }) {
 
 function Sidebar() {
   const { t } = useTranslation();
+  const { data: status } = useAuthStatus();
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-59 shrink-0 flex-col gap-5.5 border-r px-4 py-5.5 md:flex">
@@ -87,7 +88,12 @@ function Sidebar() {
       <div className="flex-1" />
 
       <div className="flex items-center justify-between gap-2 border-t px-2.5 pt-3">
-        <ApiStatus compact />
+        <Link
+          to="/settings"
+          className="min-w-0 truncate text-sm text-foreground-2 no-underline hover:underline"
+        >
+          {status?.account?.name}
+        </Link>
         <LanguageToggle />
       </div>
     </aside>

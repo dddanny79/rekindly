@@ -33,7 +33,7 @@ For E2E tests, install the browser once: `pnpm exec playwright install --with-de
 
 ### Layout
 
-- `apps/server` — Hono API (health check at `/api/health`); serves the built web app in production
+- `apps/server` — Hono API (`/api/v1`, health check at `/api/health`), Drizzle + SQLite, auth; serves the built web app in production
 - `apps/web` — React, Vite, Tailwind, shadcn/ui, TanStack Router/Query, i18next (en, de)
 - `packages/shared` — Zod schemas, shared types and constants
 - `e2e` — Playwright tests

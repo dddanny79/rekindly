@@ -50,3 +50,7 @@ desktop.ini
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# E2E
+.e2e-data/
+e2e/.auth/

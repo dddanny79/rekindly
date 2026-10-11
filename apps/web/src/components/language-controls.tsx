@@ -40,7 +40,7 @@ export function LanguageToggle() {
 }
 
 /** Full-width radio list for the mobile “More” page. */
-export function LanguageRadioGroup() {
+export function LanguageRadioGroup({ className }: { className?: string }) {
   const { t } = useTranslation();
   const { current, change } = useLanguage();
 
@@ -48,7 +48,7 @@ export function LanguageRadioGroup() {
     <div
       role="radiogroup"
       aria-label={t('language.label')}
-      className="border-t border-border-strong"
+      className={cn('border-t border-border-strong', className)}
     >
       {SUPPORTED_LANGUAGES.map((lng) => {
         const checked = lng === current;
