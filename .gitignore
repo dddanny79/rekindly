@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.vite/
+*.tsbuildinfo
+coverage/
+
+# Tests
+playwright-report/
+test-results/
+blob-report/
+
+# Local data — never commit real data
+data/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+exports/
+imports/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs
+*.log
+logs/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Synology Drive
+#recycle/
+@eaDir/
+*.SynologyWorkingDirectory
+
+# Claude Code local settings
+.claude/settings.local.json
