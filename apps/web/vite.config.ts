@@ -33,7 +33,10 @@ export default defineConfig(({ mode }) => {
       port: Number(env.WEB_PORT || 5173),
       strictPort: true,
       proxy: {
-        '/api': `http://localhost:${apiPort}`,
+        // Keep the browser's Host header (the string shorthand would rewrite it to
+        // localhost): the server's CSRF check compares Origin with the request host,
+        // and form uploads (photos) are rejected otherwise.
+        '/api': { target: `http://localhost:${apiPort}`, changeOrigin: false },
       },
     },
   };
