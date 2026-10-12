@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/rekindly-subtitle-dark.png" />
+    <img alt="Rekindly — Personal CRM" src="docs/brand/rekindly-subtitle.png" width="440" />
+  </picture>
+</p>
+
 # Rekindly
 
 **A self-hosted memory for the people in your life.**
