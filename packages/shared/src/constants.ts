@@ -4,6 +4,14 @@
  */
 export const APP_NAME = 'Personengedächtnis';
 
+/** APP_NAME for identifiers (MCP server name, file names): lower case, ASCII. */
+export const APP_SLUG = APP_NAME.toLowerCase()
+  .replace(/ä/g, 'ae')
+  .replace(/ö/g, 'oe')
+  .replace(/ü/g, 'ue')
+  .replace(/ß/g, 'ss')
+  .replace(/[^a-z0-9]+/g, '-');
+
 export const API_PREFIX = '/api';
 export const API_V1 = '/api/v1';
 

@@ -1,6 +1,7 @@
 import type { ServerConfig } from './config';
 import type { Db } from './db/client';
 import type { Session } from './auth/sessions';
+import type { ApiTokenRow } from './api-tokens/service';
 import type { RateLimiter } from './lib/rate-limit';
 import type { ChallengeStore } from './auth/challenges';
 
@@ -17,5 +18,7 @@ export interface Deps {
 export interface AppEnv {
   Variables: {
     session: Session | null;
+    /** Set when the request authenticates with an API token instead of a session. */
+    apiToken: ApiTokenRow | null;
   };
 }

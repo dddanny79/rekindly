@@ -13,6 +13,7 @@ const toSpace = (row: SpaceRow, peopleCount: number): Space => ({
   nameKey: row.nameKey,
   color: (row.color as SpaceColor | null) ?? null,
   sort: row.sort,
+  aiAllowed: row.aiAllowed,
   peopleCount,
 });
 
@@ -59,7 +60,7 @@ export function createSpace(db: Db, input: { name: string; color?: SpaceColor })
 export function updateSpace(
   db: Db,
   id: string,
-  input: { name?: string; color?: SpaceColor; sort?: number },
+  input: { name?: string; color?: SpaceColor; sort?: number; aiAllowed?: boolean },
 ): Space {
   // Renaming a seeded space replaces its translated name.
   const row = db

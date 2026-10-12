@@ -5,7 +5,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { API_PREFIX } from '@app/shared';
-import { loadSession, requireSession } from './auth/middleware';
+import { guardApiToken, loadApiToken, loadSession, requireSession } from './auth/middleware';
 import { accountRoutes, protectedAuthRoutes, publicAuthRoutes } from './auth/routes';
 import type { AppEnv, Deps } from './env';
 import { DomainError } from './lib/errors';
@@ -29,6 +29,10 @@ import { todayRoutes } from './today/routes';
 import { trashRoutes } from './trash/routes';
 import { contactImportRoutes } from './contact-imports/routes';
 import { duplicateRoutes } from './duplicates/routes';
+import { apiTokenRoutes } from './api-tokens/routes';
+import { mcpRoutes } from './mcp/routes';
+import { docsHtml } from './openapi/docs';
+import { openApiDocument } from './openapi/spec';
 import { flushSearchQueue } from './search/service';
 import { settingsRoutes } from './settings/routes';
 import { spaceRoutes } from './spaces/routes';
@@ -66,6 +70,11 @@ export function createApp({ deps, webDistDir }: AppOptions) {
 
   const api = new Hono<AppEnv>();
   api.route('/health', healthRoutes);
+  // API description: OpenAPI document and a readable page (no data, so no sign-in).
+  const openApi = openApiDocument(deps.config.publicUrl);
+  api.get('/openapi.json', (c) => c.json(openApi));
+  const docs = docsHtml(openApi);
+  api.get('/docs', (c) => c.html(docs));
 
   // Versioned API: everything except auth bootstrap needs a session.
   const v1 = new Hono<AppEnv>();
@@ -78,8 +87,10 @@ export function createApp({ deps, webDistDir }: AppOptions) {
     }),
   );
   v1.use(loadSession(deps));
+  v1.use(loadApiToken(deps));
   v1.route('/auth', publicAuthRoutes(deps));
   v1.use(requireSession);
+  v1.use(guardApiToken);
   // Keep the search index current: rebuild what the write just changed.
   v1.use(async (c, next) => {
     await next();
@@ -111,6 +122,7 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/backup', backupConfigRoutes(deps));
   v1.route('/contact-imports', contactImportRoutes(deps));
   v1.route('/duplicates', duplicateRoutes(deps));
+  v1.route('/api-tokens', apiTokenRoutes(deps));
   v1.route('/', backupRoutes(deps));
   api.route('/v1', v1);
 
@@ -120,6 +132,8 @@ export function createApp({ deps, webDistDir }: AppOptions) {
 
   // CardDAV for address books (iPhone, DAVx5 …), authenticated with app passwords.
   app.route('/dav', davRoutes(deps));
+  // MCP server for AI assistants (Claude Code, Claude Desktop), API-token auth.
+  app.route('/mcp', mcpRoutes(deps));
   // Calendar subscriptions (ICS); the secret link is the key.
   app.route('/ics', calendarSubscriptionRoutes(deps));
   app.route('/', davDiscovery());

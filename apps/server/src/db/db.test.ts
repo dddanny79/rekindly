@@ -46,6 +46,7 @@ describe('database', () => {
       [
         'account',
         'addresses',
+        'api_tokens',
         'app_passwords',
         'calendar_feeds',
         'affiliations',

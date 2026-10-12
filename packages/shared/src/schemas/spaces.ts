@@ -12,6 +12,8 @@ export const spaceSchema = z.object({
   nameKey: z.string().nullable(),
   color: spaceColorSchema.nullable(),
   sort: z.number().int(),
+  /** Data of this space may go to an AI (MCP clients, AI features). */
+  aiAllowed: z.boolean(),
   peopleCount: z.number().int(),
 });
 export type Space = z.infer<typeof spaceSchema>;
@@ -27,4 +29,5 @@ export const updateSpaceRequestSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   color: spaceColorSchema.optional(),
   sort: z.number().int().min(0).max(10_000).optional(),
+  aiAllowed: z.boolean().optional(),
 });

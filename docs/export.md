@@ -63,7 +63,7 @@ API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
 - `entryPeople` keeps the order in which people were linked to an entry.
 - `davExtras`: vCard fields from address book clients that the app has no field for.
 - **Not included:** the account (name, email, password), passkeys, sessions, app
-  passwords and calendar links (credentials stay with the instance), and data the
+  passwords, API tokens and calendar links (credentials stay with the instance), and data the
   app derives itself (search index, CardDAV cache, recently viewed).
 - `version` grows with incompatible changes; an import refuses files from a newer
   version than it knows.
@@ -72,7 +72,7 @@ API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
 
 1. Start a new, empty instance (new volume) and run the setup.
 2. Settings → Data → Restore → choose the export file → Import.
-3. Reconnect devices (Settings → Sync): new app passwords and calendar links.
+3. Reconnect devices (Settings → Sync, API & MCP): new app passwords, calendar links and API tokens.
 
 The import checks every photo against its checksum and all references; on any
 problem nothing is imported.

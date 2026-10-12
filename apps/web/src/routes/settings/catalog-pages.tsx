@@ -53,19 +53,29 @@ export function SpacesSettingsPage() {
     () => setName(''),
   );
   const update = useCatalogWrite(
-    ({ id, ...input }: { id: string; name?: string; color?: SpaceColor }) =>
+    ({ id, ...input }: { id: string; name?: string; color?: SpaceColor; aiAllowed?: boolean }) =>
       catalogApi.update('spaces', id, input),
   );
   const remove = useCatalogWrite((id: string) => catalogApi.remove('spaces', id));
 
   return (
     <SettingsSection title={t('settings.tabs.spaces')} lead={t('settings.spaces.lead')}>
+      <p className="-mt-2 mb-3 text-meta text-foreground-2">{t('settings.spaces.aiHint')}</p>
       <ul className="border-t">
         {spaces.map((space) => (
           <Row
             key={space.id}
             actions={
               <>
+                <label className="flex items-center gap-1.5 text-meta whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={space.aiAllowed}
+                    onChange={(e) => update.mutate({ id: space.id, aiAllowed: e.target.checked })}
+                    aria-label={t('settings.spaces.aiAllowedFor', { name: spaceName(t, space) })}
+                  />
+                  {t('settings.spaces.aiAllowed')}
+                </label>
                 <Select
                   aria-label={t('settings.spaces.color')}
                   value={space.color ?? 'slate'}

@@ -39,6 +39,8 @@ const KNOWN = [
   'monica_unauthorized',
   'monica_unreachable',
   'monica_invalid_url',
+  'token_not_allowed',
+  'token_read_only',
 ] as const;
 
 /** User-facing message for a failed request or WebAuthn ceremony. */

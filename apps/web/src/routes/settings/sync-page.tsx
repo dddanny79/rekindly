@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Check, Copy } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CreateAppPasswordResponse } from '@app/shared';
 import { CalendarFeedsSection } from '@/components/calendar-feeds';
+import { CopyValue } from '@/components/copy-value';
 import { FormField, FormMessage } from '@/components/form-field';
 import { RemoveButton } from '@/components/row-actions';
 import { SettingsSection } from '@/components/settings-section';
@@ -14,34 +14,6 @@ import { errorMessage } from '@/lib/errors';
 import { spaceName } from '@/lib/labels';
 
 const KEYS = [['app-passwords']];
-
-function CopyValue({ label, value }: { label: string; value: string }) {
-  const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="flex items-center justify-between gap-3 border-b py-2">
-      <div className="min-w-0">
-        <div className="text-meta text-muted-foreground">{label}</div>
-        <div data-copy-value className="num text-base font-semibold tracking-wide break-all">
-          {value}
-        </div>
-      </div>
-      <Button
-        size="icon-sm"
-        variant="ghost"
-        aria-label={t('sync.copy', { what: label })}
-        onClick={() =>
-          void navigator.clipboard?.writeText(value).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          })
-        }
-      >
-        {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-      </Button>
-    </div>
-  );
-}
 
 /** Shown once after creating a password: what to type into the phone. */
 function Credentials({

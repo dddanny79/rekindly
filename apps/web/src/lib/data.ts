@@ -40,6 +40,8 @@ import {
   type CsvMapping,
   duplicateListResponseSchema,
   type MergePeopleRequest,
+  apiTokenListResponseSchema,
+  createApiTokenResponseSchema,
 } from '@app/shared';
 import { api, ApiError } from '@/lib/api';
 
@@ -446,4 +448,17 @@ export const duplicateApi = {
     api(`${V1}/duplicates/dismiss`, null, { json: { personIds } }),
   merge: (input: MergePeopleRequest) =>
     api(`${V1}/duplicates/merge`, personSchema, { json: input }),
+};
+
+// API tokens ------------------------------------------------------------------------------
+
+export const apiTokensQuery = queryOptions({
+  queryKey: ['api-tokens'],
+  queryFn: () => api(`${V1}/api-tokens`, apiTokenListResponseSchema).then((r) => r.apiTokens),
+});
+
+export const apiTokensApi = {
+  create: (input: { name: string; scope: 'read' | 'write'; expiresInDays: number | null }) =>
+    api(`${V1}/api-tokens`, createApiTokenResponseSchema, { json: input }),
+  remove: (id: string) => api(`${V1}/api-tokens/${id}`, null, { method: 'DELETE' }),
 };

@@ -11,6 +11,7 @@ const TABS = [
   { to: '/settings/sync', key: 'sync' },
   { to: '/settings/data', key: 'data' },
   { to: '/settings/import', key: 'import' },
+  { to: '/settings/api', key: 'api' },
 ] as const;
 
 export function SettingsLayout() {
