@@ -61,6 +61,8 @@ docker run -d --name "$NAME" -p "$PORT:3000" -v "$VOLUME:/data" \
   -e PUBLIC_URL="$BASE" -e TZ=Europe/Berlin "$IMAGE" >/dev/null
 wait_healthy
 [ "$(docker exec "$NAME" id -u)" = 1000 ] || fail "app does not run as uid 1000"
+# Health checks of platforms (Coolify) use wget/curl against localhost, which may be ::1.
+docker exec "$NAME" wget -qO- http://localhost:3000/api/health | grep -q '"ok"' || fail "not reachable via localhost"
 docker logs "$NAME" 2>&1 | grep -q 'time zone: Europe/Berlin' || fail "TZ not applied"
 api GET /api/v1/auth/status | grep -q '"setupRequired":true' || fail "setup not required"
 curl -sS "$BASE/setup" | grep -q '<div id="root">' || fail "web app not served"

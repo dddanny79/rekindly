@@ -44,7 +44,6 @@ COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 ENV NODE_ENV=production \
     PORT=3000 \
-    HOST=0.0.0.0 \
     DATA_DIR=/data
 
 WORKDIR /app/apps/server

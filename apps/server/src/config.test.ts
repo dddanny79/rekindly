@@ -15,6 +15,7 @@ describe('loadConfig', () => {
   it('has development defaults', () => {
     const config = loadConfig({});
     expect(config.port).toBe(3000);
+    expect(config.host).toBeUndefined();
     expect(config.publicUrl.origin).toBe('http://localhost:3000');
     expect(config.dataDir).toMatch(/apps\/server\/data$/);
     expect(config.trustProxy).toBe(false);

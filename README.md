@@ -63,7 +63,7 @@ docker run -p 3000:3000 -v pg-data:/data -e PUBLIC_URL=http://localhost:3000 \
 | `PUBLIC_URL`   | required in production | Address the app is opened at (passkeys, secure cookies) |
 | `DATA_DIR`     | `/data` in production  | Database and files                                      |
 | `PORT`         | `3000`                 | Port of the server                                      |
-| `HOST`         | `0.0.0.0`              | Interface the server binds to                           |
+| `HOST`         | all (IPv6 + IPv4)      | Interface the server binds to                           |
 | `TZ`           | `UTC`                  | Time zone                                               |
 | `TRUST_PROXY`  | `false`                | `true` behind a reverse proxy                           |
 | `LOG_LEVEL`    | `info`                 | `error`, `warn`, `info`, `debug`                        |

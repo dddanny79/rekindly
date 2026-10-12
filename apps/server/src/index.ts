@@ -52,7 +52,8 @@ const stopPurge = schedulePurge(db, config.dataDir);
 const app = createApp({ deps: createDeps(db, config), webDistDir: config.webDistDir });
 
 const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
-  log.info(`${APP_NAME} ${APP_VERSION} listening on http://${info.address}:${info.port}`);
+  const host = info.address.includes(':') ? `[${info.address}]` : info.address;
+  log.info(`${APP_NAME} ${APP_VERSION} listening on http://${host}:${info.port}`);
   log.info(
     `Data directory: ${config.dataDir} · public URL: ${config.publicUrl.origin} · time zone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
   );

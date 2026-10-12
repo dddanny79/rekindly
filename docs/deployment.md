@@ -57,20 +57,37 @@ docker compose logs -f
 
 ## Coolify
 
-1. **New resource → Docker Image**, image `ghcr.io/dddanny79/personengedaechtnis:edge`.
-   (While the repository is private, add a GitHub token with `read:packages` as
-   registry credentials, or deploy from the Git repository with the Dockerfile
-   build pack instead.)
-2. **Domain:** e.g. `https://people.example.com`; Coolify/Traefik provides the
-   certificate. Port: `3000`.
-3. **Environment variables:**
-   `PUBLIC_URL=https://people.example.com`, `TRUST_PROXY=true`, `TZ=Europe/Berlin`.
-4. **Persistent storage:** a volume mounted at `/data`.
-5. Deploy. The health check of the image (`GET /api/health`) tells Coolify when
-   the app is ready. Open the domain and run the setup.
+Two ways; both use the same settings from step 3 on.
 
-Updates: redeploy (with `edge`, Coolify pulls the newest image). Migrations run
-automatically at start.
+- **From the Git repository** (tested): `+ New` → _Private Repository (with GitHub
+  App)_, branch `main`, **Build Pack: Dockerfile** (not Docker Compose — the
+  `docker-compose.yml` is an example for plain Docker and would publish port 3000
+  past Coolify's proxy), Base Directory `/`, Dockerfile Location `/Dockerfile`.
+  Coolify rebuilds on every push to `main` (Auto Deploy).
+- **From the image:** `+ New` → _Docker Image_,
+  `ghcr.io/dddanny79/personengedaechtnis:edge`. While the repository is private,
+  log in on the server once: `docker login ghcr.io` with a classic GitHub token
+  that has only `read:packages`.
+
+Then:
+
+3. **Ports Exposes:** `3000`. **Domains:** e.g. `https://people.example.com`;
+   Coolify/Traefik provides the certificate.
+4. **Environment variables** (runtime, not build variables):
+   `PUBLIC_URL=https://people.example.com`, `TRUST_PROXY=true`, `TZ=Europe/Berlin`.
+5. **Persistent storage:** a volume with destination path `/data`. Without it all
+   data is lost on the next deploy.
+6. **Health check:** `GET` `/api/health` on port `3000`. The image has no `curl`;
+   Coolify falls back to BusyBox `wget`, which works since the server listens on
+   IPv6 and IPv4. (Images before that fix need Host `127.0.0.1` here.) You can
+   also turn Coolify's check off — the image's own Docker health check remains.
+7. Deploy, open the domain and run the setup. Passkeys work there (HTTPS); switch
+   them on in Settings.
+8. **Backup until export/import exists:** _Scheduled Tasks_ → command
+   `node dist/cli.js backup`, frequency `0 3 * * *` (snapshots in
+   `/data/backups`, on the same disk — copy them off the server as well).
+
+Migrations run automatically at start.
 
 ## Unraid, Portainer, Synology
 

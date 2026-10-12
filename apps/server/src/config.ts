@@ -7,7 +7,8 @@ const fromPackage = (path: string) => fileURLToPath(new URL(`../${path}`, import
 
 export interface ServerConfig {
   port: number;
-  host: string;
+  /** Interface to bind; undefined = all, IPv6 and IPv4. */
+  host: string | undefined;
   /** Directory of the built web app; served only if it contains an index.html. */
   webDistDir: string;
   /** Database and files live here. */
@@ -103,7 +104,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const port = read(() => parsePort(env.PORT, 3000), 3000);
   const config: ServerConfig = {
     port,
-    host: env.HOST || '0.0.0.0',
+    // Unset: all interfaces, IPv6 and IPv4 (health checks may resolve localhost to ::1).
+    host: env.HOST || undefined,
     webDistDir: env.WEB_DIST_DIR || fromPackage('../web/dist'),
     dataDir: resolve(env.DATA_DIR || (production ? '/data' : fromPackage('data'))),
     migrationsDir: env.MIGRATIONS_DIR || fromPackage('drizzle'),
