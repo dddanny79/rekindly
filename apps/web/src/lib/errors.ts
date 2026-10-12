@@ -32,6 +32,10 @@ const KNOWN = [
   'backup_target_failed',
   'backup_not_configured',
   'backup_secrets_unreadable',
+  'unsupported_import_format',
+  'import_nothing',
+  'import_already_undone',
+  'file_required',
 ] as const;
 
 /** User-facing message for a failed request or WebAuthn ceremony. */

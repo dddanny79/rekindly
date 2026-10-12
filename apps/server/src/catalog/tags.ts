@@ -33,7 +33,7 @@ export function listTags(db: Db): Tag[] {
     }));
 }
 
-function findTagByName(db: Db, name: string) {
+export function findTagByName(db: Db, name: string) {
   return db
     .select()
     .from(tags)

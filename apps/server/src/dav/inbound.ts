@@ -68,10 +68,10 @@ const TEXT: Record<Locale, Record<string, string>> = {
 const fill = (template: string, values: Record<string, string>) =>
   template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => values[key] ?? '');
 
-const pointKey = (p: { kind: string; value: string }) =>
+export const pointKey = (p: { kind: string; value: string }) =>
   `${p.kind}|${p.kind === 'phone' ? p.value.replace(/[^\d+]/g, '') : p.value.trim().toLowerCase()}`;
 
-const addressKey = (a: Omit<CardAddress, 'label'>) =>
+export const addressKey = (a: Omit<CardAddress, 'label'>) =>
   [a.street, a.zip, a.city, a.region, a.country]
     .map((p) => (p ?? '').trim().toLowerCase())
     .join('|');
@@ -81,8 +81,16 @@ const addressText = (a: Omit<CardAddress, 'label'>) =>
     .filter((p) => p?.trim())
     .join(', ');
 
-/** Finds or creates the organization path (top-level first) in the space. */
-function ensureOrganizationPath(db: Db, spaceId: string, names: string[]): string {
+/**
+ * Finds or creates the organization path (top-level first) in the space;
+ * `onCreate` hears about every organization that had to be created.
+ */
+export function ensureOrganizationPath(
+  db: Db,
+  spaceId: string,
+  names: string[],
+  onCreate?: (id: string) => void,
+): string {
   let parentId: string | null = null;
   for (const [index, name] of names.entries()) {
     const candidates = db
@@ -98,13 +106,15 @@ function ensureOrganizationPath(db: Db, spaceId: string, names: string[]): strin
       .all();
     const match: (typeof candidates)[number] | undefined =
       candidates.find((o) => o.parentId === parentId) ?? (index === 0 ? candidates[0] : undefined);
-    parentId =
-      match?.id ??
-      db
+    if (match) parentId = match.id;
+    else {
+      parentId = db
         .insert(organizations)
         .values({ spaceId, name, parentId, kind: index === 0 ? 'company' : null })
         .returning()
         .get().id;
+      onCreate?.(parentId);
+    }
   }
   return parentId!;
 }

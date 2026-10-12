@@ -15,3 +15,4 @@ export * from './schemas/today';
 export * from './schemas/trash';
 export * from './schemas/dav';
 export * from './schemas/backup';
+export * from './schemas/contact-import';

@@ -195,6 +195,10 @@ const TYPE_LABELS: Record<'en' | 'de', Record<string, string>> = {
   },
 };
 
+/** The app's label for a standard type (`CELL` → "Mobile" / "Mobil"); null if none. */
+export const typeLabel = (type: string, locale: 'en' | 'de') =>
+  TYPE_LABELS[locale][type] ?? (type === 'OTHER' ? (locale === 'de' ? 'Andere' : 'Other') : null);
+
 /** `_$!<Mobile>!$_` (Apple's built-in label) → `Mobile`. */
 const appleLabel = (label: string) => label.replace(/^_\$!<(.*)>!\$_$/, '$1');
 

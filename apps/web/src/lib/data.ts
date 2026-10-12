@@ -33,6 +33,11 @@ import {
   backupFileListResponseSchema,
   backupSettingsSchema,
   backupStatusSchema,
+  contactImportListSchema,
+  type ContactImportOptions,
+  contactImportPreviewSchema,
+  contactImportSchema,
+  type CsvMapping,
 } from '@app/shared';
 import { api, ApiError } from '@/lib/api';
 
@@ -393,4 +398,29 @@ export const backupApi = {
   run: () => api(`${V1}/backup/run`, backupStatusSchema, { method: 'POST' }),
   restore: (name: string, passphrase: string) =>
     api(`${V1}/backup/restore`, importedSchema, { json: { name, passphrase } }),
+};
+
+// Contact import ------------------------------------------------------------------------
+
+export const contactImportsQuery = queryOptions({
+  queryKey: ['contact-imports'],
+  queryFn: () => api(`${V1}/contact-imports`, contactImportListSchema),
+});
+
+const importForm = (file: File, options: unknown) => {
+  const form = new FormData();
+  form.set('file', file);
+  form.set('options', JSON.stringify(options));
+  return form;
+};
+
+export const contactImportApi = {
+  preview: (file: File, mapping?: CsvMapping) =>
+    api(`${V1}/contact-imports/preview`, contactImportPreviewSchema, {
+      form: importForm(file, { mapping }),
+    }),
+  run: (file: File, options: ContactImportOptions) =>
+    api(`${V1}/contact-imports`, contactImportSchema, { form: importForm(file, options) }),
+  undo: (id: string) =>
+    api(`${V1}/contact-imports/${id}/undo`, contactImportSchema, { method: 'POST' }),
 };

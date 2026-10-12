@@ -24,6 +24,8 @@ export function setUnauthorizedHandler(handler: () => void) {
 interface RequestOptions {
   method?: string;
   json?: unknown;
+  /** Multipart body (file uploads). */
+  form?: FormData;
   /** Cancels the request (e.g. a search that was overtaken by the next keystroke). */
   signal?: AbortSignal;
 }
@@ -34,9 +36,9 @@ export async function api<T>(
   options: RequestOptions = {},
 ) {
   const res = await fetch(path, {
-    method: options.method ?? (options.json === undefined ? 'GET' : 'POST'),
+    method: options.method ?? (options.json === undefined && !options.form ? 'GET' : 'POST'),
     headers: options.json === undefined ? undefined : { 'content-type': 'application/json' },
-    body: options.json === undefined ? undefined : JSON.stringify(options.json),
+    body: options.form ?? (options.json === undefined ? undefined : JSON.stringify(options.json)),
     credentials: 'same-origin',
     signal: options.signal,
   });

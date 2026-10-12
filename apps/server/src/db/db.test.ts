@@ -49,6 +49,8 @@ describe('database', () => {
         'app_passwords',
         'calendar_feeds',
         'affiliations',
+        'contact_import_items',
+        'contact_imports',
         'contact_points',
         'dav_cards',
         'dav_extras',
