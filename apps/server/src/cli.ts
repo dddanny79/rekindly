@@ -1,3 +1,5 @@
+import { existsSync, mkdirSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { Writable } from 'node:stream';
 import { passwordSchema, PASSWORD_MIN_LENGTH } from '@app/shared';
@@ -12,7 +14,10 @@ const USAGE = `Usage: node dist/cli.js <command>
 Commands:
   reset-password   Set a new password for the account and sign out all sessions.
                    Reads the password interactively, or from stdin when piped.
-  reindex          Rebuild the search index from scratch.`;
+  reindex          Rebuild the search index from scratch.
+  backup [file]    Write a consistent copy of the database while the app runs.
+                   Default: DATA_DIR/backups/app-<date>-<time>.sqlite. Back up
+                   DATA_DIR/files (photos) as well.`;
 
 /** Reads the first line of piped stdin. */
 async function readPipedLine(): Promise<string> {
@@ -92,12 +97,33 @@ function reindex() {
   }
 }
 
+async function backup(target?: string) {
+  const config = loadConfig();
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+  const file = resolve(target ?? join(config.dataDir, 'backups', `app-${stamp}.sqlite`));
+  if (existsSync(file)) {
+    console.error(`${file} already exists; choose another file name.`);
+    return 1;
+  }
+  mkdirSync(dirname(file), { recursive: true });
+  const { sqlite } = createDb(config.dataDir);
+  try {
+    await sqlite.backup(file);
+    console.log(`Database backed up to ${file}.`);
+    return 0;
+  } finally {
+    sqlite.close();
+  }
+}
+
 async function main(args: string[]) {
   switch (args[0]) {
     case 'reset-password':
       return resetPassword();
     case 'reindex':
       return reindex();
+    case 'backup':
+      return backup(args[1]);
     default:
       console.log(USAGE);
       return args[0] && args[0] !== '--help' ? 1 : 0;

@@ -1,0 +1,167 @@
+# Deployment
+
+The app ships as **one Docker image** for `linux/amd64` and `linux/arm64`:
+`ghcr.io/dddanny79/personengedaechtnis`. It serves the web app and the API on
+port `3000` and keeps everything (SQLite database and uploaded photos) in the
+volume `/data`. No other services are needed.
+
+| Tag      | Content                                        |
+| -------- | ---------------------------------------------- |
+| `edge`   | Latest state of `main` (may change daily)      |
+| `1.2.3`  | A release; `1.2` follows the latest patch      |
+| `latest` | Latest release (none yet — use `edge` for now) |
+
+## Configuration
+
+| Variable      | Required | Default | Description                                                                                                                                  |
+| ------------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_URL`  | **yes**  | –       | The address people open, e.g. `https://people.example.com`. Used for passkeys (WebAuthn) and to mark the session cookie `Secure` over HTTPS. |
+| `TZ`          | no       | `UTC`   | Time zone, e.g. `Europe/Berlin` (log times, “today” when the browser does not send its date).                                                |
+| `TRUST_PROXY` | no       | `false` | `true` behind a reverse proxy, so the login rate limit sees the real client address (`X-Forwarded-For`).                                     |
+| `LOG_LEVEL`   | no       | `info`  | `error`, `warn`, `info` or `debug` (`debug` logs every request).                                                                             |
+| `PORT`        | no       | `3000`  | Port inside the container.                                                                                                                   |
+| `DATA_DIR`    | no       | `/data` | Database and files. Keep the default in Docker and mount a volume there.                                                                     |
+
+Missing or invalid values stop the container at start with a message that lists
+every problem, e.g. `PUBLIC_URL is required: …`.
+
+Passkeys need a secure context: `https://…` or `http://localhost`. Over a plain
+`http://` address on the network (IP, Tailscale name) only password sign-in works.
+
+## Docker
+
+```sh
+docker run -d --name personengedaechtnis --restart unless-stopped \
+  -p 3000:3000 \
+  -v pg-data:/data \
+  -e PUBLIC_URL=http://localhost:3000 \
+  -e TZ=Europe/Berlin \
+  ghcr.io/dddanny79/personengedaechtnis:edge
+```
+
+Open `PUBLIC_URL`; on the first start the setup wizard creates the only account.
+
+The app runs as user `node` (uid/gid `1000`). A named volume gets the right owner
+automatically. For a **bind mount** (`-v /srv/pg:/data`) the directory must belong
+to uid 1000 first: `sudo chown 1000:1000 /srv/pg`. Otherwise the container stops
+with “The data directory /data is not writable”.
+
+## Docker Compose
+
+See [`docker-compose.yml`](../docker-compose.yml):
+
+```sh
+docker compose up -d
+docker compose logs -f
+```
+
+## Coolify
+
+1. **New resource → Docker Image**, image `ghcr.io/dddanny79/personengedaechtnis:edge`.
+   (While the repository is private, add a GitHub token with `read:packages` as
+   registry credentials, or deploy from the Git repository with the Dockerfile
+   build pack instead.)
+2. **Domain:** e.g. `https://people.example.com`; Coolify/Traefik provides the
+   certificate. Port: `3000`.
+3. **Environment variables:**
+   `PUBLIC_URL=https://people.example.com`, `TRUST_PROXY=true`, `TZ=Europe/Berlin`.
+4. **Persistent storage:** a volume mounted at `/data`.
+5. Deploy. The health check of the image (`GET /api/health`) tells Coolify when
+   the app is ready. Open the domain and run the setup.
+
+Updates: redeploy (with `edge`, Coolify pulls the newest image). Migrations run
+automatically at start.
+
+## Unraid, Portainer, Synology
+
+Same as plain Docker: image `ghcr.io/dddanny79/personengedaechtnis:edge`, container
+port `3000`, a path or volume for `/data` (owned by uid 1000, see above), and the
+variables `PUBLIC_URL` and `TZ`. On Unraid use a path below `/mnt/user/appdata/`.
+
+## Reverse proxy
+
+Terminate HTTPS at the proxy, forward to port 3000, set `PUBLIC_URL` to the
+public `https://` address and `TRUST_PROXY=true`. Do not publish port 3000 to the
+internet.
+
+**Caddy**
+
+```caddy
+people.example.com {
+  reverse_proxy app:3000
+}
+```
+
+**nginx**
+
+```nginx
+server {
+  listen 443 ssl;
+  server_name people.example.com;
+  # ssl_certificate …; ssl_certificate_key …;
+  client_max_body_size 20m; # photo uploads (max. 15 MB)
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+**Traefik** (labels, without Coolify)
+
+```yaml
+labels:
+  - traefik.enable=true
+  - traefik.http.routers.people.rule=Host(`people.example.com`)
+  - traefik.http.routers.people.tls.certresolver=letsencrypt
+  - traefik.http.services.people.loadbalancer.server.port=3000
+```
+
+## Backup and restore
+
+Everything lives in `/data`:
+
+- `app.sqlite` (+ `app.sqlite-wal`, `app.sqlite-shm` while running) — the database
+- `files/` — photos
+
+**Consistent backup while the app runs** (the image contains no `sqlite3` binary;
+the app does it itself):
+
+```sh
+docker exec personengedaechtnis node dist/cli.js backup
+# → /data/backups/app-20261012-210000.sqlite
+```
+
+Then copy `/data/backups/` and `/data/files/` into your backup chain (restic,
+borg, Synology Hyper Backup, …) and delete old snapshots from `/data/backups/`.
+A daily cron job on the host is enough, e.g.:
+
+```sh
+0 3 * * * docker exec personengedaechtnis node dist/cli.js backup && \
+  find /var/lib/docker/volumes/pg-data/_data/backups -name '*.sqlite' -mtime +14 -delete
+```
+
+Alternatively stop the container and copy the whole volume.
+
+**Restore:**
+
+```sh
+docker stop personengedaechtnis
+# in the volume: replace the database, remove the old WAL files
+cp app-20261012-210000.sqlite /path/to/volume/app.sqlite
+rm -f /path/to/volume/app.sqlite-wal /path/to/volume/app.sqlite-shm
+# restore files/ from the same point in time
+docker start personengedaechtnis
+```
+
+Afterwards rebuild the search index if in doubt:
+`docker exec personengedaechtnis node dist/cli.js reindex`.
+
+## Other commands
+
+```sh
+docker exec -it personengedaechtnis node dist/cli.js reset-password
+docker exec personengedaechtnis node dist/cli.js reindex
+```

@@ -27,6 +27,7 @@ import {
 } from '../db/schema';
 import { removeFile } from '../files/service';
 import { DomainError, notFound } from '../lib/errors';
+import { log } from '../lib/log';
 import { touchPerson } from '../people/refs';
 
 const DAY = 86_400_000;
@@ -532,9 +533,9 @@ export function schedulePurge(db: Db, dataDir: string) {
     purgeExpired(db, dataDir)
       .then(({ purged }) => {
         if (purged)
-          console.log(`Trash: purged ${purged} items older than ${TRASH_RETENTION_DAYS} days.`);
+          log.info(`Trash: purged ${purged} items older than ${TRASH_RETENTION_DAYS} days.`);
       })
-      .catch((error: unknown) => console.error('trash purge failed', error));
+      .catch((error: unknown) => log.error('trash purge failed', error));
   void run();
   const timer = setInterval(run, DAY);
   timer.unref();

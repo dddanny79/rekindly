@@ -1,5 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { verifyCredentials } from './auth/account';
 import { people, sessions, spaces } from './db/schema';
@@ -68,5 +70,26 @@ describe('cli reindex', () => {
     });
     expect(out).toContain('Search index rebuilt: 1 people, 0 organizations');
     expect(searchDocumentCount(t.db, 'person')).toBe(1);
+  }, 20_000);
+});
+
+describe('cli backup', () => {
+  it('writes a consistent copy of the database and refuses to overwrite', async () => {
+    await setupOwner(t);
+    const file = join(t.dataDir, 'backups', 'test.sqlite');
+    const run = () =>
+      spawnSync(TSX, [CLI, 'backup', file], {
+        env: { ...process.env, DATA_DIR: t.dataDir },
+        encoding: 'utf8',
+      });
+    const first = run();
+    expect(first.status).toBe(0);
+    expect(first.stdout).toContain(`Database backed up to ${file}`);
+    const copy = new Database(file, { readonly: true });
+    expect(copy.prepare('select email from account').get()).toEqual({ email: OWNER.email });
+    copy.close();
+    const second = run();
+    expect(second.status).toBe(1);
+    expect(second.stderr).toContain('already exists');
   }, 20_000);
 });

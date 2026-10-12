@@ -50,13 +50,25 @@ pnpm --filter @app/server perf
 ## Configuration
 
 All configuration is via environment variables; see [`.env.example`](.env.example).
+Running it with Docker, Compose, Coolify or behind a reverse proxy, and backups:
+[`docs/deployment.md`](docs/deployment.md).
 
-| Variable       | Default         | Description                                    |
-| -------------- | --------------- | ---------------------------------------------- |
-| `PORT`         | `3000`          | Port of the server                             |
-| `HOST`         | `0.0.0.0`       | Interface the server binds to                  |
-| `WEB_PORT`     | `5173`          | Port of the Vite dev server (development only) |
-| `WEB_DIST_DIR` | `apps/web/dist` | Built web app served by the server             |
+```sh
+docker run -p 3000:3000 -v pg-data:/data -e PUBLIC_URL=http://localhost:3000 \
+  ghcr.io/dddanny79/personengedaechtnis:edge
+```
+
+| Variable       | Default                | Description                                             |
+| -------------- | ---------------------- | ------------------------------------------------------- |
+| `PUBLIC_URL`   | required in production | Address the app is opened at (passkeys, secure cookies) |
+| `DATA_DIR`     | `/data` in production  | Database and files                                      |
+| `PORT`         | `3000`                 | Port of the server                                      |
+| `HOST`         | `0.0.0.0`              | Interface the server binds to                           |
+| `TZ`           | `UTC`                  | Time zone                                               |
+| `TRUST_PROXY`  | `false`                | `true` behind a reverse proxy                           |
+| `LOG_LEVEL`    | `info`                 | `error`, `warn`, `info`, `debug`                        |
+| `WEB_PORT`     | `5173`                 | Port of the Vite dev server (development only)          |
+| `WEB_DIST_DIR` | `apps/web/dist`        | Built web app served by the server                      |
 
 ## Maintenance
 
@@ -67,6 +79,7 @@ in development: `pnpm --filter @app/server cli <command>`):
 | ---------------- | ----------------------------------------------------------------- |
 | `reset-password` | Set a new account password and sign out all sessions              |
 | `reindex`        | Rebuild the full-text search index (normally kept current itself) |
+| `backup [file]`  | Consistent copy of the database while the app runs                |
 
 Deleted data goes to the trash and stays restorable for 30 days; the server purges
 older items at start and then once a day.

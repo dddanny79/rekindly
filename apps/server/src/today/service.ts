@@ -143,7 +143,11 @@ function recent(db: Db, spaceId?: string): RecentPerson[] {
 }
 
 export function getToday(db: Db, query: { date?: string; spaceId?: string }): TodayResponse {
-  const date = query.date ?? nowIso().slice(0, 10);
+  // Without a date from the client: today in the server's time zone (TZ).
+  const now = new Date();
+  const date =
+    query.date ??
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const reminders = listReminders(db, { status: 'open' }).filter(
     (r) => r.dueOn <= date && (!query.spaceId || r.person?.spaceId === query.spaceId),
   );

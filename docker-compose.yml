@@ -1,0 +1,19 @@
+# Example: docker compose up -d, then open PUBLIC_URL and run the setup.
+# Behind a reverse proxy with HTTPS, set PUBLIC_URL to the https:// address,
+# TRUST_PROXY=true, and do not publish the port.
+services:
+  app:
+    image: ghcr.io/dddanny79/personengedaechtnis:edge
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      PUBLIC_URL: http://localhost:3000
+      TZ: Europe/Berlin
+      # TRUST_PROXY: 'true'
+      # LOG_LEVEL: info
+    volumes:
+      - data:/data
+
+volumes:
+  data:

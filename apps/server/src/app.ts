@@ -9,6 +9,7 @@ import { loadSession, requireSession } from './auth/middleware';
 import { accountRoutes, protectedAuthRoutes, publicAuthRoutes } from './auth/routes';
 import type { AppEnv, Deps } from './env';
 import { DomainError } from './lib/errors';
+import { log } from './lib/log';
 import { healthRoutes } from './health/routes';
 import { fieldRoutes } from './catalog/fields';
 import { relationshipTypeRoutes } from './catalog/relationship-types';
@@ -37,8 +38,17 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   app.onError((error, c) => {
     if (error instanceof DomainError) return c.json({ error: error.code }, error.status);
     if (error instanceof HTTPException) return error.getResponse();
-    console.error(error);
+    log.error(`${c.req.method} ${new URL(c.req.url).pathname} failed`, error);
     return c.json({ error: 'internal_error' }, 500);
+  });
+
+  // LOG_LEVEL=debug: one line per request.
+  app.use(async (c, next) => {
+    const started = performance.now();
+    await next();
+    log.debug(
+      `${c.req.method} ${new URL(c.req.url).pathname} ${c.res.status} ${Math.round(performance.now() - started)} ms`,
+    );
   });
 
   const api = new Hono<AppEnv>();
@@ -65,7 +75,7 @@ export function createApp({ deps, webDistDir }: AppOptions) {
       flushSearchQueue(deps.db);
     } catch (error) {
       // The queue stays filled and is retried with the next search.
-      console.error('search index update failed', error);
+      log.error('search index update failed', error);
     }
   });
   v1.route('/auth', protectedAuthRoutes(deps));

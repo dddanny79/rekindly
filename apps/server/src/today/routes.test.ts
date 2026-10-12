@@ -109,6 +109,8 @@ describe('today', () => {
       expect((await t.request(`/api/v1/people/${p.id}/viewed`, { method: 'POST' })).status).toBe(
         204,
       );
+      // Distinct timestamps, even on a fast machine.
+      await new Promise((resolve) => setTimeout(resolve, 5));
     }
     await t.request(`/api/v1/people/${b.id}`, { method: 'DELETE' });
     const { recent } = await today();
@@ -138,7 +140,10 @@ describe('today', () => {
 
   it('defaults to the current date and validates it', async () => {
     const { date } = await t.json<TodayResponse>(t.request('/api/v1/today'));
-    expect(date).toBe(new Date().toISOString().slice(0, 10));
+    const now = new Date();
+    expect(date).toBe(
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+    );
     expect((await t.request('/api/v1/today?date=12.10.2026')).status).toBe(400);
   });
 });
