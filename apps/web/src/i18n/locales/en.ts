@@ -449,6 +449,10 @@ export const en = {
     delete: 'Delete entry',
     deleteTitle: 'Delete this entry?',
     deleteBody: 'It goes to the trash and can be restored for 30 days.',
+    syncHidden_one: '{{count}} change from sync hidden',
+    syncHidden_other: '{{count}} changes from sync hidden',
+    syncShow: 'show',
+    syncHide: 'Hide changes from sync',
   },
   nav: {
     label: 'Main navigation',

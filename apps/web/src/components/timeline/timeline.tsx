@@ -245,7 +245,14 @@ export function Timeline({
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
   const [filter, setFilter] = useState<Filter>('all');
-  const { data: entries = [], isSuccess } = useQuery(entriesQuery({ personId, organizationId }));
+  // Change logs from CardDAV devices are hidden unless asked for.
+  const [showSync, setShowSync] = useState(false);
+  const { data: all = [], isSuccess } = useQuery(entriesQuery({ personId, organizationId }));
+  const syncCount = all.filter((e) => e.source === 'sync').length;
+  const entries = useMemo(
+    () => (showSync ? all : all.filter((e) => e.source !== 'sync')),
+    [all, showSync],
+  );
 
   const counts = useMemo(
     () =>
@@ -315,6 +322,19 @@ export function Timeline({
           </ul>
         </div>
       ))}
+      {syncCount > 0 && (
+        <p className="mt-3 text-meta text-muted-foreground">
+          {!showSync && <>{t('timeline.syncHidden', { count: syncCount })} · </>}
+          <button
+            type="button"
+            onClick={() => setShowSync(!showSync)}
+            aria-pressed={showSync}
+            className="cursor-pointer underline hover:text-foreground"
+          >
+            {showSync ? t('timeline.syncHide') : t('timeline.syncShow')}
+          </button>
+        </p>
+      )}
     </section>
   );
 }

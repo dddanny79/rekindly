@@ -276,7 +276,10 @@ describe('CardDAV', () => {
     const { entries } = await t.json<{ entries: Entry[] }>(
       t.request(`/api/v1/entries?personId=${jana.id}`),
     );
-    expect(entries[0]).toMatchObject({ kind: 'note', title: 'Über Sync geändert' });
+    expect(entries[0]).toMatchObject({ kind: 'note', title: 'Über Sync geändert', source: 'sync' });
+    // The change log is not searchable (it would match every changed number).
+    const found = await t.json<{ results: unknown[] }>(t.request('/api/v1/search?q=papierkorb'));
+    expect(found.results).toEqual([]);
     expect(entries[0]!.bodyMd).toContain('Telefon hinzugefügt: +49 170 2');
     expect(entries[0]!.bodyMd).toContain('Telefon in den Papierkorb: +49 170 1');
 

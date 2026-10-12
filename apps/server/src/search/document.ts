@@ -223,7 +223,9 @@ export function buildPersonDocuments(db: Db, ctx: Context, ids: string[]): Searc
         .select({ personId: entryPeople.personId, entry: entries })
         .from(entryPeople)
         .innerJoin(entries, eq(entries.id, entryPeople.entryId))
-        .where(and(inArray(entryPeople.personId, live), notDeleted(entries)))
+        .where(
+          and(inArray(entryPeople.personId, live), notDeleted(entries), eq(entries.source, 'user')),
+        )
         .orderBy(desc(entries.occurredAt))
         .all(),
       (r) => r.personId,
@@ -298,7 +300,13 @@ export function buildOrganizationDocuments(db: Db, ctx: Context, ids: string[]):
       db
         .select()
         .from(entries)
-        .where(and(inArray(entries.organizationId, live), notDeleted(entries)))
+        .where(
+          and(
+            inArray(entries.organizationId, live),
+            notDeleted(entries),
+            eq(entries.source, 'user'),
+          ),
+        )
         .orderBy(desc(entries.occurredAt))
         .all(),
       (r) => r.organizationId!,

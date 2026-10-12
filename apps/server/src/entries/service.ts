@@ -57,6 +57,7 @@ function hydrate(db: Db, rows: EntryRow[]): Entry[] {
         const person = people.get(l.personId);
         return person ? [toPersonRef(person)] : [];
       }),
+    source: row.source,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }));
@@ -135,7 +136,12 @@ function checkOrganization(db: Db, id: string | null | undefined) {
   if (!org) throw new DomainError(400, 'unknown_organization');
 }
 
-export function createEntry(db: Db, input: In<typeof createEntryRequestSchema>): Entry {
+export function createEntry(
+  db: Db,
+  input: In<typeof createEntryRequestSchema>,
+  /** Internal: `sync` for the CardDAV change log. */
+  source: 'user' | 'sync' = 'user',
+): Entry {
   const people = checkPeople(db, input.personIds);
   checkOrganization(db, input.organizationId);
   const entry = db.transaction((tx) => {
@@ -150,6 +156,7 @@ export function createEntry(db: Db, input: In<typeof createEntryRequestSchema>):
         title: input.title ?? null,
         bodyMd: input.bodyMd,
         organizationId: input.organizationId ?? null,
+        source,
       })
       .returning()
       .get();

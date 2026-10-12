@@ -325,12 +325,16 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
 
       touchPerson(db, personId);
       if (isNew || changes.length) {
-        createEntry(db, {
-          kind: 'note',
-          title: isNew ? t.created! : t.changed!,
-          bodyMd: changes.length ? changes.map((c) => `- ${c}`).join('\n') : (t.created ?? ''),
-          personIds: [personId],
-        });
+        createEntry(
+          db,
+          {
+            kind: 'note',
+            title: isNew ? t.created! : t.changed!,
+            bodyMd: changes.length ? changes.map((c) => `- ${c}`).join('\n') : (t.created ?? ''),
+            personIds: [personId],
+          },
+          'sync',
+        );
       }
       return personId;
     });

@@ -453,6 +453,10 @@ export const de: Translations = {
     delete: 'Eintrag löschen',
     deleteTitle: 'Diesen Eintrag löschen?',
     deleteBody: 'Er kommt in den Papierkorb und lässt sich 30 Tage lang wiederherstellen.',
+    syncHidden_one: '{{count}} Sync-Änderung ausgeblendet',
+    syncHidden_other: '{{count}} Sync-Änderungen ausgeblendet',
+    syncShow: 'anzeigen',
+    syncHide: 'Sync-Änderungen ausblenden',
   },
   nav: {
     label: 'Hauptnavigation',

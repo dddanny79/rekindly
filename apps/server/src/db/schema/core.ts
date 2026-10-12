@@ -210,6 +210,10 @@ export const entries = sqliteTable(
     organizationId: text('organization_id').references(() => organizations.id, {
       onDelete: 'set null',
     }),
+    /** `sync`: written by the app to log a change from a CardDAV device. */
+    source: text('source', { enum: ['user', 'sync'] })
+      .notNull()
+      .default('user'),
     deletedAt: deletedAt(),
     ...timestamps,
   },

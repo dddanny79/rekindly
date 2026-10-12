@@ -44,6 +44,8 @@ export const entrySchema = z.object({
   bodyMd: z.string(),
   organization: z.object({ id: idSchema, name: z.string() }).nullable(),
   people: z.array(personRefSchema),
+  /** `sync`: the app's log of a change from a CardDAV device (hidden by default). */
+  source: z.enum(['user', 'sync']),
   createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema,
 });
