@@ -62,3 +62,74 @@ export function parsePartialDate(input: string): string | null | undefined {
   if (match) return `${match[3]}-${match[2]!.padStart(2, '0')}-${match[1]!.padStart(2, '0')}`;
   return undefined;
 }
+
+/** Local calendar date as `YYYY-MM-DD`. */
+export function toDateOnly(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** `YYYY-MM-DD` as a local date at midnight. */
+export function fromDateOnly(value: string): Date {
+  const [y, m, d] = value.split('-').map(Number);
+  return new Date(y!, m! - 1, d!);
+}
+
+export function addDays(date: Date, days: number): Date {
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+/** Whole days from `today` to `date` (negative = in the past), by calendar date. */
+export function daysUntil(date: Date, today = new Date()): number {
+  const a = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const b = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+}
+
+/** Follow-up offsets typed as "3d", "2w", "1m" or a date "25.10." / "25.10.2026". */
+export function parseDueInput(input: string, today = new Date()): string | null {
+  const value = input.trim().toLowerCase();
+  const relative = /^(\d{1,3})\s*([dtwm])$/.exec(value);
+  if (relative) {
+    const n = Number(relative[1]);
+    const unit = relative[2];
+    if (unit === 'm') {
+      const next = new Date(today.getFullYear(), today.getMonth() + n, today.getDate());
+      return toDateOnly(next);
+    }
+    return toDateOnly(addDays(today, unit === 'w' ? n * 7 : n));
+  }
+  const date = /^(\d{1,2})\.(\d{1,2})\.(\d{4})?$/.exec(value);
+  if (date) {
+    const [, d, m, y] = date;
+    const year = y ? Number(y) : today.getFullYear();
+    let candidate = new Date(year, Number(m) - 1, Number(d));
+    if (!y && daysUntil(candidate, today) < 0)
+      candidate = new Date(year + 1, Number(m) - 1, Number(d));
+    return candidate.getMonth() === Number(m) - 1 ? toDateOnly(candidate) : null;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return null;
+}
+
+/** Contact rhythm state: due date and whether it is overdue. */
+export function rhythmStatus(
+  contactEveryDays: number | null,
+  lastContactAt: string | null,
+  today = new Date(),
+) {
+  if (!contactEveryDays) return null;
+  if (!lastContactAt) return { due: null, overdueDays: null, neverContacted: true };
+  const due = addDays(new Date(lastContactAt), contactEveryDays);
+  const days = daysUntil(due, today);
+  return { due, overdueDays: days < 0 ? -days : 0, neverContacted: false };
+}
+
+/** Value for `<input type="datetime-local">` in local time. */
+export function toDateTimeLocal(date: Date): string {
+  return `${toDateOnly(date)}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}

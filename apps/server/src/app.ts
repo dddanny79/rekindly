@@ -13,9 +13,11 @@ import { healthRoutes } from './health/routes';
 import { fieldRoutes } from './catalog/fields';
 import { relationshipTypeRoutes } from './catalog/relationship-types';
 import { tagRoutes } from './catalog/tags';
+import { entryRoutes } from './entries/routes';
 import { fileRoutes } from './files/routes';
 import { organizationRoutes } from './organizations/routes';
 import { peopleRoutes } from './people/routes';
+import { reminderRoutes } from './reminders/routes';
 import { settingsRoutes } from './settings/routes';
 import { spaceRoutes } from './spaces/routes';
 
@@ -60,6 +62,8 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/tags', tagRoutes(deps));
   v1.route('/relationship-types', relationshipTypeRoutes(deps));
   v1.route('/field-definitions', fieldRoutes(deps));
+  v1.route('/entries', entryRoutes(deps));
+  v1.route('/reminders', reminderRoutes(deps));
   v1.route('/files', fileRoutes(deps));
   api.route('/v1', v1);
 

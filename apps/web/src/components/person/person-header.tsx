@@ -179,7 +179,9 @@ export function PersonHeader({ person, space }: { person: Person; space: Space |
           onClick={() => update.mutate({ favorite: !person.favorite })}
         >
           <Star aria-hidden className={cn(person.favorite && 'fill-current text-signal')} />
-          {person.favorite ? t('person.favorited') : t('person.favorite')}
+          <span className="sr-only sm:not-sr-only">
+            {person.favorite ? t('person.favorited') : t('person.favorite')}
+          </span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

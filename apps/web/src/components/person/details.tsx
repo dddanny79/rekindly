@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Person } from '@app/shared';
 import { Combobox } from '@/components/combobox';
@@ -20,7 +20,58 @@ import {
 import { spaceName } from '@/lib/labels';
 import { useSelectedSpace } from '@/lib/space-selection';
 
-const RHYTHMS = [14, 30, 90, 180, 365] as const;
+const RHYTHMS = [30, 90, 180, 365] as const;
+
+/** Off, monthly, quarterly, half-yearly, yearly or a custom number of days. */
+function RhythmInput({
+  value,
+  onSave,
+}: {
+  value: number | null;
+  onSave: (days: number | null) => Promise<unknown>;
+}) {
+  const { t } = useTranslation();
+  const preset = value === null ? '' : RHYTHMS.includes(value as never) ? String(value) : 'custom';
+  const [custom, setCustom] = useState(preset === 'custom');
+  const selected = custom ? 'custom' : preset;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Select
+        aria-label={t('person.rhythm.label')}
+        value={selected}
+        onChange={(e) => {
+          const next = e.target.value;
+          setCustom(next === 'custom');
+          if (next !== 'custom') void onSave(next ? Number(next) : null);
+        }}
+      >
+        <option value="">{t('person.rhythm.none')}</option>
+        {RHYTHMS.map((days) => (
+          <option key={days} value={days}>
+            {t(`person.rhythm.d${days}`)}
+          </option>
+        ))}
+        <option value="custom">{t('person.rhythm.customOption')}</option>
+      </Select>
+      {selected === 'custom' && (
+        <InlineText
+          label={t('person.rhythm.days')}
+          value={value && preset === 'custom' ? String(value) : null}
+          display={value ? t('person.rhythm.custom', { count: value }) : undefined}
+          placeholder={t('person.rhythm.daysPlaceholder')}
+          validate={(input) => {
+            const n = Number(input);
+            return Number.isInteger(n) && n >= 1 && n <= 3650
+              ? null
+              : t('person.rhythm.daysInvalid');
+          }}
+          onSave={(input) => onSave(Number(input))}
+        />
+      )}
+    </div>
+  );
+}
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -76,25 +127,10 @@ export function DetailsSection({ person }: { person: Person }) {
         />
       </Row>
       <Row label={t('person.rhythm.label')}>
-        <Select
-          aria-label={t('person.rhythm.label')}
-          value={person.contactEveryDays ?? ''}
-          onChange={(e) =>
-            update.mutate({ contactEveryDays: e.target.value ? Number(e.target.value) : null })
-          }
-        >
-          <option value="">{t('person.rhythm.none')}</option>
-          {RHYTHMS.map((days) => (
-            <option key={days} value={days}>
-              {t(`person.rhythm.d${days}`)}
-            </option>
-          ))}
-          {person.contactEveryDays && !RHYTHMS.includes(person.contactEveryDays as never) && (
-            <option value={person.contactEveryDays}>
-              {t('person.rhythm.custom', { count: person.contactEveryDays })}
-            </option>
-          )}
-        </Select>
+        <RhythmInput
+          value={person.contactEveryDays}
+          onSave={(contactEveryDays) => update.mutateAsync({ contactEveryDays })}
+        />
       </Row>
       {spaces.length > 1 && (
         <Row label={t('spaces.label')}>

@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, isNull, max, or, sql } from 'drizzle-orm';
 import {
+  CONTACT_KINDS,
   type Affiliation,
   type ContactPoint,
   type Person,
@@ -33,10 +34,13 @@ import {
 import { fieldValuesFor } from '../catalog/fields';
 import { getRelationshipType } from '../catalog/relationship-types';
 import { ensureTag, tagsForPeople } from '../catalog/tags';
+import { lastContactOf } from '../entries/service';
+import { listFacts } from '../facts/service';
 import { fileUrl } from '../files/service';
 import { DomainError, notFound } from '../lib/errors';
 import { foldedContains, notDeleted, nowIso } from '../lib/sql';
 import { OrgIndex } from '../organizations';
+import { listReminders } from '../reminders/service';
 import { getLiveSpace } from '../spaces/service';
 import { listAddresses } from './addresses';
 import { getLivePerson, livePeopleByIds, type PersonRow, toPersonRef, touchPerson } from './refs';
@@ -120,7 +124,8 @@ export function listPeople(db: Db, query: In<typeof peopleQuerySchema>): PersonL
     .select({ personId: entryPeople.personId, at: max(entries.occurredAt).as('last_contact_at') })
     .from(entryPeople)
     .innerJoin(entries, eq(entries.id, entryPeople.entryId))
-    .where(notDeleted(entries))
+    // Only calls, meetings and messages count as contact.
+    .where(and(notDeleted(entries), inArray(entries.kind, [...CONTACT_KINDS])))
     .groupBy(entryPeople.personId)
     .as('last_contact');
 
@@ -293,6 +298,9 @@ export function getPerson(db: Db, id: string): Person {
     relationships: personRelationships,
     tags: tagsForPeople(db, [id]).get(id) ?? [],
     fields: fieldValuesFor(db, [id]).get(id) ?? [],
+    facts: listFacts(db, id),
+    reminders: listReminders(db, { personId: id, status: 'open' }),
+    lastContact: lastContactOf(db, id),
   };
 }
 

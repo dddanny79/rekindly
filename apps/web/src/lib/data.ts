@@ -1,6 +1,11 @@
 import { queryOptions, useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
+  type EntriesQuery,
+  entryListResponseSchema,
+  entrySchema,
+  factSchema,
+  reminderSchema,
   fieldDefinitionListResponseSchema,
   type FieldDefinition,
   organizationListResponseSchema,
@@ -194,4 +199,50 @@ export const catalogApi = {
     api(`${V1}/${resource}/${id}`, ok, { method: 'PATCH', json: input }),
   remove: (resource: string, id: string) =>
     api(`${V1}/${resource}/${id}`, null, { method: 'DELETE' }),
+};
+
+// Timeline ---------------------------------------------------------------------------
+
+export const entriesQuery = (params: Omit<EntriesQuery, 'kinds'>) =>
+  queryOptions({
+    queryKey: ['entries', params],
+    queryFn: () =>
+      api(
+        `${V1}/entries${queryString(params as Record<string, string>)}`,
+        entryListResponseSchema,
+      ).then((r) => r.entries),
+  });
+
+/** Writes that affect timelines, briefings and lists. */
+export const TIMELINE_KEYS: QueryKey[] = [
+  ['entries'],
+  ['people'],
+  ['organizations'],
+  ['reminders'],
+];
+
+export const entriesApi = {
+  create: (input: Record<string, unknown>) => api(`${V1}/entries`, entrySchema, { json: input }),
+  update: (id: string, patch: Record<string, unknown>) =>
+    api(`${V1}/entries/${id}`, entrySchema, { method: 'PATCH', json: patch }),
+  remove: (id: string) => api(`${V1}/entries/${id}`, null, { method: 'DELETE' }),
+};
+
+export const remindersApi = {
+  create: (personId: string, input: { title: string; dueOn: string }) =>
+    api(`${V1}/people/${personId}/reminders`, reminderSchema, { json: input }),
+  update: (id: string, patch: { title?: string; dueOn?: string; done?: boolean }) =>
+    api(`${V1}/reminders/${id}`, reminderSchema, { method: 'PATCH', json: patch }),
+  remove: (id: string) => api(`${V1}/reminders/${id}`, null, { method: 'DELETE' }),
+};
+
+export const factsApi = {
+  create: (personId: string, input: { text: string; pinned?: boolean }) =>
+    api(`${V1}/people/${personId}/facts`, factSchema, { json: input }),
+  update: (personId: string, id: string, patch: { text?: string; pinned?: boolean }) =>
+    api(`${V1}/people/${personId}/facts/${id}`, factSchema, { method: 'PATCH', json: patch }),
+  remove: (personId: string, id: string) =>
+    api(`${V1}/people/${personId}/facts/${id}`, null, { method: 'DELETE' }),
+  reorder: (personId: string, ids: string[]) =>
+    api(`${V1}/people/${personId}/facts/order`, z.unknown(), { method: 'PUT', json: { ids } }),
 };

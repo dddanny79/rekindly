@@ -2,6 +2,10 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
   addPersonTagRequestSchema,
+  createFactRequestSchema,
+  createReminderRequestSchema,
+  reorderFactsRequestSchema,
+  updateFactRequestSchema,
   createAddressRequestSchema,
   createAffiliationRequestSchema,
   createContactPointRequestSchema,
@@ -16,6 +20,8 @@ import {
   updateRelationshipRequestSchema,
 } from '@app/shared';
 import { setFieldValue } from '../catalog/fields';
+import { addFact, deleteFact, reorderFacts, updateFact } from '../facts/service';
+import { addReminder } from '../reminders/service';
 import type { AppEnv, Deps } from '../env';
 import { MAX_UPLOAD_BYTES, removeFile, storePhoto } from '../files/service';
 import { DomainError } from '../lib/errors';
@@ -171,6 +177,26 @@ export function peopleRoutes({ db, config }: Deps) {
         removePersonTag(db, c.req.param('id'), c.req.param('tagId'));
         return noContent();
       })
+
+      // Facts
+      .post('/:id/facts', validate('json', createFactRequestSchema), (c) =>
+        c.json(addFact(db, c.req.param('id'), c.req.valid('json')), 201),
+      )
+      .put('/:id/facts/order', validate('json', reorderFactsRequestSchema), (c) =>
+        c.json({ facts: reorderFacts(db, c.req.param('id'), c.req.valid('json').ids) }),
+      )
+      .patch('/:id/facts/:itemId', validate('json', updateFactRequestSchema), (c) =>
+        c.json(updateFact(db, c.req.param('id'), c.req.param('itemId'), c.req.valid('json'))),
+      )
+      .delete('/:id/facts/:itemId', (c) => {
+        deleteFact(db, c.req.param('id'), c.req.param('itemId'));
+        return noContent();
+      })
+
+      // Follow-ups
+      .post('/:id/reminders', validate('json', createReminderRequestSchema), (c) =>
+        c.json(addReminder(db, c.req.param('id'), c.req.valid('json')), 201),
+      )
 
       // Custom fields
       .put('/:id/fields/:definitionId', validate('json', setFieldValueRequestSchema), (c) => {

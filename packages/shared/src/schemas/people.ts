@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { fieldValueSchema } from './catalog';
+import { personRefSchema } from './refs';
+import { factSchema, lastContactSchema, reminderSchema } from './timeline';
+
+export { personRefSchema, type PersonRef } from './refs';
 import {
   birthdaySchema,
   idSchema,
@@ -89,15 +93,6 @@ export const createAffiliationRequestSchema = z.object({
 });
 export const updateAffiliationRequestSchema = z.object(affiliationFields);
 
-export const personRefSchema = z.object({
-  id: idSchema,
-  displayName: z.string(),
-  initials: z.string(),
-  spaceId: idSchema,
-  photoUrl: z.string().nullable(),
-});
-export type PersonRef = z.infer<typeof personRefSchema>;
-
 /** A relationship as seen from one person: `label` is what `person` is to them. */
 export const relationshipSchema = z.object({
   id: idSchema,
@@ -159,6 +154,10 @@ export const personSchema = z.object({
   relationships: z.array(relationshipSchema),
   tags: z.array(tagRefSchema),
   fields: z.array(fieldValueSchema),
+  facts: z.array(factSchema),
+  /** Open follow-ups, earliest first. */
+  reminders: z.array(reminderSchema),
+  lastContact: lastContactSchema.nullable(),
 });
 export type Person = z.infer<typeof personSchema>;
 

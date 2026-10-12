@@ -12,6 +12,7 @@ import { CustomFieldsSection } from '@/components/custom-fields';
 import { InlineText } from '@/components/inline-edit';
 import { CreateOrganizationDialog } from '@/components/organization/create-organization-dialog';
 import { EmptyRow, SideSection } from '@/components/side-section';
+import { Timeline } from '@/components/timeline/timeline';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -204,6 +205,7 @@ function OrganizationView({ organizationId }: { organizationId: string }) {
               </ul>
             </SideSection>
           </div>
+          <Timeline organizationId={org.id} />
           <div className="mt-7">
             <SideSection title={t('organizations.notes')}>
               <div className="py-2">
