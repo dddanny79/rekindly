@@ -28,6 +28,7 @@ import {
 } from '@/routes/settings/catalog-pages';
 import { SettingsLayout } from '@/routes/settings/settings-layout';
 import { DataSettingsPage } from '@/routes/settings/data-page';
+import { DuplicatesPage } from '@/routes/duplicates-page';
 import { ImportSettingsPage } from '@/routes/settings/import-page';
 import { SyncSettingsPage } from '@/routes/settings/sync-page';
 import { SetupPage } from '@/routes/setup-page';
@@ -124,6 +125,7 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     child('/', TodayPage),
     child('/people', PeoplePage),
+    child('/duplicates', DuplicatesPage),
     personRoute,
     child('/organizations', OrganizationsPage),
     child('/organizations/$organizationId', OrganizationPage),

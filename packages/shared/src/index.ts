@@ -16,3 +16,4 @@ export * from './schemas/trash';
 export * from './schemas/dav';
 export * from './schemas/backup';
 export * from './schemas/contact-import';
+export * from './schemas/duplicates';

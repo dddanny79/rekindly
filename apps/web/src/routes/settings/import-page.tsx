@@ -419,6 +419,9 @@ export function ImportSettingsPage() {
                 <Button size="sm" variant="secondary" asChild>
                   <Link to="/people">{t('import.showPeople')}</Link>
                 </Button>
+                <Button size="sm" variant="secondary" asChild>
+                  <Link to="/duplicates">{t('duplicates.check')}</Link>
+                </Button>
                 <UndoButton item={result} onUndo={() => undo.mutate(result.id)} />
               </div>
             )}

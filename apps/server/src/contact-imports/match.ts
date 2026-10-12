@@ -24,6 +24,12 @@ export function phoneKey(value: string): string | null {
 
 export const emailKey = (value: string) => value.trim().toLowerCase() || null;
 
+/** Identity of a contact detail: phones by their last digits, the rest case-insensitive. */
+export const pointIdentity = (p: { kind: string; value: string }) =>
+  p.kind === 'phone'
+    ? `phone|${phoneKey(p.value) ?? p.value.replace(/\D/g, '')}`
+    : `${p.kind}|${p.value.trim().toLowerCase()}`;
+
 /** First and last name, folded (Müller = Mueller = Muller); null without both. */
 export function nameKey(first: string | null, last: string | null): string | null {
   if (!first?.trim() || !last?.trim()) return null;

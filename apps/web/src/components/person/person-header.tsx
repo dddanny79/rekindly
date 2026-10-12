@@ -4,6 +4,7 @@ import {
   ArchiveRestore,
   Camera,
   Mail,
+  GitMerge,
   MoreHorizontal,
   Phone,
   Star,
@@ -17,6 +18,7 @@ import type { Person, Space } from '@app/shared';
 import { Avatar } from '@/components/avatar';
 import { FormMessage } from '@/components/form-field';
 import { InlineText } from '@/components/inline-edit';
+import { MergeWithDialog } from '@/components/merge-with-dialog';
 import { NameDialog } from '@/components/person/name-dialog';
 import {
   AlertDialog,
@@ -103,6 +105,7 @@ export function PersonHeader({ person, space }: { person: Person; space: Space |
   const navigate = useNavigate();
   const [editingName, setEditingName] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pickingMerge, setPickingMerge] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const update = useWrite((patch: Record<string, unknown>) => peopleApi.update(person.id, patch));
@@ -246,6 +249,10 @@ export function PersonHeader({ person, space }: { person: Person; space: Space |
               {person.archivedAt ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
               {person.archivedAt ? t('person.unarchive') : t('person.archive')}
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setPickingMerge(true)}>
+              <GitMerge aria-hidden />
+              {t('merge.withOther')}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
               <Trash2 aria-hidden />
@@ -256,6 +263,7 @@ export function PersonHeader({ person, space }: { person: Person; space: Space |
       </div>
 
       <NameDialog person={person} open={editingName} onOpenChange={setEditingName} />
+      <MergeWithDialog person={person} open={pickingMerge} onOpenChange={setPickingMerge} />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>

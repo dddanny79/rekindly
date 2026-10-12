@@ -52,6 +52,7 @@ describe('database', () => {
         'contact_import_items',
         'contact_imports',
         'contact_points',
+        'duplicate_dismissals',
         'dav_cards',
         'dav_extras',
         'entries',

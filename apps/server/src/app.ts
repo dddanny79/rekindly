@@ -28,6 +28,7 @@ import { searchRoutes } from './search/routes';
 import { todayRoutes } from './today/routes';
 import { trashRoutes } from './trash/routes';
 import { contactImportRoutes } from './contact-imports/routes';
+import { duplicateRoutes } from './duplicates/routes';
 import { flushSearchQueue } from './search/service';
 import { settingsRoutes } from './settings/routes';
 import { spaceRoutes } from './spaces/routes';
@@ -109,6 +110,7 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/calendar-feeds', calendarFeedRoutes(deps));
   v1.route('/backup', backupConfigRoutes(deps));
   v1.route('/contact-imports', contactImportRoutes(deps));
+  v1.route('/duplicates', duplicateRoutes(deps));
   v1.route('/', backupRoutes(deps));
   api.route('/v1', v1);
 

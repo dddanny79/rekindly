@@ -104,6 +104,24 @@ available, the tests use an invented one (`apps/server/src/contact-imports/monic
 - `account.instance.contact_field_types` resolves contact field types (`type`
   `email`, `phone`, or none for social/messenger types).
 
+## Duplicates
+
+**People → “possible duplicates”** (also linked after an import) lists pairs of
+people with the same email address, phone number (last nine digits) or first and
+last name (umlauts folded) — including indirect contacts and people in other
+spaces. A value shared by more than ten people (e.g. an office switchboard) is not
+used.
+
+- **Different people** hides the pair for good.
+- **Merge …** asks who stays (by default the one with more details) and, where both
+  have a different value (name, nickname, birthday, “who is this”, met …, photo,
+  contact rhythm, space), which one to keep. Empty values are always filled.
+  Contact details, addresses, organizations, facts, follow-ups, the timeline,
+  relationships, tags and custom fields of both are combined; exact duplicates are
+  dropped. The other person goes to the trash; a hidden sync note on the kept
+  person records the merge.
+- The same is available on every person page: **… → Merge with another person …**.
+
 ## API
 
 - `POST /api/v1/contact-imports/preview` — multipart: `file`, `options` (JSON,
@@ -113,5 +131,9 @@ available, the tests use an invented one (`apps/server/src/contact-imports/monic
   (`{ spaceId, mapping?, actions: { "<index>": "create" | "skip" | "merge" } }`).
 - `GET /api/v1/contact-imports` — previous imports.
 - `POST /api/v1/contact-imports/{id}/undo`.
+- `GET /api/v1/duplicates` — likely duplicate pairs with reasons.
+- `POST /api/v1/duplicates/dismiss` — `{ personIds: [a, b] }`.
+- `POST /api/v1/duplicates/merge` — `{ keepId, mergeId, take: ["name", "birthday", …] }`;
+  returns the kept person.
 - `POST /api/v1/contact-imports/monica-fetch` — `{ url, token }`; returns a file
   (JSON) to use as `file` in preview and import.

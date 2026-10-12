@@ -11,7 +11,7 @@ import { CreatePersonDialog } from '@/components/person/create-person-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { organizationsQuery, peopleQuery, tagsQuery } from '@/lib/data';
+import { duplicatesQuery, organizationsQuery, peopleQuery, tagsQuery } from '@/lib/data';
 import { useSelectedSpace } from '@/lib/space-selection';
 import { useSessionState } from '@/lib/session-state';
 import { useKeyShortcut } from '@/lib/shortcuts';
@@ -41,6 +41,7 @@ function roleLine(person: PersonListItem) {
 
 export function PeoplePage(): ReactElement {
   const { t } = useTranslation();
+  const { data: duplicates = [] } = useQuery(duplicatesQuery);
   const [search, setFilters] = useSessionState<PeopleFilters>('people-filters', {});
   const { spaceId, spaces } = useSelectedSpace();
   const [creating, setCreating] = useState(false);
@@ -77,6 +78,11 @@ export function PeoplePage(): ReactElement {
         title={t('nav.people')}
         actions={
           <div className="flex items-center gap-3">
+            {duplicates.length > 0 && (
+              <Link to="/duplicates" className="text-meta text-signal">
+                {t('duplicates.link', { count: duplicates.length })}
+              </Link>
+            )}
             <span className="num text-meta text-muted-foreground" aria-live="polite">
               {t('people.count', { count: list.length })}
             </span>

@@ -25,7 +25,7 @@ import {
   tags,
 } from '../db/schema';
 import { findTagByName } from '../catalog/tags';
-import { addressKey, ensureOrganizationPath, pointKey } from '../dav/inbound';
+import { addressKey, ensureOrganizationPath } from '../dav/inbound';
 import { createEntry } from '../entries/service';
 import { removeFile, storePhoto } from '../files/service';
 import { DomainError, notFound } from '../lib/errors';
@@ -41,7 +41,13 @@ import {
   type RelationshipTypeRef,
 } from './contact';
 import { readCsv } from './csv';
-import { contactKeys, Matcher, type Candidate, type MatchReason } from './match';
+import {
+  contactKeys,
+  Matcher,
+  pointIdentity as pointKey,
+  type Candidate,
+  type MatchReason,
+} from './match';
 import { readVcards } from './vcf';
 import { isMonicaExport, monicaBundle, readMonicaExport, type MonicaData } from './monica';
 import { isMonicaApiFile } from './monica-api';

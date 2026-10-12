@@ -38,6 +38,8 @@ import {
   contactImportPreviewSchema,
   contactImportSchema,
   type CsvMapping,
+  duplicateListResponseSchema,
+  type MergePeopleRequest,
 } from '@app/shared';
 import { api, ApiError } from '@/lib/api';
 
@@ -430,4 +432,18 @@ export const contactImportApi = {
     });
     return new File([JSON.stringify(data)], 'monica-api.json', { type: 'application/json' });
   },
+};
+
+// Duplicates ---------------------------------------------------------------------------
+
+export const duplicatesQuery = queryOptions({
+  queryKey: ['duplicates'],
+  queryFn: () => api(`${V1}/duplicates`, duplicateListResponseSchema).then((r) => r.pairs),
+});
+
+export const duplicateApi = {
+  dismiss: (personIds: [string, string]) =>
+    api(`${V1}/duplicates/dismiss`, null, { json: { personIds } }),
+  merge: (input: MergePeopleRequest) =>
+    api(`${V1}/duplicates/merge`, personSchema, { json: input }),
 };

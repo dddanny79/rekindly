@@ -28,8 +28,8 @@ test('import a Monica export: people with timeline, facts and relationships; und
 
   await page.getByRole('link', { name: 'Show people' }).click();
   await page.getByRole('link', { name: /Erika \(Riki\) Musterfrau/ }).click();
-  await expect(page.getByText('Über die Alpentour gesprochen')).toBeVisible();
-  await expect(page.getByText('Abendessen beim Italiener')).toBeVisible();
+  await expect(page.getByText('Über die Alpentour gesprochen').first()).toBeVisible();
+  await expect(page.getByText('Abendessen beim Italiener').first()).toBeVisible();
   await expect(page.getByText('Trinkt lieber Tee als Kaffee.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Max Mustermann' }).first()).toBeVisible();
 

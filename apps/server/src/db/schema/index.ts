@@ -4,3 +4,4 @@ export * from './search';
 export * from './dav';
 export * from './calendar';
 export * from './imports';
+export * from './duplicates';
