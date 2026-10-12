@@ -27,6 +27,7 @@ const base: Person = {
   photoUrl: null,
   favorite: false,
   listed: true,
+  contactRhythmSince: null,
   relatedTo: null,
   contactEveryDays: null,
   archivedAt: null,

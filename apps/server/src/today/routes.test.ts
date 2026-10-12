@@ -1,5 +1,7 @@
+import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Person, TodayResponse } from '@app/shared';
+import { people } from '../db/schema';
 import { createSignedInApp } from '../test/helpers';
 import { nextBirthday } from './service';
 
@@ -83,7 +85,14 @@ describe('today', () => {
   it('lists people whose contact rhythm is overdue', async () => {
     const overdue = await person('Olaf', { contactEveryDays: 30 });
     const fresh = await person('Frida', { contactEveryDays: 30 });
+    // No contact yet: counts from when the rhythm was set.
     const never = await person('Nina', { contactEveryDays: 90 });
+    t.db
+      .update(people)
+      .set({ contactRhythmSince: '2026-06-01T08:00:00.000Z' })
+      .where(eq(people.id, never.id))
+      .run();
+    await person('Rita', { contactEveryDays: 90 }); // just set: not due yet
     await person('Rolf'); // no rhythm
     const call = (personId: string, occurredAt: string, kind = 'call') =>
       post('/entries', { kind, occurredAt, bodyMd: 'Telefonat', personIds: [personId] });
@@ -92,13 +101,31 @@ describe('today', () => {
     await call(overdue.id, '2026-10-10T10:00:00.000Z', 'note');
     await call(fresh.id, '2026-10-01T10:00:00.000Z');
     const { overdueContacts } = await today();
-    expect(firstNames(overdueContacts)).toEqual(['Olaf', 'Nina']);
+    expect(firstNames(overdueContacts)).toEqual(['Nina', 'Olaf']);
     expect(overdueContacts[0]).toMatchObject({
+      person: { id: never.id },
+      lastContactAt: null,
+      overdueDays: 43,
+    });
+    expect(overdueContacts[1]).toMatchObject({
       contactEveryDays: 30,
       lastContactAt: '2026-08-01T10:00:00.000Z',
       overdueDays: 42,
     });
-    expect(overdueContacts[1]).toMatchObject({ person: { id: never.id }, overdueDays: null });
+  });
+
+  it('remembers since when a contact rhythm applies', async () => {
+    const p = await person('Sven');
+    expect(p.contactRhythmSince).toBeNull();
+    const set = await patch<Person>(`/people/${p.id}`, { contactEveryDays: 30 });
+    expect(Date.now() - Date.parse(set.contactRhythmSince!)).toBeLessThan(5000);
+    // Changing the interval keeps the date, removing the rhythm clears it.
+    expect(
+      (await patch<Person>(`/people/${p.id}`, { contactEveryDays: 60 })).contactRhythmSince,
+    ).toBe(set.contactRhythmSince);
+    expect(
+      (await patch<Person>(`/people/${p.id}`, { contactEveryDays: null })).contactRhythmSince,
+    ).toBeNull();
   });
 
   it('lists recently viewed people, newest first, without trashed ones', async () => {
@@ -124,6 +151,12 @@ describe('today', () => {
     for (const p of [work, home]) {
       await post(`/people/${p.id}/reminders`, { title: `Wv ${p.firstName}`, dueOn: '2026-10-01' });
       await t.request(`/api/v1/people/${p.id}/viewed`, { method: 'POST' });
+      // Rhythm set long ago, never contacted: overdue.
+      t.db
+        .update(people)
+        .set({ contactRhythmSince: '2026-01-01T08:00:00.000Z' })
+        .where(eq(people.id, p.id))
+        .run();
     }
     const all = await today();
     expect(all.reminders).toHaveLength(2);

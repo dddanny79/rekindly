@@ -32,9 +32,10 @@ export type TodayBirthday = z.infer<typeof todayBirthdaySchema>;
 export const overdueContactSchema = z.object({
   person: personRefSchema,
   contactEveryDays: z.number().int(),
+  /** null: no call, meeting or message yet (the rhythm counts from when it was set). */
   lastContactAt: isoDateTimeSchema.nullable(),
-  /** Days past the rhythm; null if there was no contact yet. */
-  overdueDays: z.number().int().nullable(),
+  /** Days past the rhythm. */
+  overdueDays: z.number().int(),
 });
 export type OverdueContact = z.infer<typeof overdueContactSchema>;
 

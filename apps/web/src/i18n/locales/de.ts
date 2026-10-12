@@ -440,7 +440,9 @@ export const de: Translations = {
     rhythmNext: 'nächster bis {{date}}',
     rhythmOverdue_one: '{{count}} Tag überfällig',
     rhythmOverdue_other: '{{count}} Tage überfällig',
-    noContactYet: 'noch kein Kontakt erfasst',
+    noContactYet: 'noch kein Gespräch erfasst',
+    logCall: 'Telefonat erfassen',
+    rhythmCounts: 'Es zählen Telefonate, Treffen und Nachrichten im Verlauf.',
   },
   facts: {
     title: 'Fakten',

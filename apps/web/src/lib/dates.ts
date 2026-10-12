@@ -132,17 +132,22 @@ export function parseDueInput(input: string, today = new Date()): string | null 
   return null;
 }
 
-/** Contact rhythm state: due date and whether it is overdue. */
+/**
+ * Contact rhythm state: due date and whether it is overdue. Without any contact
+ * yet, the rhythm counts from the day it was set (`since`).
+ */
 export function rhythmStatus(
   contactEveryDays: number | null,
   lastContactAt: string | null,
   today = new Date(),
+  since: string | null = null,
 ) {
   if (!contactEveryDays) return null;
-  if (!lastContactAt) return { due: null, overdueDays: null, neverContacted: true };
-  const due = addDays(new Date(lastContactAt), contactEveryDays);
+  const base = lastContactAt ?? since;
+  if (!base) return { due: null, overdueDays: null, neverContacted: !lastContactAt };
+  const due = addDays(new Date(base), contactEveryDays);
   const days = daysUntil(due, today);
-  return { due, overdueDays: days < 0 ? -days : 0, neverContacted: false };
+  return { due, overdueDays: days < 0 ? -days : 0, neverContacted: !lastContactAt };
 }
 
 /** Value for `<input type="datetime-local">` in local time. */

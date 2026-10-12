@@ -140,8 +140,14 @@ test('briefing: last contact, next birthday with and without year, overdue rhyth
   await page.goto(`/people/${noYear.id}`);
   await expect(page.getByTestId('briefing-birthday')).toContainText('in 5 days');
   await expect(page.getByTestId('briefing-birthday')).not.toContainText('turns');
-  await expect(page.getByTestId('briefing-rhythm')).toContainText('no contact logged yet');
+  // A new rhythm without any conversation is not due yet; one click starts a call entry.
+  await expect(page.getByTestId('briefing-rhythm')).toContainText('no conversation logged yet');
+  await expect(page.getByTestId('briefing-rhythm')).toContainText('next by');
+  await expect(page.getByTestId('briefing-rhythm')).not.toContainText('overdue');
   await expect(page.getByTestId('briefing-last-contact')).toHaveCount(0);
+  await page.getByTestId('briefing-rhythm').getByRole('link', { name: 'log a call' }).click();
+  await expect(page.getByLabel('New timeline entry')).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Type' })).toHaveValue('call');
 });
 
 test('facts: add, pin into the briefing, reorder with the keyboard', async ({ page, request }) => {

@@ -169,10 +169,13 @@ export function TodayPage(): ReactElement {
                   <PersonLink person={o.person} color={colorOf(o.person.spaceId)} />
                   <span className="num shrink-0 text-right text-meta">
                     <span className="block font-bold text-signal">
-                      {o.overdueDays === null
-                        ? t('briefing.noContactYet')
-                        : t('briefing.rhythmOverdue', { count: o.overdueDays })}
+                      {t('briefing.rhythmOverdue', { count: o.overdueDays })}
                     </span>
+                    {!o.lastContactAt && (
+                      <span className="block text-muted-foreground">
+                        {t('briefing.noContactYet')}
+                      </span>
+                    )}
                     {o.lastContactAt && (
                       <span className="block text-muted-foreground">
                         {t('today.lastContact', { date: shortDate(new Date(o.lastContactAt)) })}

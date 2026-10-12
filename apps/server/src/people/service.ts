@@ -319,6 +319,7 @@ export function getPerson(db: Db, id: string): Person {
     listed: person.listed,
     relatedTo: person.listed ? null : (relatedToFor(db, [id]).get(id) ?? null),
     contactEveryDays: person.contactEveryDays,
+    contactRhythmSince: person.contactRhythmSince,
     archivedAt: person.archivedAt,
     createdAt: person.createdAt,
     updatedAt: person.updatedAt,
@@ -397,6 +398,14 @@ export function updatePerson(
       ...(archived === undefined
         ? {}
         : { archivedAt: archived ? (current.archivedAt ?? nowIso()) : null }),
+      // A new rhythm counts from today until the first contact; none, no date.
+      ...(fields.contactEveryDays === undefined
+        ? {}
+        : {
+            contactRhythmSince: fields.contactEveryDays
+              ? (current.contactRhythmSince ?? nowIso())
+              : null,
+          }),
       updatedAt: nowIso(),
     })
     .where(eq(people.id, id))

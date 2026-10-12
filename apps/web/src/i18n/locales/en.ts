@@ -436,7 +436,9 @@ export const en = {
     rhythmNext: 'next by {{date}}',
     rhythmOverdue_one: 'overdue by {{count}} day',
     rhythmOverdue_other: 'overdue by {{count}} days',
-    noContactYet: 'no contact logged yet',
+    noContactYet: 'no conversation logged yet',
+    logCall: 'log a call',
+    rhythmCounts: 'Counts: calls, meetings and messages in the timeline.',
   },
   facts: {
     title: 'Facts',

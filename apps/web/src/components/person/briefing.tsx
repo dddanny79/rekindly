@@ -166,7 +166,12 @@ export function BriefingCard({ person }: { person: Person }) {
   const [adding, setAdding] = useState(false);
   const pinned = person.facts.filter((f) => f.pinned);
   const birthday = person.birthday ? nextBirthday(person.birthday) : null;
-  const rhythm = rhythmStatus(person.contactEveryDays, person.lastContact?.occurredAt ?? null);
+  const rhythm = rhythmStatus(
+    person.contactEveryDays,
+    person.lastContact?.occurredAt ?? null,
+    new Date(),
+    person.contactRhythmSince,
+  );
   const last = person.lastContact;
   const empty = !pinned.length && !person.reminders.length && !last && !birthday && !rhythm;
   const shortDate = (date: Date) =>
@@ -241,18 +246,33 @@ export function BriefingCard({ person }: { person: Person }) {
             className="flex items-baseline justify-between gap-3 border-b py-2"
             data-testid="briefing-rhythm"
           >
-            <span>{t('briefing.rhythm', { count: person.contactEveryDays ?? 0 })}</span>
-            {rhythm.neverContacted ? (
-              <span className="text-meta font-bold text-signal">{t('briefing.noContactYet')}</span>
-            ) : rhythm.overdueDays ? (
-              <span className="num text-meta font-bold text-signal">
-                {t('briefing.rhythmOverdue', { count: rhythm.overdueDays })}
-              </span>
-            ) : (
-              <span className="num text-meta text-muted-foreground">
-                {t('briefing.rhythmNext', { date: shortDate(rhythm.due!) })}
-              </span>
-            )}
+            <span title={t('briefing.rhythmCounts')}>
+              {t('briefing.rhythm', { count: person.contactEveryDays ?? 0 })}
+            </span>
+            <span className="num text-right text-meta">
+              {rhythm.overdueDays ? (
+                <span className="block font-bold text-signal">
+                  {t('briefing.rhythmOverdue', { count: rhythm.overdueDays })}
+                </span>
+              ) : rhythm.due ? (
+                <span className="block text-muted-foreground">
+                  {t('briefing.rhythmNext', { date: shortDate(rhythm.due) })}
+                </span>
+              ) : null}
+              {rhythm.neverContacted && (
+                <span className="block text-muted-foreground">
+                  {t('briefing.noContactYet')} ·{' '}
+                  <Link
+                    to="/people/$personId"
+                    params={{ personId: person.id }}
+                    search={{ compose: 'call' }}
+                    className="underline hover:text-foreground"
+                  >
+                    {t('briefing.logCall')}
+                  </Link>
+                </span>
+              )}
+            </span>
           </li>
         )}
       </ul>

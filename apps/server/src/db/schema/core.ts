@@ -70,6 +70,8 @@ export const people = sqliteTable(
     /** false: indirect contact (known through a relationship), not in the people list. */
     listed: bool('listed').notNull().default(true),
     contactEveryDays: integer('contact_every_days'),
+    /** When the contact rhythm was set; without any contact yet, it counts from here. */
+    contactRhythmSince: timestamp('contact_rhythm_since'),
     archivedAt: timestamp('archived_at'),
     deletedAt: deletedAt(),
     ...timestamps,

@@ -56,7 +56,12 @@ describe('follow-up dates', () => {
 
   it('computes the contact rhythm', () => {
     expect(rhythmStatus(null, null, today)).toBeNull();
-    expect(rhythmStatus(21, null, today)).toMatchObject({ neverContacted: true });
+    expect(rhythmStatus(21, null, today)).toMatchObject({ neverContacted: true, due: null });
+    // Without a contact, counted from when the rhythm was set.
+    const fresh = rhythmStatus(30, null, today, new Date(2026, 9, 1).toISOString())!;
+    expect(fresh).toMatchObject({ neverContacted: true, overdueDays: 0 });
+    expect(fresh.due!.getDate()).toBe(31);
+    expect(rhythmStatus(30, null, today, new Date(2026, 7, 1).toISOString())!.overdueDays).toBe(41);
     const ok = rhythmStatus(21, new Date(2026, 9, 2, 14).toISOString(), today)!;
     expect(ok.overdueDays).toBe(0);
     expect(daysUntil(ok.due!, today)).toBe(12);

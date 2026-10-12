@@ -165,6 +165,8 @@ export const personSchema = z.object({
   /** For indirect contacts: through whom they are known (“Child of Jana Berger”). */
   relatedTo: relatedToSchema.nullable(),
   contactEveryDays: z.number().int().nullable(),
+  /** When the rhythm was set; without a contact yet it counts from here. */
+  contactRhythmSince: isoDateTimeSchema.nullable(),
   archivedAt: isoDateTimeSchema.nullable(),
   createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema,

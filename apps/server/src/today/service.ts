@@ -106,17 +106,9 @@ function overdueContacts(db: Db, today: string, spaceId?: string): OverdueContac
     .flatMap((person): OverdueContact[] => {
       const lastContactAt = last.get(person.id) ?? null;
       const every = person.contactEveryDays!;
-      if (!lastContactAt) {
-        return [
-          {
-            person: toPersonRef(person),
-            contactEveryDays: every,
-            lastContactAt,
-            overdueDays: null,
-          },
-        ];
-      }
-      const due = utc(lastContactAt.slice(0, 10)) + every * DAY;
+      // Without any contact yet, the rhythm counts from the day it was set.
+      const since = lastContactAt ?? person.contactRhythmSince ?? person.createdAt;
+      const due = utc(since.slice(0, 10)) + every * DAY;
       const overdueDays = Math.round((utc(today) - due) / DAY);
       return overdueDays > 0
         ? [{ person: toPersonRef(person), contactEveryDays: every, lastContactAt, overdueDays }]
@@ -124,8 +116,8 @@ function overdueContacts(db: Db, today: string, spaceId?: string): OverdueContac
     })
     .sort(
       (a, b) =>
-        // Longest overdue first; people never contacted after them.
-        (b.overdueDays ?? -1) - (a.overdueDays ?? -1) ||
+        // Longest overdue first.
+        (b.overdueDays ?? 0) - (a.overdueDays ?? 0) ||
         a.person.displayName.localeCompare(b.person.displayName),
     );
 }
