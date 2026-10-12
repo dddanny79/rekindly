@@ -7,6 +7,7 @@ import { PasskeySettings } from '@/components/passkey-list';
 import { PasswordForm } from '@/components/password-form';
 import { SettingsSection } from '@/components/settings-section';
 import { ThemeControl } from '@/components/theme-control';
+import { TwoFactorSettings } from '@/components/two-factor-settings';
 import { Button } from '@/components/ui/button';
 import { useAuthStatus, useLogout } from '@/lib/auth';
 
@@ -46,6 +47,10 @@ export function SettingsPage() {
 
         <SettingsSection title={t('account.password.title')}>
           <PasswordForm />
+        </SettingsSection>
+
+        <SettingsSection title={t('twoFactor.title')} lead={t('twoFactor.lead')}>
+          <TwoFactorSettings />
         </SettingsSection>
 
         <SettingsSection title={t('theme.label')} lead={t('theme.hint')}>

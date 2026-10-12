@@ -48,6 +48,11 @@ const KNOWN = [
   'ai_model_required',
   'ai_key_required',
   'ai_key_unreadable',
+  'invalid_code',
+  'mail_not_configured',
+  'mail_failed',
+  'mail_invalid_from',
+  'mail_password_unreadable',
 ] as const;
 
 /** User-facing message for a failed request or WebAuthn ceremony. */

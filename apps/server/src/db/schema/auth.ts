@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { blob, check, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  blob,
+  check,
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 import { bool, timestamp, timestamps } from './common';
 
 /** The single account of this instance (exactly one row, id = 1). */
@@ -42,4 +50,19 @@ export const sessions = sqliteTable(
     createdAt: timestamps.createdAt,
   },
   (t) => [index('sessions_expires_idx').on(t.expiresAt)],
+);
+
+/** Browsers that may skip the emailed sign-in code for a while (“trust this device”). */
+export const trustedDevices = sqliteTable(
+  'trusted_devices',
+  {
+    id: text('id').primaryKey(),
+    /** SHA-256 of the cookie token. */
+    tokenHash: text('token_hash').notNull(),
+    userAgent: text('user_agent'),
+    createdAt: timestamps.createdAt,
+    lastUsedAt: timestamp('last_used_at'),
+    expiresAt: timestamp('expires_at').notNull(),
+  },
+  (t) => [uniqueIndex('trusted_devices_token_unique').on(t.tokenHash)],
 );

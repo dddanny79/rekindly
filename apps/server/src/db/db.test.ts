@@ -78,6 +78,7 @@ describe('database', () => {
         'spaces',
         'sync_states',
         'tags',
+        'trusted_devices',
       ].sort(),
     );
     sqlite.close();

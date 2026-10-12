@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { MailEnv } from './mail/config';
 
 // This module sits at the same depth below apps/server in src/ and in the dist bundle,
 // so the relative URLs below resolve to the same places in development and production.
@@ -22,6 +23,8 @@ export interface ServerConfig {
   /** Trust X-Forwarded-For (only when running behind a reverse proxy). */
   trustProxy: boolean;
   logLevel: LogLevel;
+  /** SMTP from SMTP_* variables; overrides the mail settings made in the app. */
+  mail: MailEnv;
 }
 
 export const LOG_LEVELS = ['error', 'warn', 'info', 'debug'] as const;
@@ -92,6 +95,22 @@ function parseBoolean(name: string, value: string | undefined): boolean {
  * as in the Docker image) `PUBLIC_URL` is required. Throws a `ConfigError` listing
  * all problems at once.
  */
+function parseMailEnv(env: NodeJS.ProcessEnv): MailEnv {
+  if (!env.SMTP_HOST) return {};
+  const security = env.SMTP_SECURE || 'starttls';
+  if (!['starttls', 'tls', 'none'].includes(security)) {
+    throw new Error(`SMTP_SECURE must be starttls, tls or none, got "${security}".`);
+  }
+  return {
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT ? parsePort(env.SMTP_PORT, 587) : undefined,
+    security: security as MailEnv['security'],
+    username: env.SMTP_USER || undefined,
+    password: env.SMTP_PASSWORD || undefined,
+    from: env.SMTP_FROM || undefined,
+  };
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const production = env.NODE_ENV === 'production';
   const problems: string[] = [];
@@ -118,6 +137,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     trustProxy: read(() => parseBoolean('TRUST_PROXY', env.TRUST_PROXY), false),
     logLevel: read(() => parseLogLevel(env.LOG_LEVEL), 'info'),
     appSecret: env.APP_SECRET || undefined,
+    mail: read(() => parseMailEnv(env), {}),
   };
   read(() => checkTimeZone(env.TZ), undefined);
   if (problems.length) throw new ConfigError(problems);

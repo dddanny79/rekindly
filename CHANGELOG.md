@@ -6,6 +6,10 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+- Mail: SMTP settings (in the app or `SMTP_*`), daily summary of follow-ups,
+  birthdays and overdue contacts; sign-in codes by email (two-factor) with trusted
+  browsers and the `disable-2fa` command
+
 ## [0.1.0] — 2026-10-13
 
 First public release:

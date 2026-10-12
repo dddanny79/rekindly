@@ -21,6 +21,7 @@ import {
   passkeySchema,
   type Account,
   type SetupRequest,
+  loginResponseSchema as passwordLoginResponseSchema,
 } from '@app/shared';
 import i18n from '@/i18n';
 import { api } from '@/lib/api';
@@ -73,10 +74,23 @@ export function useSetup() {
   });
 }
 
+/** Password sign-in; with sign-in codes on, the result asks for the emailed code. */
 export function useLogin() {
   const signedIn = useSignedIn();
   return useMutation({
-    mutationFn: (input: LoginRequest) => api(`${AUTH}/login`, loginResponseSchema, { json: input }),
+    mutationFn: (input: LoginRequest) =>
+      api(`${AUTH}/login`, passwordLoginResponseSchema, { json: input }),
+    onSuccess: (result) => {
+      if ('account' in result) signedIn(result.account);
+    },
+  });
+}
+
+export function useLoginVerify() {
+  const signedIn = useSignedIn();
+  return useMutation({
+    mutationFn: (input: { challengeId: string; code: string; trustDevice: boolean }) =>
+      api(`${AUTH}/login/verify`, loginResponseSchema, { json: input }),
     onSuccess: ({ account }) => signedIn(account),
   });
 }
