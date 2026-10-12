@@ -36,6 +36,9 @@ const KNOWN = [
   'import_nothing',
   'import_already_undone',
   'file_required',
+  'monica_unauthorized',
+  'monica_unreachable',
+  'monica_invalid_url',
 ] as const;
 
 /** User-facing message for a failed request or WebAuthn ceremony. */

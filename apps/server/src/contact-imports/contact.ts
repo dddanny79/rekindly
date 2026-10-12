@@ -24,6 +24,54 @@ export interface ImportContact {
   photo: Buffer | null;
   /** vCard lines without a field in the app, kept for CardDAV. */
   extraLines: string[];
+  // Richer sources (Monica) -----------------------------------------------------------
+  /** Id in the source, for entries and relationships that refer to the contact. */
+  sourceId?: string;
+  /** false: indirect contact (known through a relationship). */
+  listed?: boolean;
+  archived?: boolean;
+  contactEveryDays?: number | null;
+  metWhere?: string | null;
+  /** `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. */
+  metWhen?: string | null;
+  metThroughSourceId?: string | null;
+  facts?: string[];
+  reminders?: ImportReminder[];
+}
+
+export interface ImportReminder {
+  title: string;
+  /** `YYYY-MM-DD`. */
+  dueOn: string;
+  recurrence: 'none' | 'yearly';
+}
+
+/** A timeline entry of a richer source; `people` are source ids of its contacts. */
+export interface ImportEntry {
+  kind: 'note' | 'call' | 'meeting' | 'message' | 'event';
+  direction: 'in' | 'out' | null;
+  occurredAt: string;
+  title: string | null;
+  bodyMd: string;
+  people: string[];
+}
+
+/** `to` is `type` of `from` (e.g. type parent: to is from's parent). */
+export interface ImportRelationship {
+  from: string;
+  to: string;
+  type: RelationshipTypeRef;
+}
+
+/** A seeded type by key, or a custom type by its names (found or created). */
+export type RelationshipTypeRef =
+  { key: string } | { name: string; reverseName: string; symmetric: boolean };
+
+/** Everything read from one file. */
+export interface ImportBundle {
+  contacts: ImportContact[];
+  entries: ImportEntry[];
+  relationships: ImportRelationship[];
 }
 
 export const emptyContact = (): ImportContact => ({

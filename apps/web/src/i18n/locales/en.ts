@@ -467,9 +467,9 @@ export const en = {
   },
   import: {
     title: 'Import contacts',
-    lead: 'From the iPhone, Google Contacts, Outlook or another address book, as a vCard (.vcf) or CSV file. You see a preview first; likely duplicates are skipped unless you decide otherwise. Every import can be undone.',
+    lead: 'From the iPhone, Google Contacts, Outlook, Monica or another address book, as a vCard (.vcf), CSV or Monica JSON file. You see a preview first; likely duplicates are skipped unless you decide otherwise. Every import can be undone.',
     howto:
-      'iPhone: Contacts → Lists → touch and hold “All Contacts” → Export. Google: contacts.google.com → Export → Google CSV or vCard. Outlook: File → Open & Export → Import/Export → Export to a file → CSV.',
+      'iPhone: Contacts → Lists → touch and hold “All Contacts” → Export. Google: contacts.google.com → Export → Google CSV or vCard. Outlook: File → Open & Export → Import/Export → Export to a file → CSV. Monica: Settings → Export → Export to Json.',
     file: 'File',
     space: 'Import into',
     reading: 'Reading the file …',
@@ -518,6 +518,18 @@ export const en = {
       all: 'All',
       new: 'New',
       duplicates: 'Likely duplicates',
+    },
+    indirect: 'indirect contact',
+    extras:
+      'Also: {{entries}} timeline entries, {{reminders}} follow-ups, {{facts}} facts, {{relationships}} relationships.',
+    monica: {
+      open: 'Fetch from Monica instead …',
+      title: 'Fetch from Monica',
+      lead: 'Reads your Monica account through its API: in Monica, Settings → API → create a personal access token. The token is used for this fetch only and not stored. Archived contacts and photos only come with the JSON export (Monica: Settings → Export → Export to Json).',
+      url: 'Monica address',
+      token: 'Access token',
+      fetch: 'Fetch',
+      fetching: 'Fetching … (may take a minute)',
     },
     organization: 'Organization',
     match: 'Probably already here: {{name}} ({{reasons}})',
@@ -847,6 +859,10 @@ export const en = {
     import_nothing: 'Nothing to import: all contacts are set to “Skip”.',
     import_already_undone: 'This import has already been undone.',
     file_required: 'Choose a file first.',
+    monica_unauthorized:
+      'Monica did not accept the token. Create a new one in Monica under Settings → API.',
+    monica_unreachable: 'Monica could not be reached at this address.',
+    monica_invalid_url: 'Enter the address of your Monica, e.g. https://app.monicahq.com.',
     network: 'No connection to the server.',
     unknown: 'Something went wrong. Please try again.',
   },

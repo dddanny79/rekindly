@@ -423,4 +423,11 @@ export const contactImportApi = {
     api(`${V1}/contact-imports`, contactImportSchema, { form: importForm(file, options) }),
   undo: (id: string) =>
     api(`${V1}/contact-imports/${id}/undo`, contactImportSchema, { method: 'POST' }),
+  /** Reads a Monica account through its API; the result is imported like a file. */
+  fetchMonica: async (url: string, token: string) => {
+    const data = await api(`${V1}/contact-imports/monica-fetch`, z.unknown(), {
+      json: { url, token },
+    });
+    return new File([JSON.stringify(data)], 'monica-api.json', { type: 'application/json' });
+  },
 };

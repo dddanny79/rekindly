@@ -471,9 +471,9 @@ export const de: Translations = {
   },
   import: {
     title: 'Kontakte importieren',
-    lead: 'Vom iPhone, aus Google Kontakte, Outlook oder einem anderen Adressbuch, als vCard- (.vcf) oder CSV-Datei. Zuerst siehst du eine Vorschau; vermutlich Doppelte werden übersprungen, wenn du nichts anderes wählst. Jeder Import lässt sich rückgängig machen.',
+    lead: 'Vom iPhone, aus Google Kontakte, Outlook, Monica oder einem anderen Adressbuch, als vCard- (.vcf), CSV- oder Monica-JSON-Datei. Zuerst siehst du eine Vorschau; vermutlich Doppelte werden übersprungen, wenn du nichts anderes wählst. Jeder Import lässt sich rückgängig machen.',
     howto:
-      'iPhone: Kontakte → Listen → „Alle Kontakte“ gedrückt halten → Exportieren. Google: contacts.google.com → Exportieren → Google-CSV oder vCard. Outlook: Datei → Öffnen und exportieren → Importieren/Exportieren → In Datei exportieren → CSV.',
+      'iPhone: Kontakte → Listen → „Alle Kontakte“ gedrückt halten → Exportieren. Google: contacts.google.com → Exportieren → Google-CSV oder vCard. Outlook: Datei → Öffnen und exportieren → Importieren/Exportieren → In Datei exportieren → CSV. Monica: Einstellungen → Export → Export to Json.',
     file: 'Datei',
     space: 'Importieren nach',
     reading: 'Lese die Datei …',
@@ -524,6 +524,18 @@ export const de: Translations = {
       all: 'Alle',
       new: 'Neu',
       duplicates: 'Vermutlich doppelt',
+    },
+    indirect: 'indirekter Kontakt',
+    extras:
+      'Außerdem: {{entries}} Timeline-Einträge, {{reminders}} Wiedervorlagen, {{facts}} Fakten, {{relationships}} Beziehungen.',
+    monica: {
+      open: 'Stattdessen aus Monica abrufen …',
+      title: 'Aus Monica abrufen',
+      lead: 'Liest dein Monica-Konto über die API: In Monica unter Einstellungen → API einen persönlichen Zugriffstoken erstellen. Der Token wird nur für diesen Abruf verwendet und nicht gespeichert. Archivierte Kontakte und Fotos kommen nur mit dem JSON-Export (Monica: Einstellungen → Export → Export to Json).',
+      url: 'Monica-Adresse',
+      token: 'Zugriffstoken',
+      fetch: 'Abrufen',
+      fetching: 'Rufe ab … (kann eine Minute dauern)',
     },
     organization: 'Organisation',
     match: 'Vermutlich schon vorhanden: {{name}} ({{reasons}})',
@@ -857,6 +869,10 @@ export const de: Translations = {
     import_nothing: 'Nichts zu importieren: Alle Kontakte stehen auf „Überspringen“.',
     import_already_undone: 'Dieser Import wurde bereits rückgängig gemacht.',
     file_required: 'Wähle zuerst eine Datei.',
+    monica_unauthorized:
+      'Monica hat den Token nicht akzeptiert. Erstelle in Monica unter Einstellungen → API einen neuen.',
+    monica_unreachable: 'Monica ist unter dieser Adresse nicht erreichbar.',
+    monica_invalid_url: 'Gib die Adresse deiner Monica ein, z. B. https://app.monicahq.com.',
     network: 'Keine Verbindung zum Server.',
     unknown: 'Etwas ist schiefgegangen. Bitte versuche es erneut.',
   },

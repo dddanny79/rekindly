@@ -62,6 +62,8 @@ export const importPreviewContactSchema = z.object({
   index: z.number().int(),
   /** `organization`: a card with only a company name becomes an organization. */
   kind: z.enum(['person', 'organization']),
+  /** An indirect contact (Monica: “partial” contact, known through a relationship). */
+  indirect: z.boolean(),
   displayName: z.string(),
   /** E.g. organization and first email, for recognizing the contact. */
   details: z.string().nullable(),
@@ -92,6 +94,15 @@ export const contactImportPreviewSchema = z.object({
       mapping: csvMappingSchema,
     })
     .nullable(),
+  /** What else comes along (Monica): timeline entries, follow-ups, facts, relationships. */
+  extras: z
+    .object({
+      entries: z.number().int(),
+      reminders: z.number().int(),
+      facts: z.number().int(),
+      relationships: z.number().int(),
+    })
+    .nullable(),
   contacts: z.array(importPreviewContactSchema),
 });
 export type ContactImportPreview = z.infer<typeof contactImportPreviewSchema>;
@@ -119,3 +130,9 @@ export const contactImportSchema = z.object({
 export type ContactImport = z.infer<typeof contactImportSchema>;
 
 export const contactImportListSchema = z.array(contactImportSchema);
+
+/** Fetching a Monica account through its API (then imported like an export file). */
+export const monicaFetchRequestSchema = z.object({
+  url: z.string().trim().min(1).max(500),
+  token: z.string().trim().min(1).max(5000),
+});

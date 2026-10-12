@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { Undo2, Upload } from 'lucide-react';
+import { CloudDownload, Undo2, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -101,6 +101,71 @@ function ColumnMapping({
   );
 }
 
+/** Monica: fetch the account through its API (address + personal access token). */
+function MonicaFetch({ onFile }: { onFile: (file: File) => void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState('');
+  const [token, setToken] = useState('');
+  const fetchMonica = useWrite(() => contactImportApi.fetchMonica(url, token), {
+    onSuccess: (file) => {
+      setToken('');
+      onFile(file);
+    },
+  });
+  if (!open) {
+    return (
+      <Button variant="ghost" size="sm" className="mt-2" onClick={() => setOpen(true)}>
+        <CloudDownload aria-hidden />
+        {t('import.monica.open')}
+      </Button>
+    );
+  }
+  return (
+    <form
+      className="mt-4 border-l-2 border-border pl-3"
+      aria-label={t('import.monica.title')}
+      onSubmit={(e) => {
+        e.preventDefault();
+        fetchMonica.mutate(undefined);
+      }}
+    >
+      <h3 className="text-sm font-semibold">{t('import.monica.title')}</h3>
+      <p className="text-meta text-foreground-2">{t('import.monica.lead')}</p>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        <FormField label={t('import.monica.url')}>
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://app.monicahq.com"
+            autoComplete="off"
+          />
+        </FormField>
+        <FormField label={t('import.monica.token')}>
+          <Input
+            type="password"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            autoComplete="off"
+          />
+        </FormField>
+      </div>
+      <FormMessage tone="error">
+        {fetchMonica.isError && errorMessage(t, fetchMonica.error)}
+      </FormMessage>
+      <Button
+        type="submit"
+        variant="secondary"
+        size="sm"
+        className="mt-2"
+        disabled={!url.trim() || !token.trim() || fetchMonica.isPending}
+      >
+        {fetchMonica.isPending ? t('import.monica.fetching') : t('import.monica.fetch')}
+      </Button>
+    </form>
+  );
+}
+
 function ContactRow({
   contact,
   action,
@@ -121,6 +186,11 @@ function ContactRow({
           {contact.kind === 'organization' && (
             <span className="ml-2 text-meta font-normal text-foreground-2">
               {t('import.organization')}
+            </span>
+          )}
+          {contact.indirect && (
+            <span className="ml-2 text-meta font-normal text-foreground-2">
+              {t('import.indirect')}
             </span>
           )}
         </div>
@@ -316,7 +386,7 @@ export function ImportSettingsPage() {
               key={inputKey}
               type="file"
               className="h-auto py-1.5"
-              accept=".vcf,.vcard,.csv,.txt,text/vcard,text/x-vcard,text/csv"
+              accept=".vcf,.vcard,.csv,.txt,.json,text/vcard,text/x-vcard,text/csv,application/json"
               onChange={(e) => chooseFile(e.target.files?.[0] ?? null)}
             />
           </FormField>
@@ -330,6 +400,8 @@ export function ImportSettingsPage() {
             </Select>
           </FormField>
         </div>
+
+        <MonicaFetch onFile={chooseFile} />
 
         {result && (
           <div className="mt-4 border-l-2 border-foreground pl-3 text-sm" role="status">
@@ -383,6 +455,16 @@ export function ImportSettingsPage() {
                       skip: counts.skip,
                     })}
               </p>
+              {preview.data.extras && (
+                <p className="text-sm text-foreground-2">
+                  {t('import.extras', {
+                    entries: preview.data.extras.entries,
+                    reminders: preview.data.extras.reminders,
+                    facts: preview.data.extras.facts,
+                    relationships: preview.data.extras.relationships,
+                  })}
+                </p>
+              )}
               {contacts.length > 0 && (
                 <>
                   <SegmentedControl

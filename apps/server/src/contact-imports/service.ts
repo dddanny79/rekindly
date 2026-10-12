@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, or } from 'drizzle-orm';
 import {
   type ContactImport,
   type ContactImportPreview,
@@ -14,9 +14,14 @@ import {
   contactPoints,
   davExtras,
   entries,
+  entryPeople,
+  facts,
   organizations,
   people,
   personTags,
+  relationships,
+  relationshipTypes,
+  reminders,
   tags,
 } from '../db/schema';
 import { findTagByName } from '../catalog/tags';
@@ -27,10 +32,19 @@ import { DomainError, notFound } from '../lib/errors';
 import { notDeleted, nowIso } from '../lib/sql';
 import { touchPerson } from '../people/refs';
 import { getLiveSpace } from '../spaces/service';
-import { contactDetails, contactName, decodeText, type ImportContact } from './contact';
+import {
+  contactDetails,
+  contactName,
+  decodeText,
+  type ImportBundle,
+  type ImportContact,
+  type RelationshipTypeRef,
+} from './contact';
 import { readCsv } from './csv';
 import { contactKeys, Matcher, type Candidate, type MatchReason } from './match';
 import { readVcards } from './vcf';
+import { isMonicaExport, monicaBundle, readMonicaExport, type MonicaData } from './monica';
+import { isMonicaApiFile } from './monica-api';
 
 type Locale = 'en' | 'de';
 
@@ -39,15 +53,34 @@ export interface ImportFile {
   data: Buffer;
 }
 
-/** Reads an uploaded file: vCard (.vcf) or CSV. */
-export function readImportFile(file: ImportFile, locale: Locale, mapping?: CsvMapping) {
+type CsvInfo = Omit<ReturnType<typeof readCsv>, 'contacts'>;
+type ReadFile = ImportBundle & { format: 'vcard' | 'csv' | 'monica'; csv: CsvInfo | null };
+const plain = (contacts: ImportContact[]) => ({ contacts, entries: [], relationships: [] });
+
+/** Reads an uploaded file: vCard (.vcf), CSV, or Monica (export or fetched through its API). */
+export function readImportFile(file: ImportFile, locale: Locale, mapping?: CsvMapping): ReadFile {
   const text = decodeText(file.data);
   if (/\.(vcf|vcard)$/i.test(file.name ?? '') || /^\s*BEGIN:VCARD/i.test(text)) {
-    return { format: 'vcard' as const, contacts: readVcards(text, locale), csv: null };
+    return { format: 'vcard', csv: null, ...plain(readVcards(text, locale)) };
   }
-  if (/^\s*[{[]/.test(text)) throw new DomainError(400, 'unsupported_import_format');
+  if (/^\s*[{[]/.test(text)) {
+    let json: unknown;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new DomainError(400, 'unsupported_import_format');
+    }
+    if (isMonicaExport(json)) {
+      return { format: 'monica', csv: null, ...monicaBundle(readMonicaExport(json), locale) };
+    }
+    if (isMonicaApiFile(json)) {
+      const data = (json as { data: MonicaData }).data;
+      return { format: 'monica', csv: null, ...monicaBundle(data, locale) };
+    }
+    throw new DomainError(400, 'unsupported_import_format');
+  }
   const { contacts, ...csv } = readCsv(text, locale, mapping);
-  return { format: 'csv' as const, contacts, csv };
+  return { format: 'csv', csv, ...plain(contacts) };
 }
 
 interface Planned {
@@ -56,8 +89,12 @@ interface Planned {
   action: ImportAction;
 }
 
-/** Duplicate check for every contact; likely duplicates are skipped by default. */
-function plan(db: Db, contacts: ImportContact[]): Planned[] {
+/**
+ * Duplicate check for every contact; likely duplicates are skipped by default.
+ * From Monica, a contact that already exists is completed instead, so its
+ * timeline comes along.
+ */
+function plan(db: Db, contacts: ImportContact[], completeExisting = false): Planned[] {
   const matcher = Matcher.fromDb(db);
   return contacts.map((contact, index) => {
     const keys = contactKeys(contact);
@@ -69,7 +106,12 @@ function plan(db: Db, contacts: ImportContact[]): Planned[] {
       displayName: contactName(contact),
       spaceId: null,
     });
-    return { contact, match, action: match ? 'skip' : 'create' };
+    const action: ImportAction = !match
+      ? 'create'
+      : completeExisting && match.candidate.personId && contact.kind === 'person'
+        ? 'merge'
+        : 'skip';
+    return { contact, match, action };
   });
 }
 
@@ -80,13 +122,23 @@ export function previewImport(
   mapping?: CsvMapping,
 ): ContactImportPreview {
   const read = readImportFile(file, locale, mapping);
+  const monica = read.format === 'monica';
   return {
     format: read.format,
     fileName: file.name,
     csv: read.csv,
-    contacts: plan(db, read.contacts).map(({ contact, match, action }, index) => ({
+    extras: monica
+      ? {
+          entries: read.entries.length,
+          reminders: read.contacts.reduce((n, c) => n + (c.reminders?.length ?? 0), 0),
+          facts: read.contacts.reduce((n, c) => n + (c.facts?.length ?? 0), 0),
+          relationships: read.relationships.length,
+        }
+      : null,
+    contacts: plan(db, read.contacts, monica).map(({ contact, match, action }, index) => ({
       index,
       kind: contact.kind,
+      indirect: contact.listed === false,
       displayName: contactName(contact),
       details: contactDetails(contact),
       match: match && {
@@ -150,10 +202,17 @@ function createPerson(
       summary: note.summary ?? (c.organization.length ? null : c.title),
       favorite: c.favorite,
       photoFileId,
+      listed: c.listed ?? true,
+      archivedAt: c.archived ? nowIso() : null,
+      contactEveryDays: c.contactEveryDays ?? null,
+      contactRhythmSince: c.contactEveryDays ? nowIso() : null,
+      metWhere: c.metWhere ?? null,
+      metWhen: c.metWhen ?? null,
     })
     .returning()
     .get();
   track('people', person.id);
+  addFactsAndReminders(db, person.id, c, track);
   c.points.forEach((p, sort) =>
     db
       .insert(contactPoints)
@@ -184,6 +243,30 @@ function createPerson(
       .run();
   }
   if (note.long) addNoteEntry(db, person.id, note.long, track);
+  return person.id;
+}
+
+function addFactsAndReminders(db: Db, personId: string, c: ImportContact, track: Track) {
+  const known = new Set(
+    db
+      .select({ text: facts.text })
+      .from(facts)
+      .where(and(eq(facts.personId, personId), notDeleted(facts)))
+      .all()
+      .map((f) => f.text),
+  );
+  for (const [sort, text] of (c.facts ?? []).entries()) {
+    if (known.has(text)) continue;
+    track('facts', db.insert(facts).values({ personId, text, sort }).returning().get().id);
+  }
+  for (const r of c.reminders ?? []) {
+    const row = db
+      .insert(reminders)
+      .values({ personId, title: r.title.slice(0, 200), dueAt: r.dueOn, recurrence: r.recurrence })
+      .returning()
+      .get();
+    track('reminders', row.id);
+  }
 }
 
 /** A company-only card: the organization, with its addresses and website. */
@@ -215,7 +298,16 @@ function createOrganization(db: Db, spaceId: string, c: ImportContact, track: Tr
   );
 }
 
-const FILLABLE = ['prefix', 'middleName', 'suffix', 'nickname', 'birthday', 'summary'] as const;
+const FILLABLE = [
+  'prefix',
+  'middleName',
+  'suffix',
+  'nickname',
+  'birthday',
+  'summary',
+  'metWhere',
+  'metWhen',
+] as const;
 
 /** Adds what the existing person lacks; never overwrites a value. */
 function mergeInto(
@@ -234,6 +326,8 @@ function mergeInto(
     nickname: c.nickname,
     birthday: c.birthday,
     summary: note.summary,
+    metWhere: c.metWhere ?? null,
+    metWhen: c.metWhen ?? null,
   };
   const fields: Record<string, string> = {};
   for (const key of FILLABLE) {
@@ -241,10 +335,17 @@ function mergeInto(
     if (value && !current[key]) fields[key] = value;
   }
   if (photoFileId && !current.photoFileId) fields.photoFileId = photoFileId;
+  if (c.contactEveryDays && !current.contactEveryDays) {
+    fields.contactEveryDays = String(c.contactEveryDays);
+    fields.contactRhythmSince = nowIso();
+  }
   if (Object.keys(fields).length) {
-    db.update(people).set(fields).where(eq(people.id, personId)).run();
+    const set: Record<string, string | number> = { ...fields };
+    if (fields.contactEveryDays) set.contactEveryDays = Number(fields.contactEveryDays);
+    db.update(people).set(set).where(eq(people.id, personId)).run();
     track('people', personId, fields);
   }
+  addFactsAndReminders(db, personId, c, track);
 
   const livePoints = db
     .select()
@@ -339,7 +440,7 @@ export async function runImport(
 ): Promise<ContactImport> {
   const space = getLiveSpace(db, options.spaceId);
   const read = readImportFile(file, locale, options.mapping);
-  const planned = plan(db, read.contacts).map((p, index) => {
+  const planned = plan(db, read.contacts, read.format === 'monica').map((p, index) => {
     let action = options.actions[String(index)] ?? p.action;
     // Only an existing person can be completed.
     if (action === 'merge' && !p.match?.candidate.personId) action = 'skip';
@@ -381,17 +482,25 @@ export async function runImport(
           .onConflictDoNothing()
           .run();
       const counts = { create: 0, merge: 0, skip: 0 };
+      // Source id → person, for timeline entries and relationships.
+      const people = new Map<string, string>();
+      const created = new Set<string>();
       for (const [index, p] of planned.entries()) {
         counts[p.action]++;
         const photo = photos.get(index) ?? null;
+        let personId: string | null = null;
         if (p.action === 'create' && p.contact.kind === 'organization') {
           createOrganization(db, space.id, p.contact, track);
         } else if (p.action === 'create') {
-          createPerson(db, space.id, p.contact, photo, track);
+          personId = createPerson(db, space.id, p.contact, photo, track);
+          created.add(personId);
         } else if (p.action === 'merge') {
-          mergeInto(db, p.match!.candidate.personId!, p.contact, photo, track);
+          personId = p.match!.candidate.personId!;
+          mergeInto(db, personId, p.contact, photo, track);
         }
+        if (personId && p.contact.sourceId) people.set(p.contact.sourceId, personId);
       }
+      linkBundle(db, read, people, created, track);
       return db
         .update(contactImports)
         .set({ createdCount: counts.create, mergedCount: counts.merge, skippedCount: counts.skip })
@@ -406,6 +515,125 @@ export async function runImport(
   }
 }
 
+/** “Met through”, timeline entries and relationships between the imported people. */
+function linkBundle(
+  db: Db,
+  bundle: ImportBundle,
+  ids: Map<string, string>,
+  created: Set<string>,
+  track: Track,
+) {
+  for (const c of bundle.contacts) {
+    const personId = c.sourceId && ids.get(c.sourceId);
+    const through = c.metThroughSourceId && ids.get(c.metThroughSourceId);
+    if (!personId || !through || personId === through) continue;
+    const current = db.select().from(people).where(eq(people.id, personId)).get();
+    if (!current || current.metThroughPersonId) continue;
+    db.update(people).set({ metThroughPersonId: through }).where(eq(people.id, personId)).run();
+    if (!created.has(personId)) track('people', personId, { metThroughPersonId: through });
+  }
+
+  for (const e of bundle.entries) {
+    const personIds = [
+      ...new Set(e.people.map((id) => ids.get(id)).filter((id): id is string => !!id)),
+    ];
+    if (!personIds.length) continue;
+    const first = db.select().from(people).where(eq(people.id, personIds[0]!)).get()!;
+    // Importing the same file again does not double the timeline.
+    const duplicate = db
+      .select({ id: entries.id })
+      .from(entries)
+      .innerJoin(entryPeople, eq(entryPeople.entryId, entries.id))
+      .where(
+        and(
+          eq(entryPeople.personId, first.id),
+          eq(entries.kind, e.kind),
+          eq(entries.occurredAt, e.occurredAt),
+          eq(entries.bodyMd, e.bodyMd),
+          isNull(entries.deletedAt),
+        ),
+      )
+      .get();
+    if (duplicate) continue;
+    const row = db
+      .insert(entries)
+      .values({
+        spaceId: first.spaceId,
+        kind: e.kind,
+        direction: e.direction,
+        occurredAt: e.occurredAt,
+        title: e.title?.slice(0, 200) ?? null,
+        bodyMd: e.bodyMd,
+      })
+      .returning()
+      .get();
+    db.insert(entryPeople)
+      .values(personIds.map((personId) => ({ entryId: row.id, personId })))
+      .run();
+    track('entries', row.id);
+  }
+
+  for (const r of bundle.relationships) {
+    const from = ids.get(r.from);
+    const to = ids.get(r.to);
+    if (!from || !to || from === to) continue;
+    const type = ensureRelationshipType(db, r.type, track);
+    const existing = db
+      .select({ id: relationships.id })
+      .from(relationships)
+      .where(
+        and(
+          eq(relationships.typeId, type.id),
+          isNull(relationships.deletedAt),
+          type.symmetric
+            ? or(
+                and(eq(relationships.fromPersonId, from), eq(relationships.toPersonId, to)),
+                and(eq(relationships.fromPersonId, to), eq(relationships.toPersonId, from)),
+              )
+            : and(eq(relationships.fromPersonId, from), eq(relationships.toPersonId, to)),
+        ),
+      )
+      .get();
+    if (existing) continue;
+    const row = db
+      .insert(relationships)
+      .values({ fromPersonId: from, toPersonId: to, typeId: type.id })
+      .returning()
+      .get();
+    track('relationships', row.id);
+  }
+}
+
+/** A seeded relationship type by key, or a custom one by name (created if missing). */
+function ensureRelationshipType(db: Db, ref: RelationshipTypeRef, track: Track) {
+  const live = db.select().from(relationshipTypes).where(isNull(relationshipTypes.deletedAt)).all();
+  let custom: Exclude<RelationshipTypeRef, { key: string }>;
+  if ('key' in ref) {
+    const seeded = live.find((t) => t.nameKey === `seed.relationshipTypes.${ref.key}`);
+    if (seeded) return seeded;
+    // Renamed or deleted by the user: fall back to a custom type of that key.
+    custom = { name: ref.key, reverseName: ref.key, symmetric: true };
+  } else custom = ref;
+  const lower = (v: string | null) => (v ?? '').toLowerCase();
+  const found = live.find(
+    (t) =>
+      lower(t.name) === lower(custom.name) && lower(t.reverseName) === lower(custom.reverseName),
+  );
+  if (found) return found;
+  const row = db
+    .insert(relationshipTypes)
+    .values({
+      name: custom.name,
+      reverseName: custom.reverseName,
+      symmetric: custom.symmetric,
+      sort: live.length,
+    })
+    .returning()
+    .get();
+  track('relationship_types', row.id);
+  return row;
+}
+
 export function listImports(db: Db): ContactImport[] {
   return db
     .select()
@@ -416,7 +644,15 @@ export function listImports(db: Db): ContactImport[] {
     .map(toContactImport);
 }
 
-const TRASHABLE = { contact_points: contactPoints, addresses, affiliations, entries } as const;
+const TRASHABLE = {
+  contact_points: contactPoints,
+  addresses,
+  affiliations,
+  entries,
+  facts,
+  reminders,
+  relationships,
+} as const;
 
 /**
  * Undoes an import: the people, contact details, notes and organizations it
@@ -492,6 +728,18 @@ export function undoImport(db: Db, id: string): ContactImport {
           db.update(organizations)
             .set({ deletedAt: now })
             .where(and(eq(organizations.id, item.rowId), isNull(organizations.deletedAt)))
+            .run();
+        }
+      } else if (item.tableName === 'relationship_types') {
+        const used = db
+          .select({ id: relationships.id })
+          .from(relationships)
+          .where(and(eq(relationships.typeId, item.rowId), isNull(relationships.deletedAt)))
+          .get();
+        if (!used) {
+          db.update(relationshipTypes)
+            .set({ deletedAt: now })
+            .where(and(eq(relationshipTypes.id, item.rowId), isNull(relationshipTypes.deletedAt)))
             .run();
         }
       } else if (item.tableName === 'tags') {
