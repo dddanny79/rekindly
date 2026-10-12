@@ -6,7 +6,9 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
-First public release (planned as 0.1.0):
+## [0.1.0] — 2026-10-13
+
+First public release:
 
 - People and organizations, briefing, timeline, facts, follow-ups, relationships,
   indirect contacts, tags, custom fields, spaces
@@ -20,3 +22,6 @@ First public release (planned as 0.1.0):
   summary, fact suggestions, questions with sources — per space opt-in
 - API tokens, OpenAPI reference at `/api/docs`, MCP server for Claude
 - One Docker image (amd64, arm64), SQLite, no telemetry
+
+[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/dddanny79/rekindly/releases/tag/v0.1.0

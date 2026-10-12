@@ -5,11 +5,11 @@ The app ships as **one Docker image** for `linux/amd64` and `linux/arm64`:
 port `3000` and keeps everything (SQLite database and uploaded photos) in the
 volume `/data`. No other services are needed.
 
-| Tag      | Content                                        |
-| -------- | ---------------------------------------------- |
-| `edge`   | A recent state of `main`, built on demand      |
-| `1.2.3`  | A release; `1.2` follows the latest patch      |
-| `latest` | Latest release (none yet — use `edge` for now) |
+| Tag      | Content                                   |
+| -------- | ----------------------------------------- |
+| `edge`   | A recent state of `main`, built on demand |
+| `1.2.3`  | A release; `1.2` follows the latest patch |
+| `latest` | Latest release                            |
 
 Images are built and published for releases (Git tags `v*`) and on demand
 (GitHub → Actions → _Docker_ → _Run workflow_ on `main`). Coolify can build directly
