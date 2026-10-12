@@ -183,6 +183,9 @@ export const en = {
     primaryShort: 'main role',
     dateHint: 'Use a year, month/year or a full date, e.g. 2017, 3/2026, 2.10.2026.',
     removeTitle: 'Remove the link to {{name}}?',
+    otherSpace:
+      '{{org}} is in the space {{orgSpace}}, {{person}} in {{personSpace}}. Saving moves {{person}} to {{orgSpace}}.',
+    moveAndSave: 'Move and save',
   },
   relationship: {
     title: 'Relationships',

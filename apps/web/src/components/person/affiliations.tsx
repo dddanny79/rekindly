@@ -9,9 +9,10 @@ import { EditButton, RemoveButton } from '@/components/row-actions';
 import { EmptyRow, SideRow, SideSection } from '@/components/side-section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { organizationsApi, organizationsQuery, peopleApi, useWrite } from '@/lib/data';
+import { organizationsApi, organizationsQuery, peopleApi, spacesQuery, useWrite } from '@/lib/data';
 import { formatPartialDate, parsePartialDate } from '@/lib/dates';
 import { errorMessage } from '@/lib/errors';
+import { spaceName } from '@/lib/labels';
 
 interface FormValue {
   role: string;
@@ -22,6 +23,7 @@ interface FormValue {
 
 function AffiliationForm({
   spaceId,
+  personName,
   initial,
   onSubmit,
   onCancel,
@@ -29,9 +31,12 @@ function AffiliationForm({
   error,
 }: {
   spaceId: string;
+  personName: string;
   initial?: Affiliation;
   onSubmit: (input: {
     organization?: { id?: string; name: string };
+    /** The organization is in another space: move the person there first. */
+    moveToSpaceId?: string;
     role: string | null;
     startedOn: string | null;
     endedOn: string | null;
@@ -43,8 +48,23 @@ function AffiliationForm({
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
-  const { data: organizations = [] } = useQuery(organizationsQuery({ spaceId }));
-  const [org, setOrg] = useState<{ id?: string; name: string } | null>(null);
+  // All spaces: organizations elsewhere are offered too, marked with their space.
+  const { data: organizations = [] } = useQuery(organizationsQuery({}));
+  const { data: spaces = [] } = useQuery(spacesQuery);
+  const [org, setOrg] = useState<{ id?: string; name: string; spaceId?: string } | null>(null);
+  const nameOf = (id: string | undefined) => {
+    const space = spaces.find((s) => s.id === id);
+    return space ? spaceName(t, space) : '';
+  };
+  const otherSpace = org?.spaceId && org.spaceId !== spaceId ? org.spaceId : undefined;
+  const options = [
+    ...organizations.filter((o) => o.spaceId === spaceId),
+    ...organizations.filter((o) => o.spaceId !== spaceId),
+  ].map((o) => ({
+    value: o.id,
+    label: o.name,
+    hint: o.spaceId === spaceId ? undefined : nameOf(o.spaceId),
+  }));
   const [form, setForm] = useState<FormValue>({
     role: initial?.role ?? '',
     startedOn: initial?.startedOn ? formatPartialDate(initial.startedOn, locale) : '',
@@ -61,6 +81,7 @@ function AffiliationForm({
     if (!initial && !org) return;
     onSubmit({
       organization: org ?? undefined,
+      moveToSpaceId: otherSpace,
       role: form.role.trim() || null,
       startedOn,
       endedOn,
@@ -88,12 +109,28 @@ function AffiliationForm({
             label={t('affiliation.organization')}
             placeholder={t('affiliation.organization')}
             autoFocus
-            options={organizations.map((o) => ({ value: o.id, label: o.name }))}
-            onSelect={(o) => setOrg({ id: o.value, name: o.label })}
+            options={options}
+            onSelect={(o) =>
+              setOrg({
+                id: o.value,
+                name: o.label,
+                spaceId: organizations.find((x) => x.id === o.value)?.spaceId,
+              })
+            }
             onCreate={(query) => setOrg({ name: query })}
             createLabel={(query) => t('organizations.createNamed', { name: query })}
           />
         ))}
+      {otherSpace && org && (
+        <p className="text-sm text-foreground-2" role="note">
+          {t('affiliation.otherSpace', {
+            org: org.name,
+            orgSpace: nameOf(otherSpace),
+            person: personName,
+            personSpace: nameOf(spaceId),
+          })}
+        </p>
+      )}
       <Input
         aria-label={t('affiliation.role')}
         placeholder={t('affiliation.role')}
@@ -129,7 +166,7 @@ function AffiliationForm({
       <FormMessage tone="error">{error ? errorMessage(t, error) : null}</FormMessage>
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={pending || (!initial && !org)}>
-          {t('common.save')}
+          {otherSpace ? t('affiliation.moveAndSave') : t('common.save')}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
           {t('common.cancel')}
@@ -141,10 +178,12 @@ function AffiliationForm({
 
 export function AffiliationsSection({
   personId,
+  personName,
   spaceId,
   affiliations,
 }: {
   personId: string;
+  personName: string;
   spaceId: string;
   affiliations: Affiliation[];
 }) {
@@ -155,7 +194,9 @@ export function AffiliationsSection({
 
   const add = useWrite(
     async (input: Parameters<Parameters<typeof AffiliationForm>[0]['onSubmit']>[0]) => {
-      const { organization, ...rest } = input;
+      const { organization, moveToSpaceId, ...rest } = input;
+      // Spaces stay separate: the person moves to the organization's space.
+      if (moveToSpaceId) await peopleApi.update(personId, { spaceId: moveToSpaceId });
       const organizationId =
         organization!.id ??
         (await organizationsApi.create({ spaceId, name: organization!.name })).id;
@@ -189,11 +230,14 @@ export function AffiliationsSection({
           <AffiliationForm
             key={a.id}
             spaceId={spaceId}
+            personName={personName}
             initial={a}
             pending={update.isPending}
             error={update.error}
             onCancel={() => setEditing(null)}
-            onSubmit={({ organization: _, ...input }) => update.mutate({ id: a.id, input })}
+            onSubmit={({ organization: _, moveToSpaceId: __, ...input }) =>
+              update.mutate({ id: a.id, input })
+            }
           />
         ) : (
           <SideRow
@@ -244,6 +288,7 @@ export function AffiliationsSection({
       {adding && (
         <AffiliationForm
           spaceId={spaceId}
+          personName={personName}
           pending={add.isPending}
           error={add.error}
           onCancel={() => setAdding(false)}

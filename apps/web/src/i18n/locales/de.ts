@@ -185,6 +185,9 @@ export const de: Translations = {
     primaryShort: 'Haupt-Rolle',
     dateHint: 'Jahr, Monat/Jahr oder volles Datum, z. B. 2017, 3/2026, 2.10.2026.',
     removeTitle: 'Zuordnung zu {{name}} entfernen?',
+    otherSpace:
+      '{{org}} liegt im Bereich {{orgSpace}}, {{person}} im Bereich {{personSpace}}. Beim Speichern wird {{person}} nach {{orgSpace}} verschoben.',
+    moveAndSave: 'Verschieben und speichern',
   },
   relationship: {
     title: 'Beziehungen',

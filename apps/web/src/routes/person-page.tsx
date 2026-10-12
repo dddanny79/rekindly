@@ -103,6 +103,7 @@ function PersonView({ personId, compose }: { personId: string; compose?: 'call' 
           <div className="mt-7">
             <AffiliationsSection
               personId={person.id}
+              personName={person.displayName}
               spaceId={person.spaceId}
               affiliations={person.affiliations}
             />
