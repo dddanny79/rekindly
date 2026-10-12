@@ -371,7 +371,7 @@ export const de: Translations = {
     iphone: {
       title: 'iPhone einrichten',
       step1:
-        'Einstellungen → Apps → Kontakte → Kontakte-Accounts → Account hinzufügen → Andere → CardDAV-Account hinzufügen.',
+        'Einstellungen → Apps → Kontakte → Kontakte-Accounts → Account hinzufügen → Andere, dann unter „Kontakte“: CardDAV-Account hinzufügen (nicht CalDAV, das ist für Kalender).',
       step2:
         'Server, Benutzername und Passwort von oben eintragen; als Beschreibung z. B. den App-Namen.',
       step3: 'Auf „Weiter“ tippen. Die Kontakte erscheinen nach kurzer Zeit in der Kontakte-App.',

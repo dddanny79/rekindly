@@ -8,7 +8,8 @@ contacts in its address book, and changes flow both ways.
 1. In the app: **Settings → Sync → Connect a device**. Choose a name and the spaces
    this device should see, then _Create password_. The password is shown once.
 2. **iPhone:** Settings → Apps → Contacts → Contacts Accounts → Add Account →
-   Other → Add CardDAV Account. Server: the host of `PUBLIC_URL` (e.g.
+   Other → under _Contacts_: Add CardDAV Account (not _CalDAV_ — that one is for
+   calendars and fails with “Cannot connect using SSL”). Server: the host of `PUBLIC_URL` (e.g.
    `contacts.example.com`), user name: the account's email, password: the app
    password.
 3. Birthdays: Calendar app → Calendars → turn on _Birthdays_.

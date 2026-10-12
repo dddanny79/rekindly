@@ -11,8 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { peopleApi, peopleQuery, useWrite } from '@/lib/data';
 import {
+  birthdayInput,
   formatBirthday,
   formatPartialDate,
+  partialDateInput,
   nextBirthday,
   parseBirthday,
   parsePartialDate,
@@ -99,6 +101,7 @@ export function DetailsSection({ person }: { person: Person }) {
         <InlineText
           label={t('person.birthday')}
           value={person.birthday}
+          editValue={birthdayInput(person.birthday)}
           display={
             person.birthday ? (
               <>
@@ -170,6 +173,7 @@ export function MetSection({ person }: { person: Person }) {
         <InlineText
           label={t('person.met.when')}
           value={person.metWhen}
+          editValue={partialDateInput(person.metWhen)}
           display={person.metWhen ? formatPartialDate(person.metWhen, locale) : undefined}
           placeholder={t('person.met.whenPlaceholder')}
           validate={(input) =>

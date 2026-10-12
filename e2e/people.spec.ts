@@ -212,3 +212,22 @@ test.describe('mobile', () => {
     await expect(page.getByRole('dialog', { name: 'Space' })).toBeVisible();
   });
 });
+
+test('a stored birthday is edited in the typed format, not as ISO date', async ({
+  page,
+  request,
+}) => {
+  const { spaces } = await (await request.get('/api/v1/spaces')).json();
+  const created = await (
+    await request.post('/api/v1/people', {
+      data: { spaceId: spaces[0].id, firstName: 'Greta', lastName: 'Geburtstag' },
+    })
+  ).json();
+  await request.patch(`/api/v1/people/${created.id}`, { data: { birthday: '1979-10-24' } });
+  await page.goto(`/people/${created.id}`);
+  await page.getByRole('button', { name: /^Birthday: 24\.10\.1979\./ }).click();
+  await expect(page.getByRole('textbox', { name: 'Birthday' })).toHaveValue('24.10.1979');
+  await page.getByRole('textbox', { name: 'Birthday' }).fill('24.10.');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('region', { name: 'Details' })).toContainText('October 24');
+});

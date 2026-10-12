@@ -123,6 +123,29 @@ describe('vCard', () => {
     expect(back).toContain('extra1.X-ABLabel:_$!<Anniversary>!$_');
   });
 
+  it('translates Apple built-in labels into the app language', () => {
+    const card = [
+      'BEGIN:VCARD',
+      'item1.EMAIL;type=INTERNET:a@example.com',
+      'item1.X-ABLabel:_$!<Home>!$_',
+      'item2.TEL:0221 1',
+      'item2.X-ABLabel:_$!<Work>!$_',
+      'item3.TEL:0221 2',
+      'item3.X-ABLabel:Ferienhaus',
+      'END:VCARD',
+    ].join('\r\n');
+    expect(parseVcard(card, { locale: 'de' }).points.map((p) => p.label)).toEqual([
+      'Privat',
+      'Büro',
+      'Ferienhaus',
+    ]);
+    expect(parseVcard(card, { locale: 'en' }).points.map((p) => p.label)).toEqual([
+      'Home',
+      'Work',
+      'Ferienhaus',
+    ]);
+  });
+
   it('understands other birthday notations', () => {
     const bday = (line: string) =>
       parseVcard(`BEGIN:VCARD\r\n${line}\r\nEND:VCARD\r\n`, { locale: 'en' }).birthday;
@@ -131,5 +154,8 @@ describe('vCard', () => {
     expect(bday('BDAY:--10-24')).toBe('--10-24');
     expect(bday('BDAY:1985-10-24T00:00:00Z')).toBe('1985-10-24');
     expect(bday('BDAY:nonsense')).toBeNull();
+    // iOS sometimes drops X-APPLE-OMIT-YEAR when it sends a card back.
+    expect(bday('BDAY;VALUE=date:1604-10-24')).toBe('--10-24');
+    expect(bday('BDAY:16041024')).toBe('--10-24');
   });
 });

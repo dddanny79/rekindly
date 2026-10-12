@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { CreateAppPasswordResponse, Entry, Person, TrashItem } from '@app/shared';
 import { createSignedInApp, OWNER } from '../test/helpers';
@@ -279,10 +280,91 @@ describe('CardDAV', () => {
     expect(entries[0]!.bodyMd).toContain('Telefon hinzugefügt: +49 170 2');
     expect(entries[0]!.bodyMd).toContain('Telefon in den Papierkorb: +49 170 1');
 
+    // iOS sends a yearless birthday back without X-APPLE-OMIT-YEAR: still yearless.
+    const current = await dav('GET', url);
+    const yearless = (await current.text()).replace(
+      'N:Berger;Jana;;;',
+      'N:Berger;Jana;;;\r\nBDAY;VALUE=date:1604-10-24',
+    );
+    expect(
+      (await dav('PUT', url, yearless, { 'if-match': current.headers.get('etag')! })).status,
+    ).toBe(204);
+    expect((await t.json<Person>(t.request(`/api/v1/people/${jana.id}`))).birthday).toBe('--10-24');
+
     // The unknown anniversary line survives the round trip.
     const back = unfold(await (await dav('GET', url)).text());
     expect(back).toContain('extra1.X-ABDATE:2019-05-01');
     expect(back).toContain('extra1.X-ABLabel:_$!<Anniversary>!$_');
+  });
+
+  it('answers a PUT with the new ETag, so the next change from the phone fits', async () => {
+    const jana = await person('Jana', 'Berger');
+    await post(`/people/${jana.id}/contact-points`, { kind: 'email', value: 'jana@example.com' });
+    const dav = await davClient();
+    const url = `/dav/addressbooks/contacts/${jana.id}.vcf`;
+    const first = await dav('GET', url);
+    // Like iOS: change the email, PUT, then change it again with the returned ETag.
+    const card1 = (await first.text()).replace('jana@example.com', 'jana@example.org');
+    const put1 = await dav('PUT', url, card1, { 'if-match': first.headers.get('etag')! });
+    expect(put1.status).toBe(204);
+    const etag1 = put1.headers.get('etag');
+    expect(etag1).toBe((await dav('GET', url)).headers.get('etag'));
+    const card2 = card1.replace('jana@example.org', 'jana@example.net');
+    expect((await dav('PUT', url, card2, { 'if-match': etag1! })).status).toBe(204);
+    const after = await t.json<Person>(t.request(`/api/v1/people/${jana.id}`));
+    expect(after.contactPoints.map((p) => p.value)).toEqual(['jana@example.net']);
+
+    // When the server keeps something the phone removed, no ETag: the phone refetches.
+    const company = await post<{ id: string }>('/organizations', {
+      spaceId: t.businessSpace,
+      name: 'Bleibt GmbH',
+    });
+    await post(`/people/${jana.id}/affiliations`, { organizationId: company.id, isPrimary: true });
+    const withOrg = await dav('GET', url);
+    const withoutOrg = (await withOrg.text()).replace(/ORG:[^\r]*\r\n/, '');
+    const put3 = await dav('PUT', url, withoutOrg, { 'if-match': withOrg.headers.get('etag')! });
+    expect(put3.status).toBe(204);
+    expect(put3.headers.get('etag')).toBeNull();
+  });
+
+  it('takes a new photo from the phone once, not again on every save', async () => {
+    const jana = await person('Jana', 'Berger');
+    const dav = await davClient();
+    const url = `/dav/addressbooks/contacts/${jana.id}.vcf`;
+    const jpeg = (
+      await sharp({
+        create: { width: 40, height: 40, channels: 3, background: '#a33' },
+      })
+        .jpeg()
+        .toBuffer()
+    ).toString('base64');
+    const get = await dav('GET', url);
+    const withPhoto = (await get.text()).replace(
+      'END:VCARD',
+      `PHOTO;ENCODING=b;TYPE=JPEG:${jpeg}\r\nEND:VCARD`,
+    );
+    const put1 = await dav('PUT', url, withPhoto, { 'if-match': get.headers.get('etag')! });
+    expect(put1.status).toBe(204);
+    const photo1 = (await t.json<Person>(t.request(`/api/v1/people/${jana.id}`))).photoUrl;
+    expect(photo1).toMatch(/^\/api\/v1\/files\//);
+
+    // Same photo again with another change: no new file, no "photo changed".
+    const put2 = await dav(
+      'PUT',
+      url,
+      withPhoto.replace('N:Berger;Jana;;;', 'N:Berger;Jana;Maria;;'),
+      {
+        'if-match': put1.headers.get('etag') ?? (await dav('GET', url)).headers.get('etag')!,
+      },
+    );
+    expect(put2.status).toBe(204);
+    const after = await t.json<Person>(t.request(`/api/v1/people/${jana.id}`));
+    expect(after.photoUrl).toBe(photo1);
+    expect(after.middleName).toBe('Maria');
+    const { entries } = await t.json<{ entries: Entry[] }>(
+      t.request(`/api/v1/entries?personId=${jana.id}`),
+    );
+    expect(entries.filter((e) => e.bodyMd.includes('Foto geändert'))).toHaveLength(1);
   });
 
   it('creates contacts from the phone under their own name and UID', async () => {

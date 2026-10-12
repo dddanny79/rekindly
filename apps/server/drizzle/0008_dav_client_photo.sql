@@ -1,0 +1,1 @@
+ALTER TABLE `dav_cards` ADD `client_photo_hash` text;

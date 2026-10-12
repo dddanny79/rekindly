@@ -38,6 +38,11 @@ export const davCards = sqliteTable(
     etag: text('etag').notNull(),
     vcard: text('vcard').notNull(),
     photoFileId: text('photo_file_id'),
+    /**
+     * SHA-256 of the photo the client last sent. Clients may send the served photo
+     * back re-encoded; the same bytes again are not a new photo.
+     */
+    clientPhotoHash: text('client_photo_hash'),
     seq: integer('seq').notNull(),
     deleted: bool('deleted').notNull().default(false),
     updatedAt: timestamps.updatedAt,

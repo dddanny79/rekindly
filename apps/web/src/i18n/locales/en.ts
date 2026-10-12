@@ -367,7 +367,7 @@ export const en = {
     iphone: {
       title: 'Set up the iPhone',
       step1:
-        'Open Settings → Apps → Contacts → Contacts Accounts → Add Account → Other → Add CardDAV Account.',
+        'Open Settings → Apps → Contacts → Contacts Accounts → Add Account → Other, then under “Contacts”: Add CardDAV Account (not CalDAV, that one is for calendars).',
       step2:
         'Enter the server, user name and password from above; as description e.g. the app name.',
       step3: 'Tap “Next”. The contacts appear in the Contacts app after a short while.',

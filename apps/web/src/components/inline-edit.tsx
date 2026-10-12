@@ -8,6 +8,8 @@ interface InlineTextProps {
   /** Accessible name of the field, e.g. “Birthday”. */
   label: string;
   value: string | null;
+  /** Text in the field when editing starts, if it differs from `value` (e.g. 24.10.1985). */
+  editValue?: string | null;
   /** Shown instead of the value (e.g. formatted date). */
   display?: ReactNode;
   placeholder?: string;
@@ -26,6 +28,7 @@ interface InlineTextProps {
 export function InlineText({
   label,
   value,
+  editValue,
   display,
   placeholder,
   validate,
@@ -42,7 +45,7 @@ export function InlineText({
   const button = useRef<HTMLButtonElement>(null);
 
   const start = () => {
-    setDraft(value ?? '');
+    setDraft(editValue ?? value ?? '');
     setError(null);
     setEditing(true);
   };
@@ -53,7 +56,7 @@ export function InlineText({
 
   async function save() {
     if (saving) return;
-    if (draft.trim() === (value ?? '').trim()) return stop();
+    if (draft.trim() === (editValue ?? value ?? '').trim()) return stop();
     const problem = validate?.(draft) ?? null;
     if (problem) return setError(problem);
     setSaving(true);
@@ -113,7 +116,7 @@ export function InlineText({
       ref={button}
       type="button"
       onClick={start}
-      aria-label={`${label}: ${empty ? t('common.empty') : value}. ${t('common.edit')}`}
+      aria-label={`${label}: ${empty ? t('common.empty') : (editValue ?? value)}. ${t('common.edit')}`}
       className={cn(
         'group -mx-1 flex max-w-full cursor-text items-baseline gap-2 rounded-sm px-1 text-left hover:bg-muted',
         empty && 'text-muted-foreground',

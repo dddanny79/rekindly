@@ -131,7 +131,11 @@ export interface ApplyOptions {
   card: ParsedCard;
   locale: Locale;
   dataDir: string;
+  /** SHA-256 of the photo this client sent last time (see `dav_cards`). */
+  knownPhotoHash?: string | null;
 }
+
+export const photoHash = (photo: Buffer) => createHash('sha256').update(photo).digest('hex');
 
 /**
  * Merges a vCard from a client into the app. Defensive: removed contact details
@@ -161,157 +165,179 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
     summary: card.note,
   };
 
-  let personId = options.personId;
-  const isNew = !personId;
-  if (!personId) {
-    personId = db
-      .insert(people)
-      .values({ spaceId: options.spaceId, ...fields })
-      .returning()
-      .get().id;
-  } else {
-    const current = db.select().from(people).where(eq(people.id, personId)).get()!;
-    const nameChanged = (Object.keys(names) as (keyof typeof names)[]).some(
-      (k) => (current[k] ?? null) !== (names[k] ?? null),
-    );
-    if (nameChanged) changes.push(t.name!);
-    if ((current.nickname ?? null) !== (card.nickname ?? null)) changes.push(t.nickname!);
-    if ((current.birthday ?? null) !== (card.birthday ?? null)) changes.push(t.birthday!);
-    if ((current.summary ?? null) !== (card.note ?? null)) changes.push(t.summary!);
-    if (changes.length) {
-      db.update(people)
-        .set({ ...fields, updatedAt: nowIso() })
-        .where(eq(people.id, personId))
-        .run();
-    }
-  }
-  const person = db.select().from(people).where(eq(people.id, personId)).get()!;
-
-  // Contact points: add new ones, trash removed ones, update labels.
-  const livePoints = db
-    .select()
-    .from(contactPoints)
-    .where(and(eq(contactPoints.personId, personId), notDeleted(contactPoints)))
-    .all();
-  const incoming = new Map<string, CardPoint>(card.points.map((p) => [pointKey(p), p]));
-  for (const point of livePoints) {
-    const match = incoming.get(pointKey(point));
-    if (!match) {
-      db.update(contactPoints)
-        .set({ deletedAt: nowIso() })
-        .where(eq(contactPoints.id, point.id))
-        .run();
-      if (!isNew) changes.push(fill(t.removed!, { what: t[point.kind]!, value: point.value }));
-    } else if ((match.label ?? null) !== point.label || match.isPrimary !== point.isPrimary) {
-      db.update(contactPoints)
-        .set({ label: match.label, isPrimary: match.isPrimary })
-        .where(eq(contactPoints.id, point.id))
-        .run();
-    }
-    incoming.delete(pointKey(point));
-  }
-  let sort = livePoints.length;
-  for (const point of incoming.values()) {
-    db.insert(contactPoints)
-      .values({ personId, ...point, sort: sort++ })
-      .run();
-    if (!isNew) changes.push(fill(t.added!, { what: t[point.kind]!, value: point.value }));
-  }
-
-  // Addresses, the same way.
-  const livePlaces = db
-    .select()
-    .from(addresses)
-    .where(and(eq(addresses.personId, personId), notDeleted(addresses)))
-    .all();
-  const incomingPlaces = new Map(card.addresses.map((a) => [addressKey(a), a]));
-  for (const place of livePlaces) {
-    const match = incomingPlaces.get(addressKey(place));
-    if (!match) {
-      db.update(addresses).set({ deletedAt: nowIso() }).where(eq(addresses.id, place.id)).run();
-      if (!isNew) changes.push(fill(t.removed!, { what: t.address!, value: addressText(place) }));
-    } else if ((match.label ?? null) !== place.label) {
-      db.update(addresses).set({ label: match.label }).where(eq(addresses.id, place.id)).run();
-    }
-    incomingPlaces.delete(addressKey(place));
-  }
-  for (const place of incomingPlaces.values()) {
-    db.insert(addresses)
-      .values({ personId, ...place })
-      .run();
-    if (!isNew) changes.push(fill(t.added!, { what: t.address!, value: addressText(place) }));
-  }
-
-  // Organization and role of the main affiliation.
-  const orgs = OrgIndex.load(db);
-  const links = db
-    .select()
-    .from(affiliations)
-    .where(and(eq(affiliations.personId, personId), notDeleted(affiliations)))
-    .all()
-    .filter((a) => orgs.byId.has(a.organizationId));
-  const main = mainAffiliation(links);
-  const currentPath = main ? orgs.path(main.organizationId).map((o) => o.name) : [];
-  const samePath =
-    currentPath.length === card.organization.length &&
-    currentPath.every((name, i) => name.toLowerCase() === card.organization[i]!.toLowerCase());
-  if (card.organization.length && !samePath) {
-    const orgId = ensureOrganizationPath(db, person.spaceId, card.organization);
-    const existing = links.find((a) => a.organizationId === orgId && !a.endedOn);
-    db.update(affiliations)
-      .set({ isPrimary: false })
-      .where(and(eq(affiliations.personId, personId), isNull(affiliations.deletedAt)))
-      .run();
-    if (existing) {
-      db.update(affiliations)
-        .set({ isPrimary: true, role: card.title })
-        .where(eq(affiliations.id, existing.id))
-        .run();
-    } else {
-      db.insert(affiliations)
-        .values({ personId, organizationId: orgId, role: card.title, isPrimary: true })
-        .run();
-    }
-    if (!isNew) changes.push(fill(t.organization!, { value: card.organization.join(' › ') }));
-  } else if (main && samePath && (main.role ?? null) !== (card.title ?? null)) {
-    db.update(affiliations).set({ role: card.title }).where(eq(affiliations.id, main.id)).run();
-    changes.push(fill(t.role!, { value: card.title ?? '–' }));
-  } else if (!card.organization.length && main && !isNew) {
-    // Never delete an affiliation from a sync; the card shows it again.
-    changes.push(fill(t.orgKept!, { value: currentPath.join(' › ') }));
-  }
-
-  // Photo: replaced when a different one arrives; an absent photo is kept.
-  if (card.photo && !(await samePhoto(db, options.dataDir, person.photoFileId, card.photo))) {
+  // The photo is stored first (it is async); everything else is one transaction,
+  // so a failure never leaves a half-applied card behind.
+  const before = options.personId
+    ? db.select().from(people).where(eq(people.id, options.personId)).get()
+    : undefined;
+  let newPhoto: { id: string } | null = null;
+  if (
+    card.photo &&
+    photoHash(card.photo) !== options.knownPhotoHash &&
+    !(await samePhoto(db, options.dataDir, before?.photoFileId ?? null, card.photo))
+  ) {
     try {
-      const stored = await storePhoto(db, options.dataDir, card.photo);
-      db.update(people).set({ photoFileId: stored.id }).where(eq(people.id, personId)).run();
-      if (person.photoFileId) await removeFile(db, options.dataDir, person.photoFileId);
-      if (!isNew) changes.push(t.photo!);
+      newPhoto = await storePhoto(db, options.dataDir, card.photo);
     } catch {
       // An unreadable photo must not lose the rest of the card.
     }
   }
 
-  // Lines the app has no field for are written back unchanged.
-  if (card.extraLines.length) {
-    const lines = card.extraLines.join('\n');
-    db.insert(davExtras)
-      .values({ personId, lines })
-      .onConflictDoUpdate({ target: davExtras.personId, set: { lines, updatedAt: nowIso() } })
-      .run();
-  } else {
-    db.delete(davExtras).where(eq(davExtras.personId, personId)).run();
-  }
+  let id: string;
+  try {
+    id = db.transaction(() => {
+      let personId = options.personId;
+      const isNew = !personId;
+      if (!personId) {
+        personId = db
+          .insert(people)
+          .values({ spaceId: options.spaceId, ...fields })
+          .returning()
+          .get().id;
+      } else {
+        const current = db.select().from(people).where(eq(people.id, personId)).get()!;
+        const nameChanged = (Object.keys(names) as (keyof typeof names)[]).some(
+          (k) => (current[k] ?? null) !== (names[k] ?? null),
+        );
+        if (nameChanged) changes.push(t.name!);
+        if ((current.nickname ?? null) !== (card.nickname ?? null)) changes.push(t.nickname!);
+        if ((current.birthday ?? null) !== (card.birthday ?? null)) changes.push(t.birthday!);
+        if ((current.summary ?? null) !== (card.note ?? null)) changes.push(t.summary!);
+        if (changes.length) {
+          db.update(people)
+            .set({ ...fields, updatedAt: nowIso() })
+            .where(eq(people.id, personId))
+            .run();
+        }
+      }
+      const person = db.select().from(people).where(eq(people.id, personId)).get()!;
 
-  touchPerson(db, personId);
-  if (isNew || changes.length) {
-    createEntry(db, {
-      kind: 'note',
-      title: isNew ? t.created! : t.changed!,
-      bodyMd: changes.length ? changes.map((c) => `- ${c}`).join('\n') : (t.created ?? ''),
-      personIds: [personId],
+      // Contact points: add new ones, trash removed ones, update labels.
+      const livePoints = db
+        .select()
+        .from(contactPoints)
+        .where(and(eq(contactPoints.personId, personId), notDeleted(contactPoints)))
+        .all();
+      const incoming = new Map<string, CardPoint>(card.points.map((p) => [pointKey(p), p]));
+      for (const point of livePoints) {
+        const match = incoming.get(pointKey(point));
+        if (!match) {
+          db.update(contactPoints)
+            .set({ deletedAt: nowIso() })
+            .where(eq(contactPoints.id, point.id))
+            .run();
+          if (!isNew) changes.push(fill(t.removed!, { what: t[point.kind]!, value: point.value }));
+        } else if ((match.label ?? null) !== point.label || match.isPrimary !== point.isPrimary) {
+          db.update(contactPoints)
+            .set({ label: match.label, isPrimary: match.isPrimary })
+            .where(eq(contactPoints.id, point.id))
+            .run();
+        }
+        incoming.delete(pointKey(point));
+      }
+      let sort = livePoints.length;
+      for (const point of incoming.values()) {
+        db.insert(contactPoints)
+          .values({ personId, ...point, sort: sort++ })
+          .run();
+        if (!isNew) changes.push(fill(t.added!, { what: t[point.kind]!, value: point.value }));
+      }
+
+      // Addresses, the same way.
+      const livePlaces = db
+        .select()
+        .from(addresses)
+        .where(and(eq(addresses.personId, personId), notDeleted(addresses)))
+        .all();
+      const incomingPlaces = new Map(card.addresses.map((a) => [addressKey(a), a]));
+      for (const place of livePlaces) {
+        const match = incomingPlaces.get(addressKey(place));
+        if (!match) {
+          db.update(addresses).set({ deletedAt: nowIso() }).where(eq(addresses.id, place.id)).run();
+          if (!isNew)
+            changes.push(fill(t.removed!, { what: t.address!, value: addressText(place) }));
+        } else if ((match.label ?? null) !== place.label) {
+          db.update(addresses).set({ label: match.label }).where(eq(addresses.id, place.id)).run();
+        }
+        incomingPlaces.delete(addressKey(place));
+      }
+      for (const place of incomingPlaces.values()) {
+        db.insert(addresses)
+          .values({ personId, ...place })
+          .run();
+        if (!isNew) changes.push(fill(t.added!, { what: t.address!, value: addressText(place) }));
+      }
+
+      // Organization and role of the main affiliation.
+      const orgs = OrgIndex.load(db);
+      const links = db
+        .select()
+        .from(affiliations)
+        .where(and(eq(affiliations.personId, personId), notDeleted(affiliations)))
+        .all()
+        .filter((a) => orgs.byId.has(a.organizationId));
+      const main = mainAffiliation(links);
+      const currentPath = main ? orgs.path(main.organizationId).map((o) => o.name) : [];
+      const samePath =
+        currentPath.length === card.organization.length &&
+        currentPath.every((name, i) => name.toLowerCase() === card.organization[i]!.toLowerCase());
+      if (card.organization.length && !samePath) {
+        const orgId = ensureOrganizationPath(db, person.spaceId, card.organization);
+        const existing = links.find((a) => a.organizationId === orgId && !a.endedOn);
+        db.update(affiliations)
+          .set({ isPrimary: false })
+          .where(and(eq(affiliations.personId, personId), isNull(affiliations.deletedAt)))
+          .run();
+        if (existing) {
+          db.update(affiliations)
+            .set({ isPrimary: true, role: card.title })
+            .where(eq(affiliations.id, existing.id))
+            .run();
+        } else {
+          db.insert(affiliations)
+            .values({ personId, organizationId: orgId, role: card.title, isPrimary: true })
+            .run();
+        }
+        if (!isNew) changes.push(fill(t.organization!, { value: card.organization.join(' › ') }));
+      } else if (main && samePath && (main.role ?? null) !== (card.title ?? null)) {
+        db.update(affiliations).set({ role: card.title }).where(eq(affiliations.id, main.id)).run();
+        changes.push(fill(t.role!, { value: card.title ?? '–' }));
+      } else if (!card.organization.length && main && !isNew) {
+        // Never delete an affiliation from a sync; the card shows it again.
+        changes.push(fill(t.orgKept!, { value: currentPath.join(' › ') }));
+      }
+
+      if (newPhoto) {
+        db.update(people).set({ photoFileId: newPhoto.id }).where(eq(people.id, personId)).run();
+        if (!isNew) changes.push(t.photo!);
+      }
+
+      // Lines the app has no field for are written back unchanged.
+      if (card.extraLines.length) {
+        const lines = card.extraLines.join('\n');
+        db.insert(davExtras)
+          .values({ personId, lines })
+          .onConflictDoUpdate({ target: davExtras.personId, set: { lines, updatedAt: nowIso() } })
+          .run();
+      } else {
+        db.delete(davExtras).where(eq(davExtras.personId, personId)).run();
+      }
+
+      touchPerson(db, personId);
+      if (isNew || changes.length) {
+        createEntry(db, {
+          kind: 'note',
+          title: isNew ? t.created! : t.changed!,
+          bodyMd: changes.length ? changes.map((c) => `- ${c}`).join('\n') : (t.created ?? ''),
+          personIds: [personId],
+        });
+      }
+      return personId;
     });
+  } catch (error) {
+    if (newPhoto) await removeFile(db, options.dataDir, newPhoto.id);
+    throw error;
   }
-  return personId;
+  if (newPhoto && before?.photoFileId) await removeFile(db, options.dataDir, before.photoFileId);
+  return id;
 }

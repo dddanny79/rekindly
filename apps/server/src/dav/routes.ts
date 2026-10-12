@@ -15,8 +15,8 @@ import { RateLimiter } from '../lib/rate-limit';
 import { deletePerson } from '../people/service';
 import { flushSearchQueue } from '../search/service';
 import { verifyAppPassword } from './app-passwords';
-import { applyCard } from './inbound';
-import { parseVcard, servedVcard } from './vcard';
+import { applyCard, photoHash } from './inbound';
+import { type ParsedCard, parseVcard, sameContent, servedVcard } from './vcard';
 import {
   type DavResponse,
   DavRequest,
@@ -386,6 +386,29 @@ export function davRoutes({ db, config }: Deps) {
     });
   });
 
+  /**
+   * The new ETag after a PUT, but only if the stored card means exactly what the
+   * client sent (RFC 6352: no ETag when the server changed the content, so the
+   * client fetches it). Without it, iOS keeps an outdated ETag and its next
+   * change fails with 412.
+   */
+  const etagHeader = (name: string, sent: ParsedCard): Record<string, string> => {
+    const stored = db.select().from(davCards).where(eq(davCards.name, name)).get();
+    if (!stored || stored.deleted) return {};
+    const kept = parseVcard(stored.vcard, { locale: locale() });
+    const same = sameContent(sent, kept, !!stored.photoFileId);
+    return same ? { etag: `"${stored.etag}"` } : {};
+  };
+
+  /** Remembers the photo bytes a client sent, to recognize them next time. */
+  const rememberPhoto = (name: string, sent: ParsedCard) => {
+    if (!sent.photo) return;
+    db.update(davCards)
+      .set({ clientPhotoHash: photoHash(sent.photo) })
+      .where(eq(davCards.name, name))
+      .run();
+  };
+
   dav.put(
     '/addressbooks/contacts/:file',
     bodyLimit({ maxSize: 20 * 1024 * 1024, onError: (c) => c.text('Too large', 413) }),
@@ -395,7 +418,13 @@ export function davRoutes({ db, config }: Deps) {
       const book = c.var.book;
       const card = cardByName(db, book, name);
       if (card && c.req.header('if-none-match')?.trim() === '*') return c.text('Exists', 412);
-      if (card && !etagMatches(c.req.header('if-match'), card.etag)) return c.text('Changed', 412);
+      if (card && !etagMatches(c.req.header('if-match'), card.etag)) {
+        // The client edited an older version; it has to fetch the current one first.
+        log.info(
+          `CardDAV: PUT ${name} rejected (412): client has ${c.req.header('if-match')}, current "${card.etag}"`,
+        );
+        return c.text('Changed', 412);
+      }
       if (!card && c.req.header('if-match')) return c.text('Gone', 412);
 
       const parsed = parseVcard(await c.req.text(), {
@@ -410,9 +439,12 @@ export function davRoutes({ db, config }: Deps) {
           card: parsed,
           locale: locale(),
           dataDir: config.dataDir,
+          knownPhotoHash: card.clientPhotoHash,
         });
         flushSearchQueue(db);
-        return c.body(null, 204);
+        rememberPhoto(name, parsed);
+        log.info(`CardDAV: PUT ${name} updated person ${person.id}`);
+        return c.body(null, 204, etagHeader(name, parsed));
       }
       // A new card from the client: it keeps its resource name and UID.
       const spaceId =
@@ -447,7 +479,9 @@ export function davRoutes({ db, config }: Deps) {
         })
         .run();
       flushSearchQueue(db);
-      return c.body(null, 201);
+      rememberPhoto(name, parsed);
+      log.info(`CardDAV: PUT ${name} created person ${personId}`);
+      return c.body(null, 201, etagHeader(name, parsed));
     },
   );
 
@@ -459,6 +493,7 @@ export function davRoutes({ db, config }: Deps) {
     // Defensive: a delete on a phone moves the person to the trash (30 days).
     deletePerson(db, card.personId);
     flushSearchQueue(db);
+    log.info(`CardDAV: DELETE ${name} moved person ${card.personId} to the trash`);
     return c.body(null, 204);
   });
 

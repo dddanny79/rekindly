@@ -163,8 +163,28 @@ const LABEL_TYPES: Record<string, Standard> = {
   fax: 'FAX',
 };
 
+/** Apple's built-in labels (`_$!<Home>!$_`) and the type they stand for. */
+const APPLE_LABEL_TYPES: Record<string, string> = {
+  Mobile: 'CELL',
+  iPhone: 'IPHONE',
+  Home: 'HOME',
+  Work: 'WORK',
+  Main: 'MAIN',
+  HomeFAX: 'FAX',
+  WorkFAX: 'FAX',
+  Other: 'OTHER',
+};
+
 const TYPE_LABELS: Record<'en' | 'de', Record<string, string>> = {
-  en: { CELL: 'Mobile', WORK: 'Work', HOME: 'Home', IPHONE: 'iPhone', MAIN: 'Main', FAX: 'Fax' },
+  en: {
+    CELL: 'Mobile',
+    WORK: 'Work',
+    HOME: 'Home',
+    IPHONE: 'iPhone',
+    MAIN: 'Main',
+    FAX: 'Fax',
+    OTHER: 'Other',
+  },
   de: {
     CELL: 'Mobil',
     WORK: 'Büro',
@@ -322,13 +342,18 @@ const nullable = (value: string | undefined) => {
 };
 
 /** `1985-10-24`, `19851024`, `--1024`, `--10-24`, `1604-10-24` (+ omit year) → app format. */
+const APPLE_NO_YEAR = '1604';
+
 export function parseBirthday(line: VcardLine): string | null {
   const value = line.value.trim().replace(/T.*$/, '');
   const omit = line.params['X-APPLE-OMIT-YEAR']?.[0];
   let match = /^(\d{4})-?(\d{2})-?(\d{2})$/.exec(value);
   if (match) {
     const [, y, m, d] = match;
-    return omit && y === omit ? `--${m}-${d}` : `${y}-${m}-${d}`;
+    // 1604 is Apple's placeholder for "no year"; iOS does not always send the
+    // X-APPLE-OMIT-YEAR parameter back, and nobody alive was born in 1604.
+    const yearless = (omit && y === omit) || y === APPLE_NO_YEAR;
+    return yearless ? `--${m}-${d}` : `${y}-${m}-${d}`;
   }
   match = /^--(\d{2})-?(\d{2})$/.exec(value);
   return match ? `--${match[1]}-${match[2]}` : null;
@@ -339,7 +364,12 @@ function labelFor(
   groupLabels: Map<string, string>,
   locale: 'en' | 'de',
 ): string | null {
-  if (line.group && groupLabels.has(line.group)) return appleLabel(groupLabels.get(line.group)!);
+  if (line.group && groupLabels.has(line.group)) {
+    const raw = groupLabels.get(line.group)!;
+    const builtIn = /^_\$!<(.*)>!\$_$/.exec(raw)?.[1];
+    const type = builtIn ? APPLE_LABEL_TYPES[builtIn] : undefined;
+    return type ? (TYPE_LABELS[locale][type] ?? builtIn!) : appleLabel(raw);
+  }
   const types = (line.params.TYPE ?? []).map((t) => t.toUpperCase());
   for (const type of ['IPHONE', 'CELL', 'WORK', 'HOME', 'MAIN', 'FAX']) {
     if (types.includes(type)) return TYPE_LABELS[locale][type] ?? null;
@@ -523,4 +553,29 @@ export function servedVcard(
   }
   if (!lines.length) return core;
   return core.replace(/END:VCARD\r\n$/, `${lines.join('\r\n')}\r\nEND:VCARD\r\n`);
+}
+
+/**
+ * True if two cards carry the same data as far as the app stores it (names,
+ * birthday, organization, note, contact points and addresses in any order,
+ * kept extra lines, photo present or not).
+ */
+export function sameContent(
+  sent: ParsedCard,
+  stored: ParsedCard,
+  storedHasPhoto: boolean,
+): boolean {
+  const key = (c: ParsedCard) =>
+    JSON.stringify({
+      names: [c.prefix, c.firstName, c.middleName, c.lastName, c.suffix, c.nickname],
+      birthday: c.birthday,
+      organization: c.organization,
+      title: c.title,
+      note: c.note,
+      points: c.points.map((p) => JSON.stringify(p)).sort(),
+      addresses: c.addresses.map((a) => JSON.stringify(a)).sort(),
+      // Group names of extra lines are renamed when stored (itemN → extraN).
+      extras: c.extraLines.map((l) => l.replace(/^[A-Za-z0-9-]+\./, '')).sort(),
+    });
+  return !!sent.photo === storedHasPhoto && key(sent) === key(stored);
 }

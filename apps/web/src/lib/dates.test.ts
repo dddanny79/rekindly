@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  birthdayInput,
+  partialDateInput,
   daysUntil,
   formatBirthday,
   nextBirthday,
@@ -59,5 +61,22 @@ describe('follow-up dates', () => {
     expect(ok.overdueDays).toBe(0);
     expect(daysUntil(ok.due!, today)).toBe(12);
     expect(rhythmStatus(30, new Date(2026, 7, 1).toISOString(), today)!.overdueDays).toBe(41);
+  });
+});
+
+describe('date inputs', () => {
+  it('shows stored dates the way they are typed, and reads them back unchanged', () => {
+    expect(birthdayInput('1985-10-24')).toBe('24.10.1985');
+    expect(birthdayInput('--03-08')).toBe('8.3.');
+    expect(birthdayInput(null)).toBeNull();
+    for (const value of ['1985-10-24', '--03-08', '2000-02-29']) {
+      expect(parseBirthday(birthdayInput(value)!)).toBe(value);
+    }
+    expect(partialDateInput('2017')).toBe('2017');
+    expect(partialDateInput('2026-03')).toBe('3/2026');
+    expect(partialDateInput('2026-10-02')).toBe('2.10.2026');
+    for (const value of ['2017', '2026-03', '2026-10-02']) {
+      expect(parsePartialDate(partialDateInput(value)!)).toBe(value);
+    }
   });
 });

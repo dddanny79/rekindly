@@ -50,6 +50,20 @@
       "when": 1791809446337,
       "tag": "0006_carddav",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791813815379,
+      "tag": "0007_birthday_no_year",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791814241457,
+      "tag": "0008_dav_client_photo",
+      "breakpoints": true
     }
   ]
 }

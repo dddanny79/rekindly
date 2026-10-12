@@ -162,6 +162,8 @@ export function rebuildCards(db: Db, orgs: OrgIndex, personIds: string[]) {
         etag,
         vcard,
         photoFileId: person.photoFileId,
+        // A photo changed in the app: what a client sent before no longer counts.
+        ...(card && card.photoFileId !== person.photoFileId ? { clientPhotoHash: null } : {}),
         seq: ++seq,
         deleted: false,
       };

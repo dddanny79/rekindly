@@ -16,6 +16,22 @@ function valid(iso: string) {
   return date.getUTCMonth() === m! - 1 && date.getUTCDate() === d;
 }
 
+/** `YYYY-MM-DD` / `--MM-DD` as typed: "24.10.1985" / "24.10." (what parseBirthday reads). */
+export function birthdayInput(value: string | null): string | null {
+  if (!value) return null;
+  const [y, m, d] = value.replace(/^--/, '-').split('-');
+  return `${Number(d)}.${Number(m)}.${y ? y : ''}`;
+}
+
+/** `YYYY`, `YYYY-MM`, `YYYY-MM-DD` as typed: "2017", "3/2026", "2.10.2026". */
+export function partialDateInput(value: string | null): string | null {
+  if (!value) return null;
+  const [y, m, d] = value.split('-');
+  if (!m) return y!;
+  if (!d) return `${Number(m)}/${y}`;
+  return `${Number(d)}.${Number(m)}.${y}`;
+}
+
 /** "24.10.1985" / "24. Okt." style display of `YYYY-MM-DD` or `--MM-DD`. */
 export function formatBirthday(value: string, locale: string): string {
   const yearless = value.startsWith('--');
