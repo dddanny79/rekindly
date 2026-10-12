@@ -49,6 +49,17 @@ the business space.
 Settings → Sync → remove the device. It can no longer sync; contacts already on
 the device stay there until the account is removed on the device.
 
+## Calendar subscription (follow-ups)
+
+**Settings → Sync → Calendar subscription** creates a secret link (shown once)
+with the open follow-ups of the chosen spaces, optionally with birthdays (also of
+indirect contacts). Overdue follow-ups appear on today. On the iPhone: Settings →
+Apps → Calendar → Calendar Accounts → Add Account → Other → Add Subscribed Calendar.
+The calendar is read-only and refreshes about every hour; deleting the
+subscription in the app makes the link stop working.
+
+Endpoint: `GET /ics/<secret>.ics` (iCalendar, all-day events).
+
 ## Technical notes
 
 - Endpoints: `/.well-known/carddav` → `/dav/`, principal `/dav/principal/`, one

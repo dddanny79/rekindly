@@ -164,7 +164,8 @@ A daily cron job on the host is enough, e.g.:
   find /var/lib/docker/volumes/pg-data/_data/backups -name '*.sqlite' -mtime +14 -delete
 ```
 
-Alternatively stop the container and copy the whole volume.
+Alternatively stop the container and copy the whole volume. A full export from the app
+(Settings → Data) is a second, database-independent backup — see [export](export.md).
 
 **Restore:**
 

@@ -27,6 +27,8 @@ import {
   trashListResponseSchema,
   appPasswordListResponseSchema,
   createAppPasswordResponseSchema,
+  calendarFeedListResponseSchema,
+  createCalendarFeedResponseSchema,
 } from '@app/shared';
 import { api, ApiError } from '@/lib/api';
 
@@ -315,3 +317,40 @@ export const appPasswordsApi = {
     api(`${V1}/app-passwords`, createAppPasswordResponseSchema, { json: input }),
   remove: (id: string) => api(`${V1}/app-passwords/${id}`, null, { method: 'DELETE' }),
 };
+
+export const calendarFeedsQuery = queryOptions({
+  queryKey: ['calendar-feeds'],
+  queryFn: () => api(`${V1}/calendar-feeds`, calendarFeedListResponseSchema).then((r) => r.feeds),
+});
+
+export const calendarFeedsApi = {
+  create: (input: { name: string; spaceIds: string[] | null; includeBirthdays: boolean }) =>
+    api(`${V1}/calendar-feeds`, createCalendarFeedResponseSchema, { json: input }),
+  remove: (id: string) => api(`${V1}/calendar-feeds/${id}`, null, { method: 'DELETE' }),
+};
+
+// Export & import --------------------------------------------------------------------
+
+export const EXPORT_JSON_URL = `${V1}/export/json`;
+export const exportVcfUrl = (spaceId?: string) =>
+  `${V1}/export/vcf${spaceId ? `?spaceId=${encodeURIComponent(spaceId)}` : ''}`;
+
+export const importStatusQuery = queryOptions({
+  queryKey: ['import-status'],
+  queryFn: () => api(`${V1}/import/status`, z.object({ empty: z.boolean() })),
+});
+
+/** Sends an export file as it is (it is already JSON). */
+export async function importExport(file: File) {
+  const res = await fetch(`${V1}/import`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: file,
+    credentials: 'same-origin',
+  });
+  if (!res.ok) {
+    const error = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new ApiError(res.status, error.error ?? 'unknown');
+  }
+  return z.object({ imported: z.record(z.string(), z.number()) }).parse(await res.json());
+}

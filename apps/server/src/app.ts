@@ -14,6 +14,8 @@ import { healthRoutes } from './health/routes';
 import { fieldRoutes } from './catalog/fields';
 import { relationshipTypeRoutes } from './catalog/relationship-types';
 import { tagRoutes } from './catalog/tags';
+import { backupRoutes } from './backup/routes';
+import { calendarFeedRoutes, calendarSubscriptionRoutes } from './calendar/feeds';
 import { appPasswordRoutes } from './dav/app-passwords';
 import { davDiscovery, davRoutes } from './dav/routes';
 import { entryRoutes } from './entries/routes';
@@ -97,6 +99,8 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/today', todayRoutes(deps));
   v1.route('/trash', trashRoutes(deps));
   v1.route('/app-passwords', appPasswordRoutes(deps));
+  v1.route('/calendar-feeds', calendarFeedRoutes(deps));
+  v1.route('/', backupRoutes(deps));
   api.route('/v1', v1);
 
   // Catch-all so unknown API paths never fall through to the SPA.
@@ -105,6 +109,8 @@ export function createApp({ deps, webDistDir }: AppOptions) {
 
   // CardDAV for address books (iPhone, DAVx5 …), authenticated with app passwords.
   app.route('/dav', davRoutes(deps));
+  // Calendar subscriptions (ICS); the secret link is the key.
+  app.route('/ics', calendarSubscriptionRoutes(deps));
   app.route('/', davDiscovery());
 
   if (webDistDir && existsSync(join(webDistDir, 'index.html'))) {

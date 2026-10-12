@@ -32,3 +32,31 @@ export const createAppPasswordResponseSchema = z.object({
   url: z.string(),
 });
 export type CreateAppPasswordResponse = z.infer<typeof createAppPasswordResponseSchema>;
+
+// Calendar subscription (ICS) ------------------------------------------------------
+
+export const calendarFeedSchema = z.object({
+  id: idSchema,
+  name: z.string(),
+  /** Spaces whose follow-ups and birthdays are included; null = all. */
+  spaceIds: z.array(idSchema).nullable(),
+  includeBirthdays: z.boolean(),
+  createdAt: isoDateTimeSchema,
+  lastUsedAt: isoDateTimeSchema.nullable(),
+});
+export type CalendarFeed = z.infer<typeof calendarFeedSchema>;
+
+export const calendarFeedListResponseSchema = z.object({ feeds: z.array(calendarFeedSchema) });
+
+export const createCalendarFeedRequestSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  spaceIds: z.array(idSchema).min(1).max(50).nullable(),
+  includeBirthdays: z.boolean(),
+});
+
+export const createCalendarFeedResponseSchema = z.object({
+  feed: calendarFeedSchema,
+  /** Subscription link with the secret; shown once. */
+  url: z.string(),
+});
+export type CreateCalendarFeedResponse = z.infer<typeof createCalendarFeedResponseSchema>;

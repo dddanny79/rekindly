@@ -3,6 +3,7 @@ import { Check, Copy } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CreateAppPasswordResponse } from '@app/shared';
+import { CalendarFeedsSection } from '@/components/calendar-feeds';
 import { FormField, FormMessage } from '@/components/form-field';
 import { RemoveButton } from '@/components/row-actions';
 import { SettingsSection } from '@/components/settings-section';
@@ -185,6 +186,7 @@ export function SyncSettingsPage() {
           </form>
         )}
       </SettingsSection>
+      <CalendarFeedsSection />
     </>
   );
 }

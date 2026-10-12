@@ -278,6 +278,7 @@ export const de: Translations = {
       relationshipTypes: 'Beziehungstypen',
       fields: 'Eigene Felder',
       sync: 'Sync',
+      data: 'Daten',
     },
     spaces: {
       lead: 'Bereiche trennen Lebensbereiche, z. B. Privat und Business.',
@@ -376,6 +377,49 @@ export const de: Translations = {
         'Server, Benutzername und Passwort von oben eintragen; als Beschreibung z. B. den App-Namen.',
       step3: 'Auf „Weiter“ tippen. Die Kontakte erscheinen nach kurzer Zeit in der Kontakte-App.',
       step4: 'Für Geburtstage: Kalender-App → Kalender → „Geburtstage“ einschalten.',
+    },
+  },
+  calendar: {
+    title: 'Kalender-Abo',
+    lead: 'Offene Wiedervorlagen im iPhone-Kalender (nur lesen, wird etwa stündlich aktualisiert). Überfällige erscheinen am heutigen Tag. Optional mit Geburtstagen — die der synchronisierten Kontakte zeigt das iPhone ohnehin schon.',
+    name: 'Name',
+    spaces: 'Bereiche',
+    includeBirthdays: 'Geburtstage einschließen (auch von indirekten Kontakten)',
+    create: 'Abo-Link erzeugen',
+    created: 'Abo „{{name}}“ erzeugt',
+    onlyOnce: 'Der Link wird nur jetzt angezeigt. Wer den Link hat, kann diese Termine lesen.',
+    copy: 'Link kopieren',
+    withBirthdays: 'mit Geburtstagen',
+    lastFetched: 'zuletzt abgerufen am {{date}}',
+    revokeTitle: 'Abo „{{name}}“ löschen?',
+    revokeBody: 'Der Link funktioniert danach nicht mehr; Kalender, die ihn nutzen, werden leer.',
+    iphone: {
+      title: 'Am iPhone abonnieren',
+      step1:
+        'Einstellungen → Apps → Kalender → Kalender-Accounts → Account hinzufügen → Andere → Kalenderabo hinzufügen.',
+      step2: 'Den Link einfügen, „Weiter“ und dann „Sichern“ tippen.',
+    },
+  },
+  data: {
+    export: {
+      title: 'Export',
+      lead: 'Alles in einer Datei: Personen, Organisationen, Verlauf, Wiedervorlagen, Fotos, Einstellungen und der Papierkorb. Taugt als Backup und lässt sich in eine leere Instanz importieren. Passwörter, Passkeys und Geräte-Verbindungen sind nicht enthalten.',
+      json: 'Vollständigen Export herunterladen (JSON)',
+    },
+    vcf: {
+      title: 'Kontakte als vCard',
+      lead: 'Für andere Adressbücher. Indirekte Kontakte sind nicht enthalten.',
+      button: 'vCards herunterladen',
+    },
+    import: {
+      title: 'Wiederherstellen',
+      lead: 'Importiert einen vollständigen Export in diese Instanz. Das geht nur, solange sie keine Personen, Organisationen und Einträge hat, z. B. direkt nach der Einrichtung.',
+      file: 'Exportdatei',
+      button: 'Importieren',
+      running: 'Importiere …',
+      notEmpty:
+        'Diese Instanz enthält schon Daten. Zum Wiederherstellen eine neue, leere Instanz einrichten und dort importieren.',
+      done: 'Importiert: {{people}} Personen, {{organizations}} Organisationen, {{entries}} Einträge.',
     },
   },
   briefing: {
@@ -668,6 +712,9 @@ export const de: Translations = {
     owner_in_trash:
       'Es gehört zu etwas, das selbst im Papierkorb liegt. Stelle das zuerst wieder her.',
     relationship_type_in_use: 'Dieser Typ wird noch von Beziehungen verwendet.',
+    invalid_export: 'Das ist keine vollständige Exportdatei dieser App.',
+    export_too_new: 'Dieser Export stammt aus einer neueren Version. Aktualisiere zuerst die App.',
+    not_empty: 'Der Import geht nur in eine Instanz ohne Personen, Organisationen und Einträge.',
     network: 'Keine Verbindung zum Server.',
     unknown: 'Etwas ist schiefgegangen. Bitte versuche es erneut.',
   },

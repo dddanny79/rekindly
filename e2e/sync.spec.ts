@@ -8,10 +8,11 @@ test('connect a device: app password, then the address book answers with it', as
   baseURL,
 }) => {
   await page.goto('/settings/sync');
-  await page.getByLabel('Device').fill('Test-iPhone');
-  await page.getByRole('radio', { name: 'Only these:' }).check();
-  await page.getByRole('checkbox', { name: 'Business' }).check();
-  await page.getByRole('button', { name: 'Create password' }).click();
+  const connect = page.getByRole('region', { name: 'Connect a device' });
+  await connect.getByLabel('Device').fill('Test-iPhone');
+  await connect.getByRole('radio', { name: 'Only these:' }).check();
+  await connect.getByRole('checkbox', { name: 'Business' }).check();
+  await connect.getByRole('button', { name: 'Create password' }).click();
 
   const shown = page.getByRole('status').filter({ hasText: 'Password for “Test-iPhone” created' });
   await expect(shown).toBeVisible();
@@ -31,7 +32,7 @@ test('connect a device: app password, then the address book answers with it', as
   expect(res.status()).toBe(207);
   expect(await res.text()).toContain('Test-iPhone');
 
-  await page.getByRole('button', { name: 'Done' }).click();
+  await shown.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByText('Test-iPhone', { exact: true })).toBeVisible();
   await expect(page.getByText(/Business · created/)).toBeVisible();
   await page.getByRole('button', { name: 'Revoke Test-iPhone' }).click();

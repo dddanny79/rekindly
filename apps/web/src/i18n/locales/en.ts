@@ -275,6 +275,7 @@ export const en = {
       relationshipTypes: 'Relationship types',
       fields: 'Custom fields',
       sync: 'Sync',
+      data: 'Data',
     },
     spaces: {
       lead: 'Spaces keep areas of life apart, e.g. private and business.',
@@ -372,6 +373,49 @@ export const en = {
         'Enter the server, user name and password from above; as description e.g. the app name.',
       step3: 'Tap “Next”. The contacts appear in the Contacts app after a short while.',
       step4: 'For birthdays: Calendar app → Calendars → turn on “Birthdays”.',
+    },
+  },
+  calendar: {
+    title: 'Calendar subscription',
+    lead: 'Open follow-ups in the iPhone calendar (read-only, updated about every hour). Overdue ones show up on today. Optionally with birthdays — the iPhone already shows those of synced contacts.',
+    name: 'Name',
+    spaces: 'Spaces',
+    includeBirthdays: 'Include birthdays (also of indirect contacts)',
+    create: 'Create subscription link',
+    created: 'Subscription “{{name}}” created',
+    onlyOnce: 'The link is shown only now. Anyone with the link can read these dates.',
+    copy: 'Copy link',
+    withBirthdays: 'with birthdays',
+    lastFetched: 'last fetched {{date}}',
+    revokeTitle: 'Delete the subscription “{{name}}”?',
+    revokeBody: 'The link stops working; calendars that use it become empty.',
+    iphone: {
+      title: 'Subscribe on the iPhone',
+      step1:
+        'Settings → Apps → Calendar → Calendar Accounts → Add Account → Other → Add Subscribed Calendar.',
+      step2: 'Paste the link and tap “Next”, then “Save”.',
+    },
+  },
+  data: {
+    export: {
+      title: 'Export',
+      lead: 'Everything in one file: people, organizations, timeline, follow-ups, photos, settings and the trash. Use it as a backup; it can be imported into an empty instance. Passwords, passkeys and device links are not included.',
+      json: 'Download full export (JSON)',
+    },
+    vcf: {
+      title: 'Contacts as vCard',
+      lead: 'For other address books. Indirect contacts are left out.',
+      button: 'Download vCards',
+    },
+    import: {
+      title: 'Restore',
+      lead: 'Imports a full export into this instance. Only possible while it has no people, organizations or entries, e.g. right after the setup.',
+      file: 'Export file',
+      button: 'Import',
+      running: 'Importing …',
+      notEmpty:
+        'This instance already has data. To restore, set up a new, empty instance and import there.',
+      done: 'Imported: {{people}} people, {{organizations}} organizations, {{entries}} entries.',
     },
   },
   briefing: {
@@ -661,6 +705,9 @@ export const en = {
     passkeys_disabled: 'Passkeys are switched off.',
     owner_in_trash: 'It belongs to something that is in the trash itself. Restore that first.',
     relationship_type_in_use: 'Relationships still use this type.',
+    invalid_export: 'This is not a complete export file of this app.',
+    export_too_new: 'This export is from a newer version. Update the app first.',
+    not_empty: 'Import only works in an instance without people, organizations or entries.',
     network: 'No connection to the server.',
     unknown: 'Something went wrong. Please try again.',
   },
