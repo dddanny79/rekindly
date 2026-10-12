@@ -10,9 +10,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { APP_NAME } from '@app/shared';
 import { CommandPalette } from '@/components/command-palette';
 import { LanguageToggle } from '@/components/language-controls';
+import { Logo } from '@/components/logo';
 import { SpaceSwitcherList, SpaceSwitcherSheet } from '@/components/space-switcher';
 import type { Translations } from '@/i18n/locales/en';
 import { useAuthStatus } from '@/lib/auth';
@@ -42,11 +42,8 @@ const TAB_ITEMS: NavItem[] = [
 
 function AppName({ className }: { className: string }) {
   return (
-    <Link
-      to="/"
-      className={`truncate font-serif font-semibold tracking-[-0.01em] whitespace-nowrap italic no-underline hyphens-none ${className}`}
-    >
-      {APP_NAME}
+    <Link to="/" className={`flex shrink-0 items-center no-underline ${className}`}>
+      <Logo variant="wordmark" className="h-full" />
     </Link>
   );
 }
@@ -57,7 +54,7 @@ function Sidebar() {
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-59 shrink-0 flex-col gap-5.5 border-r px-4 py-5.5 md:flex">
-      <AppName className="px-2 text-[1.375rem]" />
+      <AppName className="h-9 px-1" />
 
       <button
         type="button"
@@ -114,7 +111,7 @@ function Sidebar() {
 function MobileTopBar() {
   return (
     <div className="flex h-12.5 items-center justify-between gap-3 px-4.5 md:hidden">
-      <AppName className="text-[1.3125rem]" />
+      <AppName className="h-8" />
       <SpaceSwitcherSheet />
     </div>
   );
