@@ -31,6 +31,15 @@ on the same (e.g. Tailscale) network.
 
 For E2E tests, install the browser once: `pnpm exec playwright install --with-deps chromium`.
 
+Sample data and search performance (all names and texts are invented):
+
+```sh
+# Fill the database in DATA_DIR with invented people; refuses a non-empty one without --force
+pnpm --filter @app/server sample-data -- --people 500 --entries 5000
+# Measure search times on a temporary database (default: 5,000 people, 50,000 entries)
+pnpm --filter @app/server perf
+```
+
 ### Layout
 
 - `apps/server` — Hono API (`/api/v1`, health check at `/api/health`), Drizzle + SQLite, auth; serves the built web app in production
@@ -48,6 +57,19 @@ All configuration is via environment variables; see [`.env.example`](.env.exampl
 | `HOST`         | `0.0.0.0`       | Interface the server binds to                  |
 | `WEB_PORT`     | `5173`          | Port of the Vite dev server (development only) |
 | `WEB_DIST_DIR` | `apps/web/dist` | Built web app served by the server             |
+
+## Maintenance
+
+Command-line tools of the server (in the container: `node dist/cli.js <command>`;
+in development: `pnpm --filter @app/server cli <command>`):
+
+| Command          | Purpose                                                           |
+| ---------------- | ----------------------------------------------------------------- |
+| `reset-password` | Set a new account password and sign out all sessions              |
+| `reindex`        | Rebuild the full-text search index (normally kept current itself) |
+
+Deleted data goes to the trash and stays restorable for 30 days; the server purges
+older items at start and then once a day.
 
 ## License
 

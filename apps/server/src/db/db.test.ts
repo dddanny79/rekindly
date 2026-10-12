@@ -58,10 +58,13 @@ describe('database', () => {
         'passkeys',
         'people',
         'person_tags',
+        'person_views',
         'relationship_types',
         'relationships',
         'reminders',
+        'search_documents',
         'search_index',
+        'search_queue',
         'sessions',
         'settings',
         'spaces',
@@ -112,9 +115,9 @@ describe('database', () => {
   it('folds diacritics in the search index', () => {
     const { db, sqlite } = open();
     db.run(
-      sql`insert into search_index (entity_type, entity_id, space_id, field, content) values ('person', 'p1', 's1', 'name', 'Jürgen Müller')`,
+      sql`insert into search_index (rowid, name, details, notes) values (1, 'Jürgen Müller', '', '')`,
     );
-    const hits = db.all(sql`select entity_id from search_index where search_index match 'muller'`);
+    const hits = db.all(sql`select rowid from search_index where search_index match 'muller'`);
     expect(hits).toHaveLength(1);
     sqlite.close();
   });

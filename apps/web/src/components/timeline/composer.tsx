@@ -25,18 +25,20 @@ const REMINDER_PRESETS = [1, 7, 14, 30] as const;
 interface ComposerProps {
   /** The person whose page this is; always linked. */
   person: PersonRef;
+  /** Start with this kind and focus the field (e.g. “Log a call” in the command palette). */
+  initialKind?: EntryKind;
 }
 
 /**
  * One field for notes, calls, meetings: slash commands set the kind, `@Name` links
  * more people, Enter saves (Shift+Enter: new line).
  */
-export function TimelineComposer({ person }: ComposerProps) {
+export function TimelineComposer({ person, initialKind }: ComposerProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
   const textarea = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState('');
-  const [kind, setKind] = useState<EntryKind>('note');
+  const [kind, setKind] = useState<EntryKind>(initialKind ?? 'note');
   const [direction, setDirection] = useState<EntryDirection>('out');
   const [when, setWhen] = useState<string | null>(null);
   const [others, setOthers] = useState<PersonRef[]>([]);
@@ -190,6 +192,7 @@ export function TimelineComposer({ person }: ComposerProps) {
         id="timeline-input"
         ref={textarea}
         rows={text.includes('\n') ? 4 : 2}
+        autoFocus={!!initialKind}
         value={text}
         placeholder={t('timeline.placeholder')}
         onChange={(e) => onChange(e.target.value, e.target.selectionStart)}

@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { getRouteApi, Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { AddressesSection } from '@/components/addresses-section';
@@ -14,7 +15,7 @@ import { RelationshipsSection } from '@/components/person/relationships';
 import { TagsSection } from '@/components/person/tags';
 import { TimelineComposer } from '@/components/timeline/composer';
 import { Timeline } from '@/components/timeline/timeline';
-import { peopleApi, personQuery } from '@/lib/data';
+import { peopleApi, personQuery, recordPersonView } from '@/lib/data';
 import { useSelectedSpace } from '@/lib/space-selection';
 import { NotFoundPage } from '@/routes/not-found-page';
 
@@ -22,14 +23,25 @@ const route = getRouteApi('/app/people/$personId');
 
 export function PersonPage(): ReactElement {
   const { personId } = route.useParams();
-  // Fresh state (open forms, drafts) for every person.
-  return <PersonView key={personId} personId={personId} />;
+  const { compose } = route.useSearch();
+  // Fresh state (open forms, drafts) for every person and every “log a call”.
+  return <PersonView key={`${personId}:${compose ?? ''}`} personId={personId} compose={compose} />;
 }
 
-function PersonView({ personId }: { personId: string }) {
+function PersonView({ personId, compose }: { personId: string; compose?: 'call' }) {
   const { t } = useTranslation();
   const { spaces } = useSelectedSpace();
+  const queryClient = useQueryClient();
   const query = useQuery(personQuery(personId));
+
+  // Remember the visit for “Recently viewed” on the Today page.
+  const found = query.isSuccess;
+  useEffect(() => {
+    if (!found) return;
+    void recordPersonView(personId).then(() =>
+      queryClient.invalidateQueries({ queryKey: ['today'] }),
+    );
+  }, [found, personId, queryClient]);
 
   if (query.isError) return <NotFoundPage />;
   if (!query.data) return <p className="text-muted-foreground">{t('common.loading')}</p>;
@@ -61,6 +73,7 @@ function PersonView({ personId }: { personId: string }) {
             personId={person.id}
             composer={
               <TimelineComposer
+                initialKind={compose}
                 person={{
                   id: person.id,
                   displayName: person.displayName,

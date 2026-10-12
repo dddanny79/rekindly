@@ -2,7 +2,8 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { verifyCredentials } from './auth/account';
-import { sessions } from './db/schema';
+import { people, sessions, spaces } from './db/schema';
+import { searchDocumentCount } from './search/service';
 import { createTestApp, OWNER, setupOwner, type TestApp } from './test/helpers';
 
 const CLI = fileURLToPath(new URL('./cli.ts', import.meta.url));
@@ -53,5 +54,19 @@ describe('cli reset-password', () => {
   it('prints usage for unknown commands', () => {
     const out = execFileSync(TSX, [CLI, '--help'], { encoding: 'utf8' });
     expect(out).toContain('reset-password');
+  }, 20_000);
+});
+
+describe('cli reindex', () => {
+  it('rebuilds the search index', async () => {
+    await setupOwner(t);
+    const spaceId = t.db.select().from(spaces).all()[0]!.id;
+    t.db.insert(people).values({ spaceId, firstName: 'Ida', lastName: 'Index' }).run();
+    const out = execFileSync(TSX, [CLI, 'reindex'], {
+      env: { ...process.env, DATA_DIR: t.dataDir },
+      encoding: 'utf8',
+    });
+    expect(out).toContain('Search index rebuilt: 1 people, 0 organizations');
+    expect(searchDocumentCount(t.db, 'person')).toBe(1);
   }, 20_000);
 });

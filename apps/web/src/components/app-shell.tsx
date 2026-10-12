@@ -5,15 +5,18 @@ import {
   Menu,
   Search,
   Settings,
+  Trash2,
   Users,
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { APP_NAME } from '@app/shared';
+import { CommandPalette } from '@/components/command-palette';
 import { LanguageToggle } from '@/components/language-controls';
 import { SpaceSwitcherList, SpaceSwitcherSheet } from '@/components/space-switcher';
 import type { Translations } from '@/i18n/locales/en';
 import { useAuthStatus } from '@/lib/auth';
+import { setPaletteOpen, usePaletteShortcut } from '@/lib/palette';
 import { modKeyLabel } from '@/lib/platform';
 
 interface NavItem {
@@ -27,6 +30,7 @@ const SIDEBAR_ITEMS: NavItem[] = [
   { to: '/people', key: 'people', icon: Users },
   { to: '/organizations', key: 'organizations', icon: Building2 },
   { to: '/settings', key: 'settings', icon: Settings },
+  { to: '/trash', key: 'trash', icon: Trash2 },
 ];
 
 const TAB_ITEMS: NavItem[] = [
@@ -55,14 +59,18 @@ function Sidebar() {
     <aside className="sticky top-0 hidden h-dvh w-59 shrink-0 flex-col gap-5.5 border-r px-4 py-5.5 md:flex">
       <AppName className="px-2 text-[1.375rem]" />
 
-      <Link
-        to="/search"
-        className="flex h-9.5 items-center gap-2 rounded-sm border bg-transparent pr-2 pl-2.5 text-sm text-muted-foreground no-underline hover:border-input"
+      <button
+        type="button"
+        onClick={() => setPaletteOpen(true)}
+        aria-keyshortcuts="Meta+K Control+K"
+        className="flex h-9.5 cursor-pointer items-center gap-2 rounded-sm border bg-transparent pr-2 pl-2.5 text-left text-sm text-muted-foreground hover:border-input"
       >
         <Search className="size-4" aria-hidden />
         <span className="flex-1">{t('search.open')}</span>
-        <span className="kbd">{modKeyLabel()}K</span>
-      </Link>
+        <span className="kbd" aria-hidden>
+          {modKeyLabel()}K
+        </span>
+      </button>
 
       <nav aria-label={t('nav.label')}>
         <ul className="flex flex-col gap-0.5">
@@ -143,6 +151,7 @@ function MobileTabBar() {
 }
 
 export function AppShell() {
+  usePaletteShortcut();
   return (
     <div className="flex min-h-dvh">
       <Sidebar />
@@ -153,6 +162,7 @@ export function AppShell() {
         </main>
       </div>
       <MobileTabBar />
+      <CommandPalette />
     </div>
   );
 }

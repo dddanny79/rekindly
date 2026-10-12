@@ -18,6 +18,10 @@ import { fileRoutes } from './files/routes';
 import { organizationRoutes } from './organizations/routes';
 import { peopleRoutes } from './people/routes';
 import { reminderRoutes } from './reminders/routes';
+import { searchRoutes } from './search/routes';
+import { todayRoutes } from './today/routes';
+import { trashRoutes } from './trash/routes';
+import { flushSearchQueue } from './search/service';
 import { settingsRoutes } from './settings/routes';
 import { spaceRoutes } from './spaces/routes';
 
@@ -53,6 +57,17 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.use(loadSession(deps));
   v1.route('/auth', publicAuthRoutes(deps));
   v1.use(requireSession);
+  // Keep the search index current: rebuild what the write just changed.
+  v1.use(async (c, next) => {
+    await next();
+    if (c.req.method === 'GET') return;
+    try {
+      flushSearchQueue(deps.db);
+    } catch (error) {
+      // The queue stays filled and is retried with the next search.
+      console.error('search index update failed', error);
+    }
+  });
   v1.route('/auth', protectedAuthRoutes(deps));
   v1.route('/account', accountRoutes(deps));
   v1.route('/settings', settingsRoutes(deps));
@@ -65,6 +80,9 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/entries', entryRoutes(deps));
   v1.route('/reminders', reminderRoutes(deps));
   v1.route('/files', fileRoutes(deps));
+  v1.route('/search', searchRoutes(deps));
+  v1.route('/today', todayRoutes(deps));
+  v1.route('/trash', trashRoutes(deps));
   api.route('/v1', v1);
 
   // Catch-all so unknown API paths never fall through to the SPA.

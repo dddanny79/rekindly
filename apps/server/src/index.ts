@@ -5,6 +5,8 @@ import { deleteExpiredSessions } from './auth/sessions';
 import { loadConfig } from './config';
 import { createDb, runMigrations } from './db/client';
 import { seed } from './db/seed';
+import { flushSearchQueue } from './search/service';
+import { schedulePurge } from './trash/service';
 import { createDeps } from './deps';
 import { APP_VERSION } from './version';
 
@@ -13,6 +15,10 @@ const { db, sqlite } = createDb(config.dataDir);
 runMigrations(db, config.migrationsDir);
 seed(db);
 deleteExpiredSessions(db);
+// Index whatever is still queued (e.g. everything after the index migration).
+flushSearchQueue(db);
+// Deleted data older than 30 days is purged at start and then daily.
+const stopPurge = schedulePurge(db, config.dataDir);
 
 const app = createApp({ deps: createDeps(db, config), webDistDir: config.webDistDir });
 
@@ -22,6 +28,7 @@ const server = serve({ fetch: app.fetch, port: config.port, hostname: config.hos
 });
 
 function shutdown() {
+  stopPurge();
   server.close(() => {
     sqlite.close();
     process.exit(0);

@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { Pin, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +37,14 @@ function useDueLabel() {
   };
 }
 
-function ReminderRow({ reminder }: { reminder: Reminder }) {
+/** Open follow-up with a done checkbox; `showPerson` adds who it is about (Today page). */
+export function ReminderRow({
+  reminder,
+  showPerson = false,
+}: {
+  reminder: Reminder;
+  showPerson?: boolean;
+}) {
   const { t } = useTranslation();
   const dueLabel = useDueLabel();
   const done = useWrite(() => remindersApi.update(reminder.id, { done: true }), {
@@ -57,6 +65,15 @@ function ReminderRow({ reminder }: { reminder: Reminder }) {
       />
       <div className="min-w-0 flex-1">
         <div className="font-semibold break-words">{reminder.title}</div>
+        {showPerson && reminder.person && (
+          <Link
+            to="/people/$personId"
+            params={{ personId: reminder.person.id }}
+            className="text-foreground-2 underline"
+          >
+            {reminder.person.displayName}
+          </Link>
+        )}
         <div
           className={cn(
             'num text-meta',

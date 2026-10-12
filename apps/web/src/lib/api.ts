@@ -22,6 +22,8 @@ export function setUnauthorizedHandler(handler: () => void) {
 interface RequestOptions {
   method?: string;
   json?: unknown;
+  /** Cancels the request (e.g. a search that was overtaken by the next keystroke). */
+  signal?: AbortSignal;
 }
 
 export async function api<T>(
@@ -34,6 +36,7 @@ export async function api<T>(
     headers: options.json === undefined ? undefined : { 'content-type': 'application/json' },
     body: options.json === undefined ? undefined : JSON.stringify(options.json),
     credentials: 'same-origin',
+    signal: options.signal,
   });
   if (!res.ok) {
     const parsed = errorResponseSchema.safeParse(await res.json().catch(() => null));

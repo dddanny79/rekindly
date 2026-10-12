@@ -1,5 +1,5 @@
 import { Link, type LinkProps } from '@tanstack/react-router';
-import { Building2, ChevronRight, Settings, type LucideIcon } from 'lucide-react';
+import { Building2, ChevronRight, Settings, Trash2, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ApiStatus } from '@/components/api-status';
 import { LanguageRadioGroup } from '@/components/language-controls';
@@ -10,6 +10,7 @@ import type { Translations } from '@/i18n/locales/en';
 const LINKS: { to: LinkProps['to']; key: keyof Translations['nav']; icon: LucideIcon }[] = [
   { to: '/organizations', key: 'organizations', icon: Building2 },
   { to: '/settings', key: 'settings', icon: Settings },
+  { to: '/trash', key: 'trash', icon: Trash2 },
 ];
 
 /** Mobile overflow page: sections that do not fit into the tab bar. */

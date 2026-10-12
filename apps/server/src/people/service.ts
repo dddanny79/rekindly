@@ -84,6 +84,29 @@ function liveAffiliations(db: Db, personIds: string[]) {
     .map((row) => row.affiliations);
 }
 
+/** “Role @ Organization” from the main affiliation, else the summary. */
+export function personSubtitles(db: Db, rows: PersonRow[]): Map<string, string | null> {
+  const orgIndex = OrgIndex.load(db);
+  const byPerson = new Map<string, ReturnType<typeof liveAffiliations>>();
+  for (const a of liveAffiliations(
+    db,
+    rows.map((r) => r.id),
+  )) {
+    byPerson.set(a.personId, [...(byPerson.get(a.personId) ?? []), a]);
+  }
+  return new Map(
+    rows.map((person) => {
+      const main = mainAffiliation(byPerson.get(person.id) ?? []);
+      const org = main ? orgIndex.byId.get(main.organizationId) : undefined;
+      const subtitle =
+        main?.role && org
+          ? `${main.role} @ ${org.name}`
+          : (org?.name ?? main?.role ?? person.summary);
+      return [person.id, subtitle ?? null];
+    }),
+  );
+}
+
 // List ------------------------------------------------------------------------------
 
 export function listPeople(db: Db, query: In<typeof peopleQuerySchema>): PersonListItem[] {

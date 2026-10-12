@@ -17,16 +17,32 @@ import { useSelectedSpace } from '@/lib/space-selection';
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Prefills the name (e.g. typed into the command palette): last word = last name. */
+  initialName?: string;
+}
+
+function splitName(name: string): [string, string] {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return [words[0] ?? '', ''];
+  return [words.slice(0, -1).join(' '), words.at(-1)!];
 }
 
 /** Quick entry: name, optionally organization and role; everything else on the person page. */
-export function CreatePersonDialog({ open, onOpenChange }: Props) {
+export function CreatePersonDialog({ open, onOpenChange, initialName }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { spaces, defaultSpaceId } = useSelectedSpace();
   const [spaceId, setSpaceId] = useState<string | undefined>(undefined);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [prefilled, setPrefilled] = useState<string | undefined>();
+  // Adopt a new prefill when the dialog opens with one (state from props, no effect).
+  if (open && initialName && initialName !== prefilled) {
+    setPrefilled(initialName);
+    const [first, last] = splitName(initialName);
+    setFirstName(first);
+    setLastName(last);
+  }
   const hasName = !!(firstName.trim() || lastName.trim());
   const [org, setOrg] = useState<{ id?: string; name: string } | null>(null);
   const [role, setRole] = useState('');
@@ -51,6 +67,7 @@ export function CreatePersonDialog({ open, onOpenChange }: Props) {
   });
 
   function reset() {
+    setPrefilled(undefined);
     setFirstName('');
     setLastName('');
     setOrg(null);

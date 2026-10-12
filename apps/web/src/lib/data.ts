@@ -16,8 +16,15 @@ import {
   personSchema,
   type Person,
   relationshipTypeListResponseSchema,
+  type SearchQuery,
+  searchResponseSchema,
   spaceListResponseSchema,
   tagListResponseSchema,
+  type TodayQuery,
+  todayResponseSchema,
+  type TrashKind,
+  emptyTrashResponseSchema,
+  trashListResponseSchema,
 } from '@app/shared';
 import { api, ApiError } from '@/lib/api';
 
@@ -99,7 +106,15 @@ export const fieldDefinitionsQuery = (target?: FieldDefinition['target']) =>
  * Everything is small and local, so after a write we simply refetch the affected
  * lists. Detail responses are put straight into the cache.
  */
-const DATA_KEYS: QueryKey[] = [['people'], ['organizations'], ['spaces'], ['tags']];
+const DATA_KEYS: QueryKey[] = [
+  ['people'],
+  ['organizations'],
+  ['spaces'],
+  ['tags'],
+  ['search'],
+  ['today'],
+  ['trash'],
+];
 
 export function useWrite<TInput, TResult>(
   fn: (input: TInput) => Promise<TResult>,
@@ -219,6 +234,9 @@ export const TIMELINE_KEYS: QueryKey[] = [
   ['people'],
   ['organizations'],
   ['reminders'],
+  ['search'],
+  ['today'],
+  ['trash'],
 ];
 
 export const entriesApi = {
@@ -246,3 +264,38 @@ export const factsApi = {
   reorder: (personId: string, ids: string[]) =>
     api(`${V1}/people/${personId}/facts/order`, z.unknown(), { method: 'PUT', json: { ids } }),
 };
+
+// Search, Today, Trash ---------------------------------------------------------------
+
+export const searchQuery = (params: SearchQuery) =>
+  queryOptions({
+    queryKey: ['search', params],
+    queryFn: ({ signal }) =>
+      api(`${V1}/search${queryString(params as Record<string, string>)}`, searchResponseSchema, {
+        signal,
+      }),
+  });
+
+export const todayQuery = (params: TodayQuery) =>
+  queryOptions({
+    queryKey: ['today', params],
+    queryFn: () =>
+      api(`${V1}/today${queryString(params as Record<string, string>)}`, todayResponseSchema),
+  });
+
+export const trashQuery = queryOptions({
+  queryKey: ['trash'],
+  queryFn: () => api(`${V1}/trash`, trashListResponseSchema).then((r) => r.items),
+});
+
+export const trashApi = {
+  restore: (kind: TrashKind, id: string) =>
+    api(`${V1}/trash/${kind}/${id}/restore`, null, { method: 'POST' }),
+  purge: (kind: TrashKind, id: string) =>
+    api(`${V1}/trash/${kind}/${id}`, null, { method: 'DELETE' }),
+  empty: () => api(`${V1}/trash`, emptyTrashResponseSchema, { method: 'DELETE' }),
+};
+
+/** “Recently viewed” on the Today page; failures do not matter. */
+export const recordPersonView = (id: string) =>
+  api(`${V1}/people/${id}/viewed`, null, { method: 'POST' }).catch(() => undefined);

@@ -5,12 +5,14 @@ import { getAccountRow, setPassword } from './auth/account';
 import { deleteAllSessions } from './auth/sessions';
 import { loadConfig } from './config';
 import { createDb, runMigrations } from './db/client';
+import { reindexAll } from './search/service';
 
 const USAGE = `Usage: node dist/cli.js <command>
 
 Commands:
   reset-password   Set a new password for the account and sign out all sessions.
-                   Reads the password interactively, or from stdin when piped.`;
+                   Reads the password interactively, or from stdin when piped.
+  reindex          Rebuild the search index from scratch.`;
 
 /** Reads the first line of piped stdin. */
 async function readPipedLine(): Promise<string> {
@@ -73,10 +75,29 @@ async function resetPassword() {
   }
 }
 
+function reindex() {
+  const config = loadConfig();
+  const { db, sqlite } = createDb(config.dataDir);
+  try {
+    runMigrations(db, config.migrationsDir);
+    const started = performance.now();
+    const counts = reindexAll(db);
+    const seconds = ((performance.now() - started) / 1000).toFixed(1);
+    console.log(
+      `Search index rebuilt: ${counts.people} people, ${counts.organizations} organizations (${seconds} s).`,
+    );
+    return 0;
+  } finally {
+    sqlite.close();
+  }
+}
+
 async function main(args: string[]) {
   switch (args[0]) {
     case 'reset-password':
       return resetPassword();
+    case 'reindex':
+      return reindex();
     default:
       console.log(USAGE);
       return args[0] && args[0] !== '--help' ? 1 : 0;

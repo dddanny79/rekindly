@@ -8,4 +8,8 @@ export * from './schemas/organizations';
 export * from './schemas/people';
 export * from './schemas/spaces';
 export * from './text';
+export * from './search-text';
 export * from './schemas/timeline';
+export * from './schemas/search';
+export * from './schemas/today';
+export * from './schemas/trash';

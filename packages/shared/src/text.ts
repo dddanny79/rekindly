@@ -17,6 +17,46 @@ export function foldText(value: string): string {
     .replace(/ue/g, 'u');
 }
 
+/** Folds a single character (no ae/oe/ue collapsing); see `foldText`. */
+function foldChar(char: string): string {
+  return char
+    .toLowerCase()
+    .replace(/ß/g, 'ss')
+    .replace(/[äöü]/g, (c) => ({ ä: 'a', ö: 'o', ü: 'u' })[c]!)
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '');
+}
+
+/**
+ * `foldText` that also remembers, for every folded character, the range of the
+ * original text it came from — to highlight a match found in folded text.
+ * `folded` equals `foldText(value)` for Latin text.
+ */
+export function foldWithMap(value: string): { folded: string; starts: number[]; ends: number[] } {
+  const chars: string[] = [];
+  const starts: number[] = [];
+  const ends: number[] = [];
+  let index = 0;
+  for (const char of value) {
+    for (const out of foldChar(char)) {
+      chars.push(out);
+      starts.push(index);
+      ends.push(index + char.length);
+    }
+    index += char.length;
+  }
+  // ae → a, oe → o, ue → u, left to right like the replacements in foldText.
+  const result = { folded: '', starts: [] as number[], ends: [] as number[] };
+  for (let i = 0; i < chars.length; i++) {
+    const merge = 'aou'.includes(chars[i]!) && chars[i + 1] === 'e';
+    result.folded += chars[i];
+    result.starts.push(starts[i]!);
+    result.ends.push(ends[merge ? i + 1 : i]!);
+    if (merge) i++;
+  }
+  return result;
+}
+
 export interface NameParts {
   prefix?: string | null;
   firstName?: string | null;

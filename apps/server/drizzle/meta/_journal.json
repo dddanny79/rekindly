@@ -22,6 +22,20 @@
       "when": 1791757731352,
       "tag": "0002_soft_delete_details",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791794198989,
+      "tag": "0003_search_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791794210278,
+      "tag": "0004_search_index_v2",
+      "breakpoints": true
     }
   ]
 }

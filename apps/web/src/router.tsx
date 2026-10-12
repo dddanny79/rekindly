@@ -18,7 +18,7 @@ import { OrganizationPage } from '@/routes/organization-page';
 import { OrganizationsPage } from '@/routes/organizations-page';
 import { PeoplePage } from '@/routes/people-page';
 import { PersonPage } from '@/routes/person-page';
-import { PlaceholderPage } from '@/routes/placeholder-page';
+import { SearchPage } from '@/routes/search-page';
 import { SettingsPage } from '@/routes/settings-page';
 import {
   FieldsSettingsPage,
@@ -28,6 +28,8 @@ import {
 } from '@/routes/settings/catalog-pages';
 import { SettingsLayout } from '@/routes/settings/settings-layout';
 import { SetupPage } from '@/routes/setup-page';
+import { TodayPage } from '@/routes/today-page';
+import { TrashPage } from '@/routes/trash-page';
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -82,18 +84,28 @@ const appRoute = createRoute({
   component: AppShell,
 });
 
-const page = <P extends string>(
-  path: P,
-  titleKey: Parameters<typeof PlaceholderPage>[0]['titleKey'],
-) =>
-  createRoute({
-    getParentRoute: () => appRoute,
-    path,
-    component: () => <PlaceholderPage titleKey={titleKey} />,
-  });
-
 const child = <P extends string>(path: P, component: () => React.ReactNode) =>
   createRoute({ getParentRoute: () => appRoute, path, component });
+
+const personRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/people/$personId',
+  // `compose=call`: start a call entry (from the command palette).
+  validateSearch: z.object({ compose: z.enum(['call']).optional() }),
+  component: PersonPage,
+});
+
+const searchRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/search',
+  validateSearch: z.object({
+    q: z.string().optional(),
+    type: z.enum(['person', 'organization']).optional(),
+    tag: z.string().optional(),
+    org: z.string().optional(),
+  }),
+  component: SearchPage,
+});
 
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -107,12 +119,13 @@ const routeTree = rootRoute.addChildren([
   setupRoute,
   loginRoute,
   appRoute.addChildren([
-    page('/', 'today'),
+    child('/', TodayPage),
     child('/people', PeoplePage),
-    child('/people/$personId', PersonPage),
+    personRoute,
     child('/organizations', OrganizationsPage),
     child('/organizations/$organizationId', OrganizationPage),
-    page('/search', 'search'),
+    searchRoute,
+    child('/trash', TrashPage),
     settingsRoute.addChildren([
       settingsChild('/', SettingsPage),
       settingsChild('/spaces', SpacesSettingsPage),

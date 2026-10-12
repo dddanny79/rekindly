@@ -21,7 +21,7 @@ describe('App shell', () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
-  it('renders navigation and the placeholder page', async () => {
+  it('renders navigation and the Today page', async () => {
     renderApp();
     expect(await screen.findByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
     expect(screen.getAllByRole('navigation', { name: 'Main navigation' })).toHaveLength(2);
@@ -39,7 +39,7 @@ describe('App shell', () => {
     expect(firstLink('Today')).not.toHaveAttribute('aria-current');
   });
 
-  it('navigates between placeholder pages', async () => {
+  it('navigates between pages', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Today' });
     await userEvent.click(firstLink('Organizations'));

@@ -22,6 +22,7 @@ import {
 import { setFieldValue } from '../catalog/fields';
 import { addFact, deleteFact, reorderFacts, updateFact } from '../facts/service';
 import { addReminder } from '../reminders/service';
+import { recordView } from '../today/service';
 import type { AppEnv, Deps } from '../env';
 import { MAX_UPLOAD_BYTES, removeFile, storePhoto } from '../files/service';
 import { DomainError } from '../lib/errors';
@@ -65,6 +66,11 @@ export function peopleRoutes({ db, config }: Deps) {
       )
       .delete('/:id', (c) => {
         deletePerson(db, c.req.param('id'));
+        return noContent();
+      })
+      // The web app calls this when a person page is opened (“Recently viewed”).
+      .post('/:id/viewed', (c) => {
+        recordView(db, c.req.param('id'));
         return noContent();
       })
 

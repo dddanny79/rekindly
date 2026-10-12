@@ -21,6 +21,8 @@ const KNOWN = [
   'unknown_organization',
   'unknown_person',
   'passkeys_disabled',
+  'owner_in_trash',
+  'relationship_type_in_use',
 ] as const;
 
 /** User-facing message for a failed request or WebAuthn ceremony. */
