@@ -51,7 +51,8 @@ pnpm --filter @app/server perf
 
 All configuration is via environment variables; see [`.env.example`](.env.example).
 Running it with Docker, Compose, Coolify or behind a reverse proxy, and backups:
-[`docs/deployment.md`](docs/deployment.md).
+[`docs/deployment.md`](docs/deployment.md). Address book sync with the iPhone:
+[`docs/carddav.md`](docs/carddav.md).
 
 ```sh
 docker run -p 3000:3000 -v pg-data:/data -e PUBLIC_URL=http://localhost:3000 \

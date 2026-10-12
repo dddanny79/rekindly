@@ -8,6 +8,7 @@ const TABS = [
   { to: '/settings/tags', key: 'tags' },
   { to: '/settings/relationship-types', key: 'relationshipTypes' },
   { to: '/settings/fields', key: 'fields' },
+  { to: '/settings/sync', key: 'sync' },
 ] as const;
 
 export function SettingsLayout() {

@@ -21,6 +21,7 @@
     "@simplewebauthn/server": "^14.0.3",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.4",
+    "fast-xml-parser": "^5.11.2",
     "hono": "^4.13.13",
     "sharp": "^0.35.5",
     "zod": "^4.6.6"

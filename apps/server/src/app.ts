@@ -14,6 +14,8 @@ import { healthRoutes } from './health/routes';
 import { fieldRoutes } from './catalog/fields';
 import { relationshipTypeRoutes } from './catalog/relationship-types';
 import { tagRoutes } from './catalog/tags';
+import { appPasswordRoutes } from './dav/app-passwords';
+import { davDiscovery, davRoutes } from './dav/routes';
 import { entryRoutes } from './entries/routes';
 import { fileRoutes } from './files/routes';
 import { organizationRoutes } from './organizations/routes';
@@ -33,7 +35,8 @@ export interface AppOptions {
 }
 
 export function createApp({ deps, webDistDir }: AppOptions) {
-  const app = new Hono<AppEnv>();
+  // Not strict: DAV clients use collection URLs with and without a trailing slash.
+  const app = new Hono<AppEnv>({ strict: false });
 
   app.onError((error, c) => {
     if (error instanceof DomainError) return c.json({ error: error.code }, error.status);
@@ -93,11 +96,16 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/search', searchRoutes(deps));
   v1.route('/today', todayRoutes(deps));
   v1.route('/trash', trashRoutes(deps));
+  v1.route('/app-passwords', appPasswordRoutes(deps));
   api.route('/v1', v1);
 
   // Catch-all so unknown API paths never fall through to the SPA.
   api.all('*', (c) => c.json({ error: 'not_found' }, 404));
   app.route(API_PREFIX, api);
+
+  // CardDAV for address books (iPhone, DAVx5 …), authenticated with app passwords.
+  app.route('/dav', davRoutes(deps));
+  app.route('/', davDiscovery());
 
   if (webDistDir && existsSync(join(webDistDir, 'index.html'))) {
     // serveStatic resolves `root` against the working directory.

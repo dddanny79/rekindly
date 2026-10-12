@@ -277,6 +277,7 @@ export const de: Translations = {
       tags: 'Tags',
       relationshipTypes: 'Beziehungstypen',
       fields: 'Eigene Felder',
+      sync: 'Sync',
     },
     spaces: {
       lead: 'Bereiche trennen Lebensbereiche, z. B. Privat und Business.',
@@ -338,6 +339,43 @@ export const de: Translations = {
         boolean: 'Ja/Nein',
         url: 'URL',
       },
+    },
+  },
+  sync: {
+    title: 'Adressbuch-Sync',
+    lead: 'Deine Kontakte im iPhone-Adressbuch (CardDAV), in beide Richtungen. Jedes Gerät bekommt ein eigenes Passwort und sieht die Bereiche, die du auswählst. Geburtstage erscheinen im iPhone-Kalender. Indirekte Kontakte und Archiviertes werden nicht synchronisiert.',
+    empty: 'Noch kein Gerät verbunden.',
+    new: 'Gerät verbinden',
+    name: 'Gerät',
+    spaces: 'Bereiche in diesem Adressbuch',
+    allSpaces: 'Alle Bereiche',
+    someSpaces: 'Nur diese:',
+    create: 'Passwort erzeugen',
+    created: 'Passwort für „{{name}}“ erzeugt',
+    onlyOnce:
+      'Das Passwort wird nur jetzt angezeigt. Trag es am Gerät ein; du kannst jederzeit ein neues erzeugen.',
+    server: 'Server',
+    username: 'Benutzername',
+    password: 'Passwort',
+    copy: '{{what}} kopieren',
+    done: 'Fertig',
+    createdAt: 'erzeugt am {{date}}',
+    lastUsed: 'zuletzt synchronisiert am {{date}}',
+    neverUsed: 'noch nicht benutzt',
+    revokeNamed: '{{name}} widerrufen',
+    revokeTitle: 'Passwort für „{{name}}“ widerrufen?',
+    revokeBody:
+      'Das Gerät kann danach nicht mehr synchronisieren. Kontakte, die schon darauf sind, bleiben dort.',
+    otherClients:
+      'Andere Apps (DAVx⁵, Thunderbird): CardDAV-Adresse {{url}} mit demselben Benutzernamen und Passwort.',
+    iphone: {
+      title: 'iPhone einrichten',
+      step1:
+        'Einstellungen → Apps → Kontakte → Kontakte-Accounts → Account hinzufügen → Andere → CardDAV-Account hinzufügen.',
+      step2:
+        'Server, Benutzername und Passwort von oben eintragen; als Beschreibung z. B. den App-Namen.',
+      step3: 'Auf „Weiter“ tippen. Die Kontakte erscheinen nach kurzer Zeit in der Kontakte-App.',
+      step4: 'Für Geburtstage: Kalender-App → Kalender → „Geburtstage“ einschalten.',
     },
   },
   briefing: {

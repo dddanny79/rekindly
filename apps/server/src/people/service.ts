@@ -52,7 +52,7 @@ type In<T extends z.ZodType> = z.output<T>;
 const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
 
 /** Current = not ended. The primary one wins, then the most recently started. */
-function mainAffiliation<
+export function mainAffiliation<
   T extends {
     isPrimary: boolean;
     endedOn: string | null;

@@ -274,6 +274,7 @@ export const en = {
       tags: 'Tags',
       relationshipTypes: 'Relationship types',
       fields: 'Custom fields',
+      sync: 'Sync',
     },
     spaces: {
       lead: 'Spaces keep areas of life apart, e.g. private and business.',
@@ -335,6 +336,42 @@ export const en = {
         boolean: 'Yes/No',
         url: 'URL',
       },
+    },
+  },
+  sync: {
+    title: 'Address book sync',
+    lead: 'Your contacts in the iPhone address book (CardDAV), both ways. Each device gets its own password and sees the spaces you choose. Birthdays appear in the iPhone calendar. Indirect contacts and archived people are not synced.',
+    empty: 'No device connected yet.',
+    new: 'Connect a device',
+    name: 'Device',
+    spaces: 'Spaces in this address book',
+    allSpaces: 'All spaces',
+    someSpaces: 'Only these:',
+    create: 'Create password',
+    created: 'Password for “{{name}}” created',
+    onlyOnce:
+      'The password is shown only now. Enter it on the device; you can create a new one at any time.',
+    server: 'Server',
+    username: 'User name',
+    password: 'Password',
+    copy: 'Copy {{what}}',
+    done: 'Done',
+    createdAt: 'created {{date}}',
+    lastUsed: 'last sync {{date}}',
+    neverUsed: 'not used yet',
+    revokeNamed: 'Revoke {{name}}',
+    revokeTitle: 'Revoke the password for “{{name}}”?',
+    revokeBody: 'The device can no longer sync. Contacts already on it stay there.',
+    otherClients:
+      'Other apps (DAVx⁵, Thunderbird): CardDAV address {{url}} with the same user name and password.',
+    iphone: {
+      title: 'Set up the iPhone',
+      step1:
+        'Open Settings → Apps → Contacts → Contacts Accounts → Add Account → Other → Add CardDAV Account.',
+      step2:
+        'Enter the server, user name and password from above; as description e.g. the app name.',
+      step3: 'Tap “Next”. The contacts appear in the Contacts app after a short while.',
+      step4: 'For birthdays: Calendar app → Calendars → turn on “Birthdays”.',
     },
   },
   briefing: {

@@ -46,8 +46,11 @@ describe('database', () => {
       [
         'account',
         'addresses',
+        'app_passwords',
         'affiliations',
         'contact_points',
+        'dav_cards',
+        'dav_extras',
         'entries',
         'entry_people',
         'facts',

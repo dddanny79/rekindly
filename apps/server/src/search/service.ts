@@ -13,6 +13,7 @@ import {
 import type { z } from 'zod';
 import type { searchQuerySchema } from '@app/shared';
 import type { Db } from '../db/client';
+import { rebuildCards } from '../dav/cards';
 import { affiliations, fieldValues, personTags } from '../db/schema';
 import { OrgIndex } from '../organizations';
 import { livePeopleByIds, toPersonRef } from '../people/refs';
@@ -120,6 +121,8 @@ export function flushSearchQueue(db: Db): number {
     const ctx = loadContext(db, orgs);
     writeDocuments(db, 'person', personIds, buildPersonDocuments(db, ctx, [...personIds]));
     writeDocuments(db, 'organization', orgIds, buildOrganizationDocuments(db, ctx, [...orgIds]));
+    // The CardDAV cards depend on the same data (names, contacts, organizations).
+    rebuildCards(db, orgs, [...personIds]);
     sqlite.prepare('delete from search_queue').run();
     return queued.length;
   })();

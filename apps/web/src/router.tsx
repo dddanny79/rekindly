@@ -27,6 +27,7 @@ import {
   TagsSettingsPage,
 } from '@/routes/settings/catalog-pages';
 import { SettingsLayout } from '@/routes/settings/settings-layout';
+import { SyncSettingsPage } from '@/routes/settings/sync-page';
 import { SetupPage } from '@/routes/setup-page';
 import { TodayPage } from '@/routes/today-page';
 import { TrashPage } from '@/routes/trash-page';
@@ -132,6 +133,7 @@ const routeTree = rootRoute.addChildren([
       settingsChild('/tags', TagsSettingsPage),
       settingsChild('/relationship-types', RelationshipTypesSettingsPage),
       settingsChild('/fields', FieldsSettingsPage),
+      settingsChild('/sync', SyncSettingsPage),
     ]),
     child('/more', MorePage),
   ]),

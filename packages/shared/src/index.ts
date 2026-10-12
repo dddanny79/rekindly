@@ -13,3 +13,4 @@ export * from './schemas/timeline';
 export * from './schemas/search';
 export * from './schemas/today';
 export * from './schemas/trash';
+export * from './schemas/dav';

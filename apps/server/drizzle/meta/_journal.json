@@ -43,6 +43,13 @@
       "when": 1791802558792,
       "tag": "0005_indirect_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791809446337,
+      "tag": "0006_carddav",
+      "breakpoints": true
     }
   ]
 }

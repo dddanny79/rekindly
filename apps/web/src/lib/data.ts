@@ -25,6 +25,8 @@ import {
   type TrashKind,
   emptyTrashResponseSchema,
   trashListResponseSchema,
+  appPasswordListResponseSchema,
+  createAppPasswordResponseSchema,
 } from '@app/shared';
 import { api, ApiError } from '@/lib/api';
 
@@ -299,3 +301,17 @@ export const trashApi = {
 /** “Recently viewed” on the Today page; failures do not matter. */
 export const recordPersonView = (id: string) =>
   api(`${V1}/people/${id}/viewed`, null, { method: 'POST' }).catch(() => undefined);
+
+// Sync (CardDAV app passwords) ------------------------------------------------------
+
+export const appPasswordsQuery = queryOptions({
+  queryKey: ['app-passwords'],
+  queryFn: () =>
+    api(`${V1}/app-passwords`, appPasswordListResponseSchema).then((r) => r.appPasswords),
+});
+
+export const appPasswordsApi = {
+  create: (input: { name: string; spaceIds: string[] | null }) =>
+    api(`${V1}/app-passwords`, createAppPasswordResponseSchema, { json: input }),
+  remove: (id: string) => api(`${V1}/app-passwords/${id}`, null, { method: 'DELETE' }),
+};
