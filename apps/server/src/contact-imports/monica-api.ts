@@ -245,6 +245,7 @@ export async function fetchMonica(options: MonicaApiOptions): Promise<MonicaData
 }
 
 /** What the fetch endpoint returns; the import reads it like an export file. */
-export const MONICA_API_FORMAT = 'personengedaechtnis-monica-api';
+export const MONICA_API_FORMAT = 'rekindly-monica-api';
 
-export const isMonicaApiFile = (json: unknown) => obj(json).format === MONICA_API_FORMAT;
+export const isMonicaApiFile = (json: unknown) =>
+  [MONICA_API_FORMAT, 'personengedaechtnis-monica-api'].includes(String(obj(json).format));

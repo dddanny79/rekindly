@@ -35,7 +35,7 @@ const jana: CardData = {
 describe('vCard', () => {
   it('writes iOS-style vCard 3.0', () => {
     const text = buildVcard(jana, {
-      link: { url: 'https://contacts.example.com/people/p-1', label: 'Personengedächtnis' },
+      link: { url: 'https://contacts.example.com/people/p-1', label: 'Rekindly' },
     });
     expect(text.endsWith('\r\n')).toBe(true);
     const lines = unfold(text);

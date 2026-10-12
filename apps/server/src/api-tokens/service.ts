@@ -8,7 +8,9 @@ import { nowIso } from '../lib/sql';
 
 export type ApiTokenRow = typeof apiTokens.$inferSelect;
 
-export const TOKEN_PREFIX = 'pgt_';
+export const TOKEN_PREFIX = 'rkt_';
+/** Tokens created before the app was named Rekindly stay valid. */
+const LEGACY_PREFIXES = ['pgt_'];
 const hash = (token: string) => createHash('sha256').update(token.trim()).digest('hex');
 
 const toApiToken = (row: ApiTokenRow): ApiToken => ({
@@ -55,7 +57,7 @@ export function deleteApiToken(db: Db, id: string) {
 
 /** The token row, or null if unknown or expired. Notes the last use (at most once a minute). */
 export function validateApiToken(db: Db, token: string, now = new Date()): ApiTokenRow | null {
-  if (!token.startsWith(TOKEN_PREFIX)) return null;
+  if (![TOKEN_PREFIX, ...LEGACY_PREFIXES].some((p) => token.startsWith(p))) return null;
   const row = db
     .select()
     .from(apiTokens)
@@ -71,7 +73,7 @@ export function validateApiToken(db: Db, token: string, now = new Date()): ApiTo
   return row;
 }
 
-/** `Authorization: Bearer pgt_…` → the token, if any. */
+/** `Authorization: Bearer rkt_…` → the token, if any. */
 export const bearerToken = (header: string | undefined) => {
   const match = /^Bearer\s+(\S+)$/i.exec(header ?? '');
   return match?.[1] ?? null;

@@ -1,68 +1,89 @@
-# Personengedächtnis (working title)
+# Rekindly
 
-> **Work in progress.** Not usable yet — no releases, no stable data model.
+**A self-hosted memory for the people in your life.**
 
-A self-hosted personal relationship memory: keep track of the people you know —
-who someone is, key facts, past conversations, open follow-ups — and get a short
-briefing before a call or meeting. One person per instance, one container,
-SQLite, no telemetry.
+Rekindly keeps track of the people you know — who someone is, what matters to them,
+what you talked about last time, what you promised to follow up on — and gives you a
+short briefing before a call or meeting. For friends and family as much as for
+clients and colleagues, kept apart in separate spaces.
 
-## Development
+One person per instance, one Docker container, SQLite. Your data stays on your
+server: no telemetry, no external calls except the services you configure.
 
-Requirements: Node.js 24 (see `.nvmrc`) and pnpm via Corepack (`corepack enable`).
+> **Status: 0.x, early release.** It is used daily, but expect changes. Export and
+> encrypted automatic backups are built in.
+
+![Person page with briefing, facts and timeline](docs/screenshots/person.png)
+
+## Features
+
+- **People and organizations** — names, contact details, addresses, photo, birthday,
+  how you met, tags, custom fields; organizations with departments and sites.
+- **Briefing** — open follow-ups, pinned facts, the last conversation, birthday and
+  your keep-in-touch rhythm at a glance.
+- **Timeline** — notes, calls, meetings and messages in Markdown, linked to everyone
+  involved; quick entry with `/call`, `@name` and follow-ups like `/wv 2w`.
+- **Today** — due follow-ups, upcoming birthdays and people you have not talked to
+  for too long.
+- **Search everything** — names, companies, roles, facts, notes, contact details;
+  `Müller` = `Mueller` = `Muller`; command palette with `⌘K` / `Ctrl+K`.
+- **Spaces** — keep private and business apart (or add your own).
+- **iPhone and other address books** — two-way CardDAV sync; calendar subscription
+  for birthdays and follow-ups.
+- **Import** — vCard, CSV (Google, Outlook) and **Monica** (JSON export or API), with a
+  preview, duplicate detection and undo; find and merge duplicates later.
+- **Backups** — full export (JSON), vCard export, and nightly encrypted backups to
+  WebDAV (e.g. Nextcloud) or S3-compatible storage.
+- **Optional AI** — summarize a briefing, suggest facts from a note, ask questions
+  in plain language. Local models (LM Studio, Ollama) or a cloud provider; only spaces
+  you release are ever sent.
+- **API and MCP** — documented REST API with API tokens, and an MCP server: ask
+  Claude “what do I know about Maya?”.
+- **Private by design** — one account, passkeys, light and dark mode, English and
+  German, works on the phone.
+
+| Today                                | Search                                 | Phone                                                             |
+| ------------------------------------ | -------------------------------------- | ----------------------------------------------------------------- |
+| ![Today](docs/screenshots/today.png) | ![Search](docs/screenshots/search.png) | ![Person page on a phone, dark mode](docs/screenshots/mobile.png) |
+
+## Quick start
 
 ```sh
-pnpm install
-pnpm dev          # API on :3000, web dev server on :5173 (proxies /api)
+docker run -d --name rekindly -p 3000:3000 -v rekindly-data:/data \
+  -e PUBLIC_URL=http://localhost:3000 ghcr.io/dddanny79/rekindly:latest
 ```
 
-The web dev server listens on `0.0.0.0`, so it can be opened from other machines
-on the same (e.g. Tailscale) network.
+Open <http://localhost:3000> and create your account. That's it.
 
-| Script           | Purpose                                                |
-| ---------------- | ------------------------------------------------------ |
-| `pnpm dev`       | Server and web app in watch mode                       |
-| `pnpm build`     | Production build (`apps/web/dist`, `apps/server/dist`) |
-| `pnpm start`     | Run the production server (serves web app + API)       |
-| `pnpm test`      | Unit and API tests (Vitest)                            |
-| `pnpm test:e2e`  | End-to-end tests (Playwright, needs `pnpm build`)      |
-| `pnpm lint`      | ESLint and Prettier check                              |
-| `pnpm typecheck` | TypeScript in all packages                             |
+For a real installation behind HTTPS (needed for passkeys and the iPhone), with
+Docker Compose, Coolify or a reverse proxy, see **[docs/deployment.md](docs/deployment.md)**.
 
-Continuous integration (GitHub Actions) runs on pull requests: one job for lint,
-types, unit and E2E tests; the Docker image is built and smoke-tested when the
-Dockerfile, dependencies or server startup change. Merges to `main` run nothing
-again. The image is published to ghcr.io for release tags and manual runs.
+## Coming from Monica?
 
-For E2E tests, install the browser once: `pnpm exec playwright install --with-deps chromium`.
+Rekindly is a fresh take on the same idea — and imports your Monica data:
 
-Sample data and search performance (all names and texts are invented):
+1. In Monica: **Settings → Export → Export to Json** (or create an API token).
+2. In Rekindly: **Settings → Import**, choose `monica.json` (or “Fetch from Monica”).
+3. Check the preview and import. Notes, calls, activities, reminders, relationships,
+   tags and photos come along; people who already exist here (e.g. synced from your
+   phone) are completed instead of duplicated. You can undo the whole import.
 
-```sh
-# Fill the database in DATA_DIR with invented people; refuses a non-empty one without --force
-pnpm --filter @app/server sample-data -- --people 500 --entries 5000
-# Measure search times on a temporary database (default: 5,000 people, 50,000 entries)
-pnpm --filter @app/server perf
-```
+Details: [docs/import.md](docs/import.md#monica).
 
-### Layout
+## Documentation
 
-- `apps/server` — Hono API (`/api/v1`, health check at `/api/health`), Drizzle + SQLite, auth; serves the built web app in production
-- `apps/web` — React, Vite, Tailwind, shadcn/ui, TanStack Router/Query, i18next (en, de)
-- `packages/shared` — Zod schemas, shared types and constants
-- `e2e` — Playwright tests
+| Topic                                                        |                                                       |
+| ------------------------------------------------------------ | ----------------------------------------------------- |
+| Installation, Docker, Coolify, reverse proxy, server backups | [deployment.md](docs/deployment.md)                   |
+| iPhone / CardDAV sync, calendar subscription                 | [carddav.md](docs/carddav.md)                         |
+| Import (vCard, CSV, Monica) and duplicates                   | [import.md](docs/import.md)                           |
+| Export, restore, automatic backups                           | [export.md](docs/export.md)                           |
+| AI features                                                  | [ai.md](docs/ai.md)                                   |
+| API, tokens, MCP for Claude                                  | [api.md](docs/api.md) — live reference at `/api/docs` |
 
 ## Configuration
 
 All configuration is via environment variables; see [`.env.example`](.env.example).
-Running it with Docker, Compose, Coolify or behind a reverse proxy, and backups:
-[`docs/deployment.md`](docs/deployment.md). Address book sync and calendar subscription:
-[`docs/carddav.md`](docs/carddav.md). Export and backups: [`docs/export.md`](docs/export.md); importing contacts: [`docs/import.md`](docs/import.md). API, tokens and MCP (Claude): [`docs/api.md`](docs/api.md). AI features: [`docs/ai.md`](docs/ai.md).
-
-```sh
-docker run -p 3000:3000 -v pg-data:/data -e PUBLIC_URL=http://localhost:3000 \
-  ghcr.io/dddanny79/personengedaechtnis:edge
-```
 
 | Variable       | Default                | Description                                             |
 | -------------- | ---------------------- | ------------------------------------------------------- |
@@ -91,6 +112,15 @@ in development: `pnpm --filter @app/server cli <command>`):
 Deleted data goes to the trash and stays restorable for 30 days; the server purges
 older items at start and then once a day.
 
+## Contributing
+
+Bug reports, ideas, translations and pull requests are welcome — see
+[CONTRIBUTING.md](CONTRIBUTING.md). Security issues: [SECURITY.md](SECURITY.md).
+
+Built with TypeScript, Hono, SQLite (Drizzle), React, Vite and Tailwind.
+
 ## License
 
-Not decided yet.
+[GNU Affero General Public License v3.0 or later](LICENSE). You may use, change and
+share Rekindly freely; if you offer a modified version as a service to others, you
+have to make its source code available to them.

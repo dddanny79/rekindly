@@ -1,0 +1,43 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Please do not include real personal data** (names, phone numbers, notes) — use invented examples. Security issues: use “Report a vulnerability” instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: And what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to …
+        2. Click …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown at /api/health, or the image tag.
+      placeholder: 0.1.0
+  - type: dropdown
+    id: setup
+    attributes:
+      label: How do you run it?
+      options:
+        - Docker / Compose
+        - Coolify
+        - Other (please describe below)
+        - Development (pnpm dev)
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else? (browser, device, logs with LOG_LEVEL=debug)

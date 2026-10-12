@@ -154,7 +154,8 @@ describe('automatic backups', () => {
     expect(JSON.stringify(settings)).not.toContain('secret');
     expect((await source.request('/api/v1/backup/test', { method: 'POST' })).status).toBe(204);
 
-    // Two older backups at the target; with keep = 2 only the newest two remain.
+    // Two older backups (named before the rename) at the target; with keep = 2 only the
+    // newest two remain, whatever the prefix.
     dav.files.set('personengedaechtnis-2026-01-01T03-00-00Z.backup', Buffer.from('old'));
     dav.files.set('personengedaechtnis-2026-01-02T03-00-00Z.backup', Buffer.from('old'));
     await configure(
@@ -166,9 +167,7 @@ describe('automatic backups', () => {
       source.request('/api/v1/backup/run', { method: 'POST' }),
     );
     expect(status.lastError).toBeNull();
-    expect(status.lastFile).toMatch(
-      /^personengedaechtnis-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.backup$/,
-    );
+    expect(status.lastFile).toMatch(/^rekindly-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.backup$/);
     expect([...dav.files.keys()].sort()).toEqual(
       [status.lastFile!, 'personengedaechtnis-2026-01-02T03-00-00Z.backup'].sort(),
     );

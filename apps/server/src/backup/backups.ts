@@ -9,6 +9,7 @@ import { decryptBackup, encryptBackup, openSecret, sealSecret } from './crypto';
 import { exportAll, importAll } from './service';
 import {
   BACKUP_PREFIX,
+  backupTime,
   BACKUP_SUFFIX,
   type BackupTarget,
   type RemoteFile,
@@ -151,7 +152,7 @@ function configOrFail(db: Db): StoredConfig {
   return config;
 }
 
-/** `personengedaechtnis-2026-10-12T03-00-05Z.backup` (sorts by time). */
+/** `rekindly-2026-10-12T03-00-05Z.backup` (sorts by time). */
 export const backupName = (date = new Date()) =>
   `${BACKUP_PREFIX}${date
     .toISOString()
@@ -191,7 +192,9 @@ export async function runBackup(ctx: BackupContext): Promise<BackupStatus> {
     const file = encryptBackup(JSON.stringify(await exportAll(ctx.db, ctx.dataDir)), passphrase);
     const name = backupName();
     await target.put(name, file);
-    const existing = (await target.list()).sort((a, b) => b.name.localeCompare(a.name));
+    const existing = (await target.list()).sort((a, b) =>
+      backupTime(b.name).localeCompare(backupTime(a.name)),
+    );
     for (const old of existing.slice(config.keep)) await target.remove(old.name);
     const next: BackupStatus = {
       ...status,
@@ -220,7 +223,9 @@ export async function runBackup(ctx: BackupContext): Promise<BackupStatus> {
 export async function listBackups(ctx: BackupContext): Promise<RemoteFile[]> {
   const target = targetOf(ctx, configOrFail(ctx.db));
   try {
-    return (await target.list()).sort((a, b) => b.name.localeCompare(a.name));
+    return (await target.list()).sort((a, b) =>
+      backupTime(b.name).localeCompare(backupTime(a.name)),
+    );
   } catch (error) {
     throw new DomainError(502, 'backup_target_failed', targetMessage(error));
   }

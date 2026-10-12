@@ -52,7 +52,7 @@ export function buildCalendar(name: string, events: AllDayEvent[]): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Personengedaechtnis//Calendar//EN',
+    'PRODID:-//Rekindly//Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escape(name)}`,

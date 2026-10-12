@@ -1,6 +1,6 @@
 /**
  * MCP server (Streamable HTTP, stateless): JSON-RPC over POST /mcp, answered as
- * JSON. Authenticated with an API token (`Authorization: Bearer pgt_…`).
+ * JSON. Authenticated with an API token (`Authorization: Bearer rkt_…`).
  */
 import { Hono } from 'hono';
 import { APP_NAME } from '@app/shared';

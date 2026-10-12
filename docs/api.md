@@ -7,7 +7,7 @@ Everything the web app does goes through the public API under `/api/v1`.
 - **Description:** `/api/openapi.json` (OpenAPI 3.1, generated from the Zod schemas
   in `packages/shared`) and a readable page at **`/api/docs`**.
 - **Authentication:** the session cookie (web app), or an API token:
-  `Authorization: Bearer pgt_…`.
+  `Authorization: Bearer rkt_…`.
 
 ## API tokens
 
@@ -24,7 +24,7 @@ hash is stored. Revoking takes effect immediately.
   operation says what it needs (`x-api-token`).
 
 ```sh
-curl -H "Authorization: Bearer pgt_…" https://people.example.com/api/v1/people
+curl -H "Authorization: Bearer rkt_…" https://people.example.com/api/v1/people
 ```
 
 ## MCP (Claude Code, Claude Desktop)
@@ -47,8 +47,8 @@ spaces do not exist for MCP, also not in search results.
 ### Claude Code
 
 ```sh
-claude mcp add --transport http personengedaechtnis https://people.example.com/mcp \
-  --header "Authorization: Bearer pgt_…"
+claude mcp add --transport http rekindly https://people.example.com/mcp \
+  --header "Authorization: Bearer rkt_…"
 ```
 
 Then ask, for example, “What do I know about Jana Berger?”.
@@ -61,7 +61,7 @@ restart Claude. Claude Desktop connects through `mcp-remote` (needs Node.js):
 ```json
 {
   "mcpServers": {
-    "personengedaechtnis": {
+    "rekindly": {
       "command": "npx",
       "args": [
         "-y",
@@ -70,7 +70,7 @@ restart Claude. Claude Desktop connects through `mcp-remote` (needs Node.js):
         "--header",
         "Authorization:${AUTH_HEADER}"
       ],
-      "env": { "AUTH_HEADER": "Bearer pgt_…" }
+      "env": { "AUTH_HEADER": "Bearer rkt_…" }
     }
   }
 }

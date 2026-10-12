@@ -100,7 +100,7 @@ describe('MCP server', () => {
     expect(init.result).toMatchObject({
       protocolVersion: '2025-06-18',
       capabilities: { tools: {} },
-      serverInfo: { name: 'Personengedächtnis' },
+      serverInfo: { name: 'Rekindly' },
     });
     const notification = await t.app.request('/mcp', {
       method: 'POST',

@@ -26,8 +26,8 @@ test('API token for Claude: create, connect over MCP, revoke; AI permission per 
   await form.getByRole('button', { name: 'Create token' }).click();
   const created = page.getByRole('status').filter({ hasText: 'Token “Claude Laptop” created' });
   const token = (await created.locator('[data-copy-value]').first().textContent())!.trim();
-  expect(token).toMatch(/^pgt_/);
-  await expect(created).toContainText('claude mcp add --transport http personengedaechtnis');
+  expect(token).toMatch(/^rkt_/);
+  await expect(created).toContainText('claude mcp add --transport http rekindly');
   await created.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByRole('listitem').filter({ hasText: 'Claude Laptop' })).toContainText(
     'Read only',

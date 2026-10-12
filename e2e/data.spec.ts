@@ -16,9 +16,9 @@ test('export everything as JSON and contacts as vCard; restore needs an empty in
     page.waitForEvent('download'),
     page.getByRole('link', { name: 'Download full export (JSON)' }).click(),
   ]);
-  expect(json.suggestedFilename()).toMatch(/^personengedaechtnis-export-\d{4}-\d{2}-\d{2}\.json$/);
+  expect(json.suggestedFilename()).toMatch(/^rekindly-export-\d{4}-\d{2}-\d{2}\.json$/);
   const exported = JSON.parse(await readFile((await json.path())!, 'utf8'));
-  expect(exported).toMatchObject({ format: 'personengedaechtnis-export', version: 1 });
+  expect(exported).toMatchObject({ format: 'rekindly-export', version: 1 });
   expect(exported.data.people.length).toBeGreaterThan(0);
 
   const [vcf] = await Promise.all([

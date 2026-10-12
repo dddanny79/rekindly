@@ -7,16 +7,18 @@ Guidance for Claude Code sessions working on this repository.
 A self-hosted, open-source **personal relationship memory**: one person per
 instance keeps track of the people they know — who someone is, key facts, past
 conversations, open follow-ups — and gets a briefing before a call or meeting.
-Working title “Personengedächtnis”; the public product name is not decided yet,
-so do not hard-code a name anywhere except the single `APP_NAME` constant.
+The product is called **Rekindly**. Use the `APP_NAME` / `APP_SLUG` constants in
+code instead of writing the name, so a rename stays a one-line change.
 
-The product spec is `PROJEKTPLAN.md` (German). Work is delivered as numbered
-tasks in `auftraege/` (German). Read both before starting a task; the task file
-defines scope and acceptance criteria. Do not build features from later tasks.
+The maintainer keeps the product spec and the task briefs (German) outside this
+repository, in `../rekindly-planning/` (`PROJEKTPLAN.md`, `auftraege/`). When a
+task brief is given, read it before starting: it defines scope and acceptance
+criteria. Do not build features from later tasks. Without a brief, work from the
+issue or request.
 
 ## Hard rules
 
-- **This repository will be made public, including its full history.** Never
+- **This repository is public, including its full history.** Never
   commit real personal data (not even briefly for testing), `.env` files, tokens,
   keys or database files. Test and seed data are always invented. If something
   sensitive was committed, stop and tell the user — do not just delete it in a

@@ -31,7 +31,9 @@ import { DomainError } from '../lib/errors';
 import { reindexAll } from '../search/service';
 import { APP_VERSION } from '../version';
 
-export const EXPORT_FORMAT = 'personengedaechtnis-export';
+export const EXPORT_FORMAT = 'rekindly-export';
+/** Exports from before the app was named Rekindly. */
+const LEGACY_EXPORT_FORMATS = ['personengedaechtnis-export'] as const;
 export const EXPORT_VERSION = 1;
 
 /**
@@ -121,7 +123,7 @@ const fileSchema = z
   })
   .passthrough();
 const importSchema = z.object({
-  format: z.literal(EXPORT_FORMAT),
+  format: z.enum([EXPORT_FORMAT, ...LEGACY_EXPORT_FORMATS]),
   version: z.number().int(),
   data: z.record(z.string(), z.unknown()),
 });

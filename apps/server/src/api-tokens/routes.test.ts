@@ -50,7 +50,7 @@ describe('API tokens', () => {
   it('a read token reads the data, but cannot write or reach account and credentials', async () => {
     const t = await app();
     const { token, apiToken, mcpUrl } = await createToken(t, 'read', 30);
-    expect(token).toMatch(/^pgt_[\w-]{40,}$/);
+    expect(token).toMatch(/^rkt_[\w-]{40,}$/);
     expect(apiToken).toMatchObject({ name: 'Skript', scope: 'read', lastUsedAt: null });
     expect(apiToken.expiresAt).not.toBeNull();
     expect(mcpUrl).toBe('http://localhost:3000/mcp');
@@ -103,10 +103,26 @@ describe('API tokens', () => {
       (await t.request(`/api/v1/api-tokens/${revoked.apiToken.id}`, { method: 'DELETE' })).status,
     ).toBe(204);
     expect((await withToken(t, revoked.token, '/api/v1/people')).status).toBe(401);
-    expect((await withToken(t, 'pgt_falsch', '/api/v1/people')).status).toBe(401);
+    expect((await withToken(t, 'rkt_falsch', '/api/v1/people')).status).toBe(401);
     expect(
       (await t.request(`/api/v1/api-tokens/${revoked.apiToken.id}`, { method: 'DELETE' })).status,
     ).toBe(404);
+  });
+
+  it('tokens from before the rename (pgt_) still work', async () => {
+    const t = await app();
+    const legacy = 'pgt_' + 'x'.repeat(43);
+    const { createHash } = await import('node:crypto');
+    t.db
+      .insert(apiTokens)
+      .values({
+        id: 'legacy',
+        name: 'Alt',
+        scope: 'read',
+        tokenHash: createHash('sha256').update(legacy).digest('hex'),
+      })
+      .run();
+    expect((await withToken(t, legacy, '/api/v1/people')).status).toBe(200);
   });
 
   it('spaces carry the AI permission, off by default', async () => {

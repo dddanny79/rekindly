@@ -1,7 +1,7 @@
 # Deployment
 
 The app ships as **one Docker image** for `linux/amd64` and `linux/arm64`:
-`ghcr.io/dddanny79/personengedaechtnis`. It serves the web app and the API on
+`ghcr.io/dddanny79/rekindly`. It serves the web app and the API on
 port `3000` and keeps everything (SQLite database and uploaded photos) in the
 volume `/data`. No other services are needed.
 
@@ -36,12 +36,12 @@ Passkeys need a secure context: `https://…` or `http://localhost`. Over a plai
 ## Docker
 
 ```sh
-docker run -d --name personengedaechtnis --restart unless-stopped \
+docker run -d --name rekindly --restart unless-stopped \
   -p 3000:3000 \
-  -v pg-data:/data \
+  -v rekindly-data:/data \
   -e PUBLIC_URL=http://localhost:3000 \
   -e TZ=Europe/Berlin \
-  ghcr.io/dddanny79/personengedaechtnis:edge
+  ghcr.io/dddanny79/rekindly:edge
 ```
 
 Open `PUBLIC_URL`; on the first start the setup wizard creates the only account.
@@ -64,15 +64,14 @@ docker compose logs -f
 
 Two ways; both use the same settings from step 3 on.
 
-- **From the Git repository** (tested): `+ New` → _Private Repository (with GitHub
-  App)_, branch `main`, **Build Pack: Dockerfile** (not Docker Compose — the
-  `docker-compose.yml` is an example for plain Docker and would publish port 3000
-  past Coolify's proxy), Base Directory `/`, Dockerfile Location `/Dockerfile`.
-  Coolify rebuilds on every push to `main` (Auto Deploy).
-- **From the image:** `+ New` → _Docker Image_,
-  `ghcr.io/dddanny79/personengedaechtnis:edge`. While the repository is private,
-  log in on the server once: `docker login ghcr.io` with a classic GitHub token
-  that has only `read:packages`.
+- **From the Git repository** (tested): `+ New` → _Public Repository_,
+  `https://github.com/dddanny79/rekindly`, branch `main` (or a release tag),
+  **Build Pack: Dockerfile** (not Docker Compose — the `docker-compose.yml` is an
+  example for plain Docker and would publish port 3000 past Coolify's proxy), Base
+  Directory `/`, Dockerfile Location `/Dockerfile`. With Auto Deploy, Coolify rebuilds
+  on every push to the branch.
+- **From the image:** `+ New` → _Docker Image_, `ghcr.io/dddanny79/rekindly:latest`
+  (latest release) or `:edge` (recent `main`).
 
 Then:
 
@@ -96,7 +95,7 @@ Migrations run automatically at start.
 
 ## Unraid, Portainer, Synology
 
-Same as plain Docker: image `ghcr.io/dddanny79/personengedaechtnis:edge`, container
+Same as plain Docker: image `ghcr.io/dddanny79/rekindly:edge`, container
 port `3000`, a path or volume for `/data` (owned by uid 1000, see above), and the
 variables `PUBLIC_URL` and `TZ`. On Unraid use a path below `/mnt/user/appdata/`.
 
@@ -157,7 +156,7 @@ below are an additional, server-side option.
 the app does it itself):
 
 ```sh
-docker exec personengedaechtnis node dist/cli.js backup
+docker exec rekindly node dist/cli.js backup
 # → /data/backups/app-20261012-210000.sqlite
 ```
 
@@ -166,8 +165,8 @@ borg, Synology Hyper Backup, …) and delete old snapshots from `/data/backups/`
 A daily cron job on the host is enough, e.g.:
 
 ```sh
-0 3 * * * docker exec personengedaechtnis node dist/cli.js backup && \
-  find /var/lib/docker/volumes/pg-data/_data/backups -name '*.sqlite' -mtime +14 -delete
+0 3 * * * docker exec rekindly node dist/cli.js backup && \
+  find /var/lib/docker/volumes/rekindly-data/_data/backups -name '*.sqlite' -mtime +14 -delete
 ```
 
 Alternatively stop the container and copy the whole volume. A full export from the app
@@ -176,20 +175,20 @@ Alternatively stop the container and copy the whole volume. A full export from t
 **Restore:**
 
 ```sh
-docker stop personengedaechtnis
+docker stop rekindly
 # in the volume: replace the database, remove the old WAL files
 cp app-20261012-210000.sqlite /path/to/volume/app.sqlite
 rm -f /path/to/volume/app.sqlite-wal /path/to/volume/app.sqlite-shm
 # restore files/ from the same point in time
-docker start personengedaechtnis
+docker start rekindly
 ```
 
 Afterwards rebuild the search index if in doubt:
-`docker exec personengedaechtnis node dist/cli.js reindex`.
+`docker exec rekindly node dist/cli.js reindex`.
 
 ## Other commands
 
 ```sh
-docker exec -it personengedaechtnis node dist/cli.js reset-password
-docker exec personengedaechtnis node dist/cli.js reindex
+docker exec -it rekindly node dist/cli.js reset-password
+docker exec rekindly node dist/cli.js reindex
 ```

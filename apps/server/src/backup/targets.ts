@@ -19,10 +19,16 @@ export interface BackupTarget {
 /** A failed request to the target, with a message meant for the user. */
 export class TargetError extends Error {}
 
-export const BACKUP_PREFIX = 'personengedaechtnis-';
+export const BACKUP_PREFIX = 'rekindly-';
+/** Backups written before the app was named Rekindly; still listed, restored and rotated. */
+const LEGACY_PREFIXES = ['personengedaechtnis-'];
 export const BACKUP_SUFFIX = '.backup';
 export const isBackupName = (name: string) =>
-  name.startsWith(BACKUP_PREFIX) && name.endsWith(BACKUP_SUFFIX) && !name.includes('/');
+  [BACKUP_PREFIX, ...LEGACY_PREFIXES].some((prefix) => name.startsWith(prefix)) &&
+  name.endsWith(BACKUP_SUFFIX) &&
+  !name.includes('/');
+/** Sort key: the time stamp, whatever the prefix. */
+export const backupTime = (name: string) => name.slice(name.indexOf('-') + 1);
 
 const xml = new XMLParser({ removeNSPrefix: true, parseTagValue: false });
 const asList = <T>(value: T | T[] | undefined): T[] =>
@@ -126,7 +132,7 @@ export interface S3Config {
   endpoint: string;
   region: string;
   bucket: string;
-  /** Folder inside the bucket, e.g. "personengedaechtnis/"; may be empty. */
+  /** Folder inside the bucket, e.g. "rekindly/"; may be empty. */
   prefix: string;
   accessKeyId: string;
   secretAccessKey: string;

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # One image for everything: the server serves the API and the built web app.
-# Build: docker build -t personengedaechtnis .
-# Run:   docker run -p 3000:3000 -v pg-data:/data -e PUBLIC_URL=http://localhost:3000 personengedaechtnis
+# Build: docker build -t rekindly .
+# Run:   docker run -p 3000:3000 -v rekindly-data:/data -e PUBLIC_URL=http://localhost:3000 rekindly
 
 ARG NODE_VERSION=24
 # The runtime is plain Alpine plus the node binary; both must use the same Alpine.

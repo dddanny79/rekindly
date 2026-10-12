@@ -17,10 +17,10 @@ API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
 
 ```json
 {
-  "format": "personengedaechtnis-export",
+  "format": "rekindly-export",
   "version": 1,
   "exportedAt": "2026-10-12T14:00:00.000Z",
-  "app": { "name": "Personengedächtnis", "version": "0.0.0" },
+  "app": { "name": "Rekindly", "version": "0.0.0" },
   "data": {
     "spaces": [],
     "relationshipTypes": [],
@@ -93,7 +93,7 @@ runs one immediately, **Test connection** writes and deletes a small test file. 
 failed backup, or none for more than three days, shows a warning on the Today page.
 If a run fails, the app tries again every hour until it succeeds that day.
 
-Files are named `personengedaechtnis-2026-10-12T03-00-05Z.backup`.
+Files are named `rekindly-2026-10-12T03-00-05Z.backup` (backups from before the rename, `rekindly-…`, are still listed, restored and rotated).
 
 ### Encryption
 

@@ -53,10 +53,10 @@ jobs:
           context: .
           platforms: linux/${{ matrix.arch }}
           load: true
-          tags: personengedaechtnis:test
+          tags: rekindly:test
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
-      - run: scripts/docker-smoke.sh personengedaechtnis:test
+      - run: scripts/docker-smoke.sh rekindly:test
         env:
           SMOKE_TIMEOUT: ${{ matrix.arch == 'amd64' && '60' || '180' }}
 

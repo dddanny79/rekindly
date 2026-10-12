@@ -6,7 +6,6 @@ on:
   pull_request:
     paths-ignore:
       - '**/*.md'
-      - 'auftraege/**'
       - 'docs/**'
   workflow_dispatch:
 

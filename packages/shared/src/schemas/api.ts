@@ -26,7 +26,7 @@ export const createApiTokenRequestSchema = z.object({
 
 export const createApiTokenResponseSchema = z.object({
   apiToken: apiTokenSchema,
-  /** Shown once: `pgt_…`. */
+  /** Shown once: `rkt_…`. */
   token: z.string(),
   /** Address of the MCP server. */
   mcpUrl: z.string(),

@@ -204,7 +204,7 @@ const appleLabel = (label: string) => label.replace(/^_\$!<(.*)>!\$_$/, '$1');
 
 // Building --------------------------------------------------------------------------------
 
-const PRODID = '-//Personengedaechtnis//CardDAV//EN';
+const PRODID = '-//Rekindly//CardDAV//EN';
 
 class Builder {
   private lines: string[] = [];

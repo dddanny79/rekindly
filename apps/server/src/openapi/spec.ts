@@ -628,13 +628,13 @@ export function openApiDocument(publicUrl: URL) {
       title: `${s.APP_NAME} API`,
       version: APP_VERSION,
       description:
-        'The API the web app uses. Authenticate with the session cookie, or with an API token: `Authorization: Bearer pgt_…` (Settings → API & MCP). Tokens reach people, organizations, timeline, catalog, search and Today; read tokens only GET. `x-api-token` on each operation says what it needs.',
+        'The API the web app uses. Authenticate with the session cookie, or with an API token: `Authorization: Bearer rkt_…` (Settings → API & MCP). Tokens reach people, organizations, timeline, catalog, search and Today; read tokens only GET. `x-api-token` on each operation says what it needs.',
     },
     servers: [{ url: publicUrl.origin }],
     security: [{ bearer: [] }, { session: [] }],
     components: {
       securitySchemes: {
-        bearer: { type: 'http', scheme: 'bearer', description: 'API token (pgt_…)' },
+        bearer: { type: 'http', scheme: 'bearer', description: 'API token (rkt_…)' },
         session: { type: 'apiKey', in: 'cookie', name: 'session' },
       },
     },

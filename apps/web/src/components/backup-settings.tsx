@@ -306,7 +306,7 @@ function BackupForm({ settings }: { settings: BackupSettings }) {
             <Input
               value={s3.prefix}
               onChange={(e) => setS3({ ...s3, prefix: e.target.value })}
-              placeholder="personengedaechtnis/"
+              placeholder="rekindly/"
             />
           </FormField>
           <FormField label={t('backup.accessKey')}>

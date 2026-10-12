@@ -102,9 +102,7 @@ async function filled() {
 async function exportOf(t: App) {
   const res = await t.request('/api/v1/export/json');
   expect(res.status).toBe(200);
-  expect(res.headers.get('content-disposition')).toMatch(
-    /attachment; filename="personengedaechtnis-export-/,
-  );
+  expect(res.headers.get('content-disposition')).toMatch(/attachment; filename="rekindly-export-/);
   return (await res.json()) as ExportFile;
 }
 
@@ -112,7 +110,7 @@ describe('export and import', () => {
   it('restores an export into an empty instance with identical data (acceptance)', async () => {
     const { t: source, jana } = await filled();
     const exported = await exportOf(source);
-    expect(exported).toMatchObject({ format: 'personengedaechtnis-export', version: 1 });
+    expect(exported).toMatchObject({ format: 'rekindly-export', version: 1 });
     expect(exported.data.people).toHaveLength(4);
     expect(exported.data.files).toHaveLength(1);
     expect(JSON.stringify(exported)).not.toContain('password');
@@ -169,6 +167,17 @@ describe('export and import', () => {
       data: { ...exported.data, organizations: [] },
     });
     expect(await empty.json(empty.request('/api/v1/import/status'))).toEqual({ empty: true });
+  });
+
+  it('still imports exports from before the rename', async () => {
+    const { t } = await filled();
+    const exported = await exportOf(t);
+    const empty = await app();
+    const res = await empty.request('/api/v1/import', {
+      method: 'POST',
+      json: { ...exported, format: 'personengedaechtnis-export' },
+    });
+    expect(res.status).toBe(200);
   });
 
   it('exports contacts as vCards, all or one space, without indirect contacts', async () => {

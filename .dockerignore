@@ -22,7 +22,6 @@ data
 *.pem
 *.key
 *.log
-auftraege
 docs
 Dockerfile
 docker-compose.yml

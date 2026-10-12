@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { and, eq, inArray } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
-import { APP_NAME } from '@app/shared';
+import { APP_NAME, APP_SLUG } from '@app/shared';
 import { z } from 'zod';
 import { cardData } from '../dav/cards';
 import { buildVcard } from '../dav/vcard';
@@ -26,7 +26,7 @@ export function backupRoutes({ db, config }: Deps) {
       .get('/export/json', async (c) =>
         c.body(JSON.stringify(await exportAll(db, config.dataDir)), 200, {
           'content-type': 'application/json; charset=utf-8',
-          'content-disposition': attachment(`personengedaechtnis-export-${stamp()}.json`),
+          'content-disposition': attachment(`${APP_SLUG}-export-${stamp()}.json`),
         }),
       )
       // Contacts as vCards for other address books (all, or one space).
@@ -69,7 +69,7 @@ export function backupRoutes({ db, config }: Deps) {
           }
           return c.body(cards.join(''), 200, {
             'content-type': 'text/vcard; charset=utf-8',
-            'content-disposition': attachment(`personengedaechtnis-kontakte-${stamp()}.vcf`),
+            'content-disposition': attachment(`${APP_SLUG}-contacts-${stamp()}.vcf`),
           });
         },
       )

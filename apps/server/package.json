@@ -11,7 +11,8 @@
     "cli": "tsx --env-file-if-exists=../../.env src/cli.ts",
     "db:generate": "drizzle-kit generate",
     "perf": "tsx src/dev/perf.ts",
-    "sample-data": "tsx --env-file-if-exists=../../.env src/dev/seed-sample.ts"
+    "sample-data": "tsx --env-file-if-exists=../../.env src/dev/seed-sample.ts",
+    "showcase-data": "tsx --env-file-if-exists=../../.env src/dev/seed-showcase.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

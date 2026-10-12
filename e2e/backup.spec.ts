@@ -69,11 +69,11 @@ test('set up an encrypted WebDAV backup, back up now, see a failure on Today', a
   await expect(section.getByText(/^Last backup:/)).toBeVisible();
   const names = [...files.keys()];
   expect(names).toHaveLength(1);
-  expect(names[0]).toMatch(/^personengedaechtnis-.*\.backup$/);
+  expect(names[0]).toMatch(/^rekindly-.*\.backup$/);
   // Encrypted: neither the export format nor invented names are readable.
   const stored = files.get(names[0]!)!;
   expect(stored.subarray(0, 10).toString()).toBe('PGBACKUP1\n');
-  expect(stored.includes('personengedaechtnis-export')).toBe(false);
+  expect(stored.includes('rekindly-export')).toBe(false);
 
   await section.getByRole('button', { name: 'Show backups at the target' }).click();
   await expect(section.getByRole('listitem')).toHaveCount(1);
