@@ -1,10 +1,28 @@
 name: Docker
 
+# Pull requests: amd64 image + smoke test, only when something the image depends on
+# changed. Releases (tags v*) and manual runs: amd64 + arm64, then publish to ghcr.io.
+# Coolify builds from the Git repository and does not need the published image.
 on:
   pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - 'apps/*/package.json'
+      - 'packages/*/package.json'
+      - 'apps/server/src/config.ts'
+      - 'apps/server/src/index.ts'
+      - 'apps/server/src/cli.ts'
+      - 'apps/server/drizzle/**'
+      - 'scripts/docker-smoke.sh'
+      - '.github/workflows/docker.yml'
   push:
-    branches: [main]
     tags: ['v*']
+  workflow_dispatch:
 
 concurrency:
   group: docker-${{ github.ref }}
@@ -23,7 +41,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [amd64, arm64]
+        # arm64 is emulated (QEMU) and slow: only for releases and manual runs.
+        arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64","arm64"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -37,7 +56,6 @@ jobs:
           tags: personengedaechtnis:test
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
-      # arm64 runs emulated (QEMU): slower, but it proves the native modules load.
       - run: scripts/docker-smoke.sh personengedaechtnis:test
         env:
           SMOKE_TIMEOUT: ${{ matrix.arch == 'amd64' && '60' || '180' }}
@@ -45,7 +63,7 @@ jobs:
   publish:
     name: Publish (amd64 + arm64)
     needs: test
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -63,7 +81,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE }}
-          # edge = latest main; releases (tag v1.2.3) get 1.2.3, 1.2 and latest.
+          # Manual run on main → edge; release tag v1.2.3 → 1.2.3, 1.2 and latest.
           tags: |
             type=edge,branch=main
             type=semver,pattern={{version}}

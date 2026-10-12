@@ -7,9 +7,13 @@ volume `/data`. No other services are needed.
 
 | Tag      | Content                                        |
 | -------- | ---------------------------------------------- |
-| `edge`   | Latest state of `main` (may change daily)      |
+| `edge`   | A recent state of `main`, built on demand      |
 | `1.2.3`  | A release; `1.2` follows the latest patch      |
 | `latest` | Latest release (none yet — use `edge` for now) |
+
+Images are built and published for releases (Git tags `v*`) and on demand
+(GitHub → Actions → _Docker_ → _Run workflow_ on `main`). Coolify can build directly
+from the repository instead and then always runs the current `main`.
 
 ## Configuration
 

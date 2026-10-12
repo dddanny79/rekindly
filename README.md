@@ -29,6 +29,11 @@ on the same (e.g. Tailscale) network.
 | `pnpm lint`      | ESLint and Prettier check                              |
 | `pnpm typecheck` | TypeScript in all packages                             |
 
+Continuous integration (GitHub Actions) runs on pull requests: one job for lint,
+types, unit and E2E tests; the Docker image is built and smoke-tested when the
+Dockerfile, dependencies or server startup change. Merges to `main` run nothing
+again. The image is published to ghcr.io for release tags and manual runs.
+
 For E2E tests, install the browser once: `pnpm exec playwright install --with-deps chromium`.
 
 Sample data and search performance (all names and texts are invented):
