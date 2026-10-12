@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { idSchema, isoDateTimeSchema } from './common';
-import { personRefSchema } from './refs';
+import { personRefSchema, relatedToSchema } from './refs';
 import { entryKindSchema } from './timeline';
 
 /** Where a search hit matched, in ranking order (name first, timeline last). */
@@ -52,6 +52,8 @@ export const searchResultSchema = z.discriminatedUnion('type', [
     /** “Role @ Organization”, or the summary. */
     subtitle: z.string().nullable(),
     archived: z.boolean(),
+    /** Set for indirect contacts: through whom they are known. */
+    relatedTo: relatedToSchema.nullable(),
     matches: z.array(searchMatchSchema),
   }),
   z.object({

@@ -33,6 +33,8 @@ export interface SearchDocument {
   entityType: 'person' | 'organization';
   entityId: string;
   spaceId: string;
+  /** Indirect contacts rank after contacts. */
+  listed: boolean;
   fields: StoredField[];
   name: string;
   details: string;
@@ -90,6 +92,7 @@ function toDocument(
   spaceId: string,
   fields: StoredField[],
   extra: Partial<Record<'name' | 'details' | 'notes', string[]>> = {},
+  listed = true,
 ): SearchDocument {
   const text: Record<'name' | 'details' | 'notes', string[]> = {
     name: [...(extra.name ?? [])],
@@ -101,6 +104,7 @@ function toDocument(
     entityType,
     entityId,
     spaceId,
+    listed,
     fields,
     name: foldText(text.name.join(' \n ')),
     details: foldText(text.details.join(' \n ')),
@@ -256,7 +260,16 @@ export function buildPersonDocuments(db: Db, ctx: Context, ids: string[]): Searc
       if (met) stored.push({ f: 'met', t: met });
       stored.push(...entryFields((entryRows.get(person.id) ?? []).map((r) => r.entry)));
 
-      docs.push(toDocument('person', person.id, person.spaceId, stored, { details: extraDetails }));
+      docs.push(
+        toDocument(
+          'person',
+          person.id,
+          person.spaceId,
+          stored,
+          { details: extraDetails },
+          person.listed,
+        ),
+      );
     }
   }
   return docs;

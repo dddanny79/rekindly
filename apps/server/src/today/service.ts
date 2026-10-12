@@ -12,6 +12,7 @@ import type { Db } from '../db/client';
 import { entries, entryPeople, people, personViews } from '../db/schema';
 import { notDeleted, nowIso } from '../lib/sql';
 import { getLivePerson, toPersonRef } from '../people/refs';
+import { relatedToFor } from '../people/related';
 import { personSubtitles } from '../people/service';
 import { listReminders } from '../reminders/service';
 
@@ -48,7 +49,8 @@ function activePeople(spaceId: string | undefined) {
 }
 
 function birthdays(db: Db, today: string, spaceId?: string): TodayBirthday[] {
-  return db
+  // Indirect contacts included: a birthday is a reason to call the person they belong to.
+  const list = db
     .select()
     .from(people)
     .where(and(activePeople(spaceId), isNotNull(people.birthday)))
@@ -60,11 +62,17 @@ function birthdays(db: Db, today: string, spaceId?: string): TodayBirthday[] {
         a.next.inDays - b.next.inDays ||
         toPersonRef(a.person).displayName.localeCompare(toPersonRef(b.person).displayName),
     )
-    .map(({ person, next }) => ({
-      person: toPersonRef(person),
-      birthday: person.birthday!,
-      ...next,
-    }));
+    .map(({ person, next }) => ({ person, next }));
+  const related = relatedToFor(
+    db,
+    list.filter(({ person }) => !person.listed).map(({ person }) => person.id),
+  );
+  return list.map(({ person, next }) => ({
+    person: toPersonRef(person),
+    birthday: person.birthday!,
+    ...next,
+    relatedTo: related.get(person.id) ?? null,
+  }));
 }
 
 /** People with a contact rhythm whose last call, meeting or message is too long ago. */
@@ -72,7 +80,7 @@ function overdueContacts(db: Db, today: string, spaceId?: string): OverdueContac
   const rows = db
     .select()
     .from(people)
-    .where(and(activePeople(spaceId), isNotNull(people.contactEveryDays)))
+    .where(and(activePeople(spaceId), eq(people.listed, true), isNotNull(people.contactEveryDays)))
     .all();
   if (!rows.length) return [];
   const last = new Map(
@@ -135,9 +143,14 @@ function recent(db: Db, spaceId?: string): RecentPerson[] {
     db,
     rows.map((r) => r.person),
   );
+  const related = relatedToFor(
+    db,
+    rows.filter((r) => !r.person.listed).map((r) => r.person.id),
+  );
   return rows.map(({ person, viewedAt }) => ({
     person: toPersonRef(person),
     subtitle: subtitles.get(person.id) ?? null,
+    relatedTo: related.get(person.id) ?? null,
     viewedAt,
   }));
 }

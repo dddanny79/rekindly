@@ -21,6 +21,8 @@ export const searchDocuments = sqliteTable(
     entityType: text('entity_type', { enum: ['person', 'organization'] }).notNull(),
     entityId: text('entity_id').notNull(),
     spaceId: text('space_id').notNull(),
+    /** Indirect contacts rank after contacts. */
+    listed: integer('listed', { mode: 'boolean' }).notNull().default(true),
     /** JSON array of the indexed fields (see `search/document.ts`). */
     fields: text('fields').notNull(),
   },

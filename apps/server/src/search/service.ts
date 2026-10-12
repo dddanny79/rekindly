@@ -16,6 +16,7 @@ import type { Db } from '../db/client';
 import { affiliations, fieldValues, personTags } from '../db/schema';
 import { OrgIndex } from '../organizations';
 import { livePeopleByIds, toPersonRef } from '../people/refs';
+import { relatedToFor } from '../people/related';
 import { personSubtitles } from '../people/service';
 import {
   buildOrganizationDocuments,
@@ -43,7 +44,7 @@ function writeDocuments(
   const deleteText = sqlite.prepare('delete from search_index where rowid = ?');
   const deleteDoc = sqlite.prepare('delete from search_documents where id = ?');
   const insertDoc = sqlite.prepare(
-    'insert into search_documents (entity_type, entity_id, space_id, fields) values (?, ?, ?, ?)',
+    'insert into search_documents (entity_type, entity_id, space_id, listed, fields) values (?, ?, ?, ?, ?)',
   );
   const insertText = sqlite.prepare(
     'insert into search_index (rowid, name, details, notes) values (?, ?, ?, ?)',
@@ -59,6 +60,7 @@ function writeDocuments(
       doc.entityType,
       doc.entityId,
       doc.spaceId,
+      doc.listed ? 1 : 0,
       JSON.stringify(doc.fields),
     );
     insertText.run(lastInsertRowid, doc.name, doc.details, doc.notes);
@@ -242,7 +244,8 @@ export function search(db: Db, query: In<typeof searchQuerySchema>): SearchRespo
       `select d.entity_type as type, d.entity_id as id, d.space_id as spaceId, d.fields as fields
        from search_index join search_documents d on d.id = search_index.rowid
        where ${conditions.join(' and ')}
-       order by bm25(search_index, ${WEIGHTS.join(', ')})
+       -- Indirect contacts after contacts, then by relevance.
+       order by d.listed desc, bm25(search_index, ${WEIGHTS.join(', ')})
        limit ?`,
     )
     .all(...params, limit + 1) as Row[];
@@ -251,6 +254,10 @@ export function search(db: Db, query: In<typeof searchQuerySchema>): SearchRespo
   const personIds = page.filter((r) => r.type === 'person').map((r) => r.id);
   const people = livePeopleByIds(db, personIds);
   const subtitles = personSubtitles(db, [...people.values()]);
+  const related = relatedToFor(
+    db,
+    [...people.values()].filter((p) => !p.listed).map((p) => p.id),
+  );
   const orgs = OrgIndex.load(db);
 
   const results = page.flatMap((row): SearchResult[] => {
@@ -266,6 +273,7 @@ export function search(db: Db, query: In<typeof searchQuerySchema>): SearchRespo
           person: toPersonRef(person),
           subtitle: subtitles.get(person.id) ?? null,
           archived: !!person.archivedAt,
+          relatedTo: related.get(person.id) ?? null,
           matches,
         },
       ];

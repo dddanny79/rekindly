@@ -15,6 +15,13 @@ import { peopleApi, peopleQuery, relationshipTypesQuery, spacesQuery, useWrite }
 import { errorMessage } from '@/lib/errors';
 import { labelText } from '@/lib/labels';
 
+/** “Lea Maria Berger” → first “Lea Maria”, last “Berger”; one word → first name. */
+function splitName(name: string): [string | null, string | null] {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return [words[0] ?? null, null];
+  return [words.slice(0, -1).join(' '), words.at(-1)!];
+}
+
 /** “[person] is [role] of this person”; each directed type offers both directions. */
 function RelationshipForm({
   personId,
@@ -27,9 +34,13 @@ function RelationshipForm({
 }) {
   const { t } = useTranslation();
   const { data: types = [] } = useQuery(relationshipTypesQuery);
-  const { data: people = [] } = useQuery(peopleQuery({}));
+  // Indirect contacts can be linked too (e.g. Lea is also Tom's daughter).
+  const { data: people = [] } = useQuery(peopleQuery({ listed: 'all' }));
   const { data: spaces = [] } = useQuery(spacesQuery);
-  const [other, setOther] = useState<{ id: string; name: string } | null>(null);
+  // An existing person, or a new one (`listed` false = indirect contact).
+  const [other, setOther] = useState<
+    { id: string; name: string } | { id?: undefined; name: string; listed: boolean } | null
+  >(null);
   const [choice, setChoice] = useState('');
 
   const roles = types.flatMap((type) => {
@@ -50,8 +61,12 @@ function RelationshipForm({
   });
 
   const add = useWrite(
-    (input: { personId: string; typeId: string; reverse: boolean }) =>
-      peopleApi.addItem(personId, 'relationships', input),
+    (input: {
+      personId?: string;
+      newPerson?: { firstName: string | null; lastName: string | null; listed: boolean };
+      typeId: string;
+      reverse: boolean;
+    }) => peopleApi.addItem(personId, 'relationships', input),
     { onSuccess: onDone },
   );
 
@@ -59,7 +74,16 @@ function RelationshipForm({
     event.preventDefault();
     const role = roles.find((r) => r.key === choice);
     if (!other || !role) return;
-    add.mutate({ personId: other.id, typeId: role.typeId, reverse: role.reverse });
+    if (other.id) {
+      add.mutate({ personId: other.id, typeId: role.typeId, reverse: role.reverse });
+    } else {
+      const [firstName, lastName] = splitName(other.name);
+      add.mutate({
+        newPerson: { firstName, lastName, listed: !('listed' in other) || other.listed },
+        typeId: role.typeId,
+        reverse: role.reverse,
+      });
+    }
   }
 
   const colorOf = (spaceId: string) => spaces.find((s) => s.id === spaceId)?.color ?? null;
@@ -68,7 +92,17 @@ function RelationshipForm({
     <form onSubmit={submit} className="flex flex-col gap-2 border-b py-3">
       {other ? (
         <div className="flex items-center justify-between gap-2 rounded-sm border border-input bg-popover px-2.5 py-1.5">
-          <span className="truncate">{other.name}</span>
+          <span className="truncate">
+            {other.name}
+            {!other.id && (
+              <span className="text-meta text-muted-foreground">
+                {' · '}
+                {'listed' in other && other.listed
+                  ? t('relationship.newContact')
+                  : t('relationship.newIndirect')}
+              </span>
+            )}
+          </span>
           <Button type="button" size="xs" variant="ghost" onClick={() => setOther(null)}>
             {t('common.change')}
           </Button>
@@ -83,7 +117,7 @@ function RelationshipForm({
             .map((p) => ({
               value: p.id,
               label: p.displayName,
-              hint: p.organization?.name,
+              hint: p.listed ? p.organization?.name : t('indirect.label'),
               icon: (
                 <Avatar
                   initials={p.initials}
@@ -94,6 +128,16 @@ function RelationshipForm({
               ),
             }))}
           onSelect={(o) => setOther({ id: o.value, name: o.label })}
+          createOptions={[
+            {
+              label: (name) => t('relationship.createIndirect', { name }),
+              onCreate: (name) => setOther({ name, listed: false }),
+            },
+            {
+              label: (name) => t('relationship.createContact', { name }),
+              onCreate: (name) => setOther({ name, listed: true }),
+            },
+          ]}
         />
       )}
       <div className="flex flex-col gap-1.5">

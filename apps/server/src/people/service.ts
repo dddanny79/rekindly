@@ -15,6 +15,7 @@ import type {
   createAffiliationRequestSchema,
   createContactPointRequestSchema,
   createPersonRequestSchema,
+  createRelationshipRequestSchema,
   peopleQuerySchema,
   updateAffiliationRequestSchema,
   updateContactPointRequestSchema,
@@ -43,6 +44,7 @@ import { OrgIndex } from '../organizations';
 import { listReminders } from '../reminders/service';
 import { getLiveSpace } from '../spaces/service';
 import { listAddresses } from './addresses';
+import { relatedToFor } from './related';
 import { getLivePerson, livePeopleByIds, type PersonRow, toPersonRef, touchPerson } from './refs';
 
 type In<T extends z.ZodType> = z.output<T>;
@@ -114,6 +116,8 @@ export function listPeople(db: Db, query: In<typeof peopleQuerySchema>): PersonL
   if (query.spaceId) conditions.push(eq(people.spaceId, query.spaceId));
   if (query.favorite !== undefined) conditions.push(eq(people.favorite, query.favorite));
   conditions.push(query.archived ? isNotNull(people.archivedAt) : isNull(people.archivedAt));
+  const listed = query.listed ?? 'contacts';
+  if (listed !== 'all') conditions.push(eq(people.listed, listed === 'contacts'));
   if (query.q) {
     const haystack = sql`coalesce(${people.prefix}, '') || ' ' || coalesce(${people.firstName}, '') || ' ' || coalesce(${people.middleName}, '') || ' ' || coalesce(${people.lastName}, '') || ' ' || coalesce(${people.nickname}, '') || ' ' || coalesce(${people.maidenName}, '')`;
     conditions.push(foldedContains(haystack, query.q));
@@ -180,6 +184,7 @@ export function listPeople(db: Db, query: In<typeof peopleQuerySchema>): PersonL
         summary: person.summary,
         photoUrl: fileUrl(person.photoFileId),
         favorite: person.favorite,
+        listed: person.listed,
         archivedAt: person.archivedAt,
         role: main?.role ?? null,
         organization: org ? { id: org.id, name: org.name } : null,
@@ -311,6 +316,8 @@ export function getPerson(db: Db, id: string): Person {
     metThrough: metThrough ? toPersonRef(metThrough) : null,
     photoUrl: fileUrl(person.photoFileId),
     favorite: person.favorite,
+    listed: person.listed,
+    relatedTo: person.listed ? null : (relatedToFor(db, [id]).get(id) ?? null),
     contactEveryDays: person.contactEveryDays,
     archivedAt: person.archivedAt,
     createdAt: person.createdAt,
@@ -350,6 +357,7 @@ export function createPerson(db: Db, input: In<typeof createPersonRequestSchema>
         spaceId: input.spaceId,
         firstName: input.firstName ?? null,
         lastName: input.lastName ?? null,
+        listed: input.listed ?? true,
       })
       .returning()
       .get();
@@ -554,25 +562,42 @@ export function deleteAffiliation(db: Db, personId: string, id: string) {
 export function addRelationship(
   db: Db,
   personId: string,
-  input: { personId: string; typeId: string; reverse?: boolean; note?: string | null },
+  input: In<typeof createRelationshipRequestSchema>,
 ) {
-  getLivePerson(db, personId);
+  const person = getLivePerson(db, personId);
   if (input.personId === personId) throw new DomainError(400, 'invalid_person');
-  if (!livePeopleByIds(db, [input.personId]).size) throw new DomainError(400, 'unknown_person');
+  if (input.personId && !livePeopleByIds(db, [input.personId]).size)
+    throw new DomainError(400, 'unknown_person');
   if (!getRelationshipType(db, input.typeId))
     throw new DomainError(400, 'unknown_relationship_type');
-  const row = db
-    .insert(relationships)
-    .values({
-      fromPersonId: input.reverse ? input.personId : personId,
-      toPersonId: input.reverse ? personId : input.personId,
-      typeId: input.typeId,
-      note: input.note ?? null,
-    })
-    .returning()
-    .get();
+  const { row, otherId } = db.transaction((tx) => {
+    // A new person from the relationship form: same space, indirect by default.
+    const otherId =
+      input.personId ??
+      tx
+        .insert(people)
+        .values({
+          spaceId: person.spaceId,
+          firstName: input.newPerson!.firstName ?? null,
+          lastName: input.newPerson!.lastName ?? null,
+          listed: input.newPerson!.listed ?? false,
+        })
+        .returning()
+        .get().id;
+    const row = tx
+      .insert(relationships)
+      .values({
+        fromPersonId: input.reverse ? otherId : personId,
+        toPersonId: input.reverse ? personId : otherId,
+        typeId: input.typeId,
+        note: input.note ?? null,
+      })
+      .returning()
+      .get();
+    return { row, otherId };
+  });
   touchPerson(db, personId);
-  touchPerson(db, input.personId);
+  touchPerson(db, otherId);
   return getPerson(db, personId).relationships.find((r) => r.id === row.id)!;
 }
 

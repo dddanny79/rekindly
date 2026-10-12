@@ -9,6 +9,7 @@ import { ReminderRow } from '@/components/person/briefing';
 import { Button } from '@/components/ui/button';
 import { todayQuery } from '@/lib/data';
 import { fromDateOnly, toDateOnly } from '@/lib/dates';
+import { relatedToText } from '@/lib/labels';
 import { useSelectedSpace } from '@/lib/space-selection';
 import { cn } from '@/lib/utils';
 
@@ -134,7 +135,14 @@ export function TodayPage(): ReactElement {
                   key={b.person.id}
                   className="flex items-center justify-between gap-3 border-b py-2"
                 >
-                  <PersonLink person={b.person} color={colorOf(b.person.spaceId)} />
+                  <span className="min-w-0">
+                    <PersonLink person={b.person} color={colorOf(b.person.spaceId)} />
+                    {b.relatedTo && (
+                      <span className="mt-0.5 block truncate pl-9 text-meta text-muted-foreground">
+                        {relatedToText(t, b.relatedTo)}
+                      </span>
+                    )}
+                  </span>
                   <span className="num shrink-0 text-right text-meta">
                     <span className={cn('font-bold', b.inDays === 0 && 'text-signal')}>
                       {shortDate(fromDateOnly(b.on))}
@@ -184,9 +192,9 @@ export function TodayPage(): ReactElement {
             {data.recent.map((r) => (
               <li key={r.person.id} className="min-w-0 border-b py-2">
                 <PersonLink person={r.person} color={colorOf(r.person.spaceId)} />
-                {r.subtitle && (
+                {(r.relatedTo || r.subtitle) && (
                   <span className="mt-0.5 block truncate pl-9 text-meta text-muted-foreground">
-                    {r.subtitle}
+                    {r.relatedTo ? relatedToText(t, r.relatedTo) : r.subtitle}
                   </span>
                 )}
               </li>

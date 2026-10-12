@@ -9,6 +9,7 @@ import {
   type SpaceColor,
 } from '@app/shared';
 import { Avatar } from '@/components/avatar';
+import { relatedToText } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 
 /** Text with `<mark>`ed ranges (search hits, design: `signal-tint`). */
@@ -76,7 +77,9 @@ export function SearchHit({
   const name = result.type === 'person' ? result.person.displayName : result.organization.name;
   const subtitle =
     result.type === 'person'
-      ? result.subtitle
+      ? result.relatedTo
+        ? relatedToText(t, result.relatedTo)
+        : result.subtitle
       : result.organization.path
           .slice(0, -1)
           .map((p) => p.name)

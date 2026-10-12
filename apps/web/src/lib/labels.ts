@@ -14,3 +14,13 @@ export const spaceName = (t: TFunction, space: Pick<Space, 'name' | 'nameKey'>) 
 /** CSS colour of a space (palette key → token that adapts to light/dark). */
 export const spaceColor = (color: SpaceColor | null | undefined) =>
   `var(--space-${color ?? 'slate'})`;
+
+/** “Child of Jana Berger” for an indirect contact. */
+export const relatedToText = (
+  t: TFunction,
+  relatedTo: { label: LabelRef; person: { displayName: string } },
+) =>
+  t('indirect.relatedToPlain', {
+    label: labelText(t, relatedTo.label),
+    name: relatedTo.person.displayName,
+  });

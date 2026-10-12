@@ -36,6 +36,13 @@
       "when": 1791794210278,
       "tag": "0004_search_index_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791802558792,
+      "tag": "0005_indirect_contacts",
+      "breakpoints": true
     }
   ]
 }

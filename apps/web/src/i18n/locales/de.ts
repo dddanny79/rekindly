@@ -49,6 +49,7 @@ export const de: Translations = {
       allOrganizations: 'Alle Organisationen',
       favorites: 'Favoriten',
       archived: 'Archiv',
+      indirect: 'Indirekte',
     },
     sort: {
       label: 'Sortierung',
@@ -195,6 +196,18 @@ export const de: Translations = {
     chooseRole: 'Auswählen …',
     removeTitle: 'Beziehung zu {{name}} entfernen?',
     removeBody: 'Sie verschwindet bei beiden Personen.',
+    createIndirect: '„{{name}}“ als indirekten Kontakt anlegen',
+    createContact: '„{{name}}“ als Kontakt anlegen',
+    newIndirect: 'neuer indirekter Kontakt',
+    newContact: 'neuer Kontakt',
+  },
+  indirect: {
+    label: 'Indirekter Kontakt',
+    hint: 'Indirekter Kontakt: über jemand anderen bekannt, nicht in der Personenliste.',
+    relatedTo: '{{label}} von <0>{{name}}</0>',
+    relatedToPlain: '{{label}} von {{name}}',
+    makeContact: 'Zum Kontakt machen',
+    makeIndirect: 'Zu indirektem Kontakt machen',
   },
   tags: {
     title: 'Tags',

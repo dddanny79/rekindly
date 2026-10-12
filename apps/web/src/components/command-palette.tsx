@@ -23,6 +23,7 @@ import { CreatePersonDialog } from '@/components/person/create-person-dialog';
 import { SearchHit } from '@/components/search/search-hit';
 import { searchQuery, todayQuery } from '@/lib/data';
 import { toDateOnly } from '@/lib/dates';
+import { relatedToText } from '@/lib/labels';
 import { setPaletteOpen, useDebounced, usePaletteOpen } from '@/lib/palette';
 import { useSelectedSpace } from '@/lib/space-selection';
 
@@ -293,8 +294,11 @@ export function CommandPalette() {
                         />
                         <span className="min-w-0 flex-1 truncate">
                           <span className="font-semibold">{r.person.displayName}</span>
-                          {r.subtitle && (
-                            <span className="text-meta text-muted-foreground"> · {r.subtitle}</span>
+                          {(r.relatedTo || r.subtitle) && (
+                            <span className="text-meta text-muted-foreground">
+                              {' · '}
+                              {r.relatedTo ? relatedToText(t, r.relatedTo) : r.subtitle}
+                            </span>
                           )}
                         </span>
                       </Command.Item>

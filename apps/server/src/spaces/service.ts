@@ -21,7 +21,8 @@ export function listSpaces(db: Db): Space[] {
     db
       .select({ spaceId: people.spaceId, n: count() })
       .from(people)
-      .where(and(notDeleted(people), isNull(people.archivedAt)))
+      // Indirect contacts are not counted.
+      .where(and(notDeleted(people), isNull(people.archivedAt), eq(people.listed, true)))
       .groupBy(people.spaceId)
       .all()
       .map((row) => [row.spaceId, row.n]),

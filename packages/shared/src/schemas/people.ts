@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { fieldValueSchema } from './catalog';
-import { personRefSchema } from './refs';
+import { personRefSchema, relatedToSchema } from './refs';
 import { factSchema, lastContactSchema, reminderSchema } from './timeline';
 
-export { personRefSchema, type PersonRef } from './refs';
+export { personRefSchema, type PersonRef, relatedToSchema, type RelatedTo } from './refs';
 import {
   birthdaySchema,
   idSchema,
@@ -107,12 +107,28 @@ export type Relationship = z.infer<typeof relationshipSchema>;
  * “`personId` is `type.name` of this person”, or with `reverse` “… is
  * `type.reverseName` of this person” (e.g. pick “child” from the parent type).
  */
-export const createRelationshipRequestSchema = z.object({
-  personId: idSchema,
-  typeId: idSchema,
-  reverse: z.boolean().optional(),
-  note: optionalText(500).optional(),
-});
+export const createRelationshipRequestSchema = z
+  .object({
+    /** An existing person … */
+    personId: idSchema.optional(),
+    /** … or a new one, created in the same space (an indirect contact by default). */
+    newPerson: z
+      .object({
+        firstName: optionalText(100).optional(),
+        lastName: optionalText(100).optional(),
+        /** false = indirect contact: not in the people list, not synced. */
+        listed: z.boolean().optional(),
+      })
+      .refine((p) => p.firstName || p.lastName, { message: 'name_required' })
+      .optional(),
+    typeId: idSchema,
+    reverse: z.boolean().optional(),
+    note: optionalText(500).optional(),
+  })
+  .refine((r) => !!r.personId !== !!r.newPerson, {
+    message: 'person_or_new_person',
+    path: ['personId'],
+  });
 export const updateRelationshipRequestSchema = z.object({ note: optionalText(500) });
 
 export const tagRefSchema = z.object({
@@ -144,6 +160,10 @@ export const personSchema = z.object({
   metThrough: personRefSchema.nullable(),
   photoUrl: z.string().nullable(),
   favorite: z.boolean(),
+  /** false: indirect contact, known only through a relationship. */
+  listed: z.boolean(),
+  /** For indirect contacts: through whom they are known (“Child of Jana Berger”). */
+  relatedTo: relatedToSchema.nullable(),
   contactEveryDays: z.number().int().nullable(),
   archivedAt: isoDateTimeSchema.nullable(),
   createdAt: isoDateTimeSchema,
@@ -169,6 +189,7 @@ export const personListItemSchema = z.object({
   summary: z.string().nullable(),
   photoUrl: z.string().nullable(),
   favorite: z.boolean(),
+  listed: z.boolean(),
   archivedAt: isoDateTimeSchema.nullable(),
   /** Main role, e.g. “Leitung Einkauf” @ “Standort Köln”. */
   role: z.string().nullable(),
@@ -191,6 +212,8 @@ export const peopleQuerySchema = z.object({
   favorite: booleanParam.optional(),
   /** Archived people are hidden unless this is true. */
   archived: booleanParam.optional(),
+  /** contacts (default), indirect contacts, or both (e.g. to link a relationship). */
+  listed: z.enum(['contacts', 'indirect', 'all']).optional(),
   sort: z.enum(PEOPLE_SORTS).optional(),
   order: z.enum(['asc', 'desc']).optional(),
 });
@@ -206,6 +229,8 @@ export const createPersonRequestSchema = z
     lastName: optionalText(100).optional(),
     organizationId: idSchema.optional(),
     role: optionalText(200).optional(),
+    /** false: indirect contact. Default true. */
+    listed: z.boolean().optional(),
   })
   .refine((p) => p.firstName || p.lastName, { message: 'name_required', path: ['firstName'] });
 
@@ -226,6 +251,8 @@ export const updatePersonRequestSchema = z.object({
   metWhen: partialDateSchema.nullable().optional(),
   metThroughPersonId: idSchema.nullable().optional(),
   favorite: z.boolean().optional(),
+  /** Promote an indirect contact to a contact (true) or back (false). */
+  listed: z.boolean().optional(),
   contactEveryDays: z.number().int().min(1).max(3650).nullable().optional(),
   archived: z.boolean().optional(),
 });

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { dateOnlySchema, idSchema, isoDateTimeSchema } from './common';
-import { personRefSchema } from './refs';
+import { personRefSchema, relatedToSchema } from './refs';
 import { reminderSchema } from './timeline';
 
 /** Days ahead (after today) for upcoming birthdays. */
@@ -24,6 +24,8 @@ export const todayBirthdaySchema = z.object({
   inDays: z.number().int(),
   /** Age on that day, if the year is known. */
   turns: z.number().int().nullable(),
+  /** Set for indirect contacts: through whom they are known. */
+  relatedTo: relatedToSchema.nullable(),
 });
 export type TodayBirthday = z.infer<typeof todayBirthdaySchema>;
 
@@ -40,6 +42,7 @@ export const recentPersonSchema = z.object({
   person: personRefSchema,
   /** “Role @ Organization”, or the summary. */
   subtitle: z.string().nullable(),
+  relatedTo: relatedToSchema.nullable(),
   viewedAt: isoDateTimeSchema,
 });
 export type RecentPerson = z.infer<typeof recentPersonSchema>;

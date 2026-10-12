@@ -157,10 +157,14 @@ test('facts: add, pin into the briefing, reorder with the keyboard', async ({ pa
   await expect(region(page, 'Briefing')).toContainText('Drinks no coffee');
   await expect(region(page, 'Briefing')).not.toContainText('Daughter Lea');
 
-  // Keyboard drag: Space, ArrowUp, Space.
+  // Keyboard drag: Space, ArrowUp, Space — each step after dnd-kit announced the last one.
+  const announcer = page.locator('[id^="DndLiveRegion"]');
   await facts.getByRole('button', { name: /Move “Drinks no coffee”/ }).focus();
   await page.keyboard.press('Space');
+  await expect(announcer).toContainText('Draggable item');
+  const pickedUp = await announcer.textContent();
   await page.keyboard.press('ArrowUp');
+  await expect(announcer).not.toHaveText(pickedUp ?? '');
   await page.keyboard.press('Space');
   await expect(facts.getByRole('listitem').first()).toContainText('Drinks no coffee');
   await page.reload();

@@ -18,6 +18,7 @@ const hit: SearchResult = {
   person: ref,
   subtitle: 'Einkauf @ Standort Köln',
   archived: false,
+  relatedTo: null,
   matches: [
     { field: 'name', label: null, entry: null, text: 'Jana Müller', highlights: [[5, 11]] },
     {
@@ -52,6 +53,24 @@ describe('SearchHit', () => {
     expect(marks).toEqual(['Müller', 'Angebot']);
     expect(screen.getByText(/Call · Oct 2, 2026:/)).toBeInTheDocument();
     expect(screen.getByText(/Einkauf @ Standort Köln/)).toBeInTheDocument();
+  });
+});
+
+describe('indirect contacts', () => {
+  it('shows through whom an indirect contact is known', () => {
+    const lea: SearchResult = {
+      ...hit,
+      person: { ...ref, id: 'p2', displayName: 'Lea Berger' },
+      id: 'p2',
+      subtitle: null,
+      relatedTo: {
+        label: { name: null, nameKey: 'seed.relationshipTypes.child' },
+        person: { ...ref, displayName: 'Jana Berger' },
+      },
+      matches: [],
+    };
+    render(<SearchHit result={lea} query="lea" color={null} />);
+    expect(screen.getByText(/Child of Jana Berger/)).toBeInTheDocument();
   });
 });
 
@@ -93,7 +112,16 @@ describe('Today page', () => {
           person: ref,
         },
       ],
-      birthdays: [{ person: ref, birthday: '1985-10-12', on: '2026-10-12', inDays: 0, turns: 41 }],
+      birthdays: [
+        {
+          person: ref,
+          birthday: '1985-10-12',
+          on: '2026-10-12',
+          inDays: 0,
+          turns: 41,
+          relatedTo: null,
+        },
+      ],
       overdueContacts: [
         {
           person: ref,
@@ -103,7 +131,12 @@ describe('Today page', () => {
         },
       ],
       recent: [
-        { person: ref, subtitle: 'Einkauf @ Standort Köln', viewedAt: '2026-10-12T08:00:00.000Z' },
+        {
+          person: ref,
+          subtitle: 'Einkauf @ Standort Köln',
+          relatedTo: null,
+          viewedAt: '2026-10-12T08:00:00.000Z',
+        },
       ],
     };
     mockApi(SIGNED_IN, {

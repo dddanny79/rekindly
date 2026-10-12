@@ -47,6 +47,7 @@ export const en = {
       allOrganizations: 'All organizations',
       favorites: 'Favourites',
       archived: 'Archive',
+      indirect: 'Indirect',
     },
     sort: {
       label: 'Sort',
@@ -193,6 +194,18 @@ export const en = {
     chooseRole: 'Choose …',
     removeTitle: 'Remove the relationship with {{name}}?',
     removeBody: 'It disappears for both people.',
+    createIndirect: 'Add “{{name}}” as indirect contact',
+    createContact: 'Add “{{name}}” as contact',
+    newIndirect: 'new indirect contact',
+    newContact: 'new contact',
+  },
+  indirect: {
+    label: 'Indirect contact',
+    hint: 'Indirect contact: known through someone else, not in the people list.',
+    relatedTo: '{{label}} of <0>{{name}}</0>',
+    relatedToPlain: '{{label}} of {{name}}',
+    makeContact: 'Make a contact',
+    makeIndirect: 'Make an indirect contact',
   },
   tags: {
     title: 'Tags',

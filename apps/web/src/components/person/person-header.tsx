@@ -8,9 +8,11 @@ import {
   Phone,
   Star,
   Trash2,
+  UserMinus,
+  UserPlus,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import type { Person, Space } from '@app/shared';
 import { Avatar } from '@/components/avatar';
 import { FormMessage } from '@/components/form-field';
@@ -36,7 +38,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { peopleApi, useWrite } from '@/lib/data';
 import { errorMessage } from '@/lib/errors';
-import { spaceColor, spaceName } from '@/lib/labels';
+import { labelText, spaceColor, spaceName } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 
 /** “Leitung Einkauf @ Beispiel AG › Beispiel GmbH › Standort Köln” */
@@ -58,6 +60,40 @@ function MainAffiliation({ person }: { person: Person }) {
           </Link>
         </span>
       ))}
+    </p>
+  );
+}
+
+/**
+ * “Child of Jana Berger” with a button to make the indirect contact a contact.
+ */
+function IndirectNote({ person, onPromote }: { person: Person; onPromote: () => void }) {
+  const { t } = useTranslation();
+  const via = person.relatedTo;
+  return (
+    <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-foreground-2">
+      <span>
+        {via ? (
+          <Trans
+            i18nKey="indirect.relatedTo"
+            values={{ label: labelText(t, via.label), name: via.person.displayName }}
+            components={[
+              <Link
+                key="via"
+                to="/people/$personId"
+                params={{ personId: via.person.id }}
+                className="underline"
+              />,
+            ]}
+          />
+        ) : (
+          t('indirect.hint')
+        )}
+      </span>
+      <Button size="xs" variant="secondary" onClick={onPromote}>
+        <UserPlus aria-hidden />
+        {t('indirect.makeContact')}
+      </Button>
     </p>
   );
 }
@@ -94,6 +130,7 @@ export function PersonHeader({ person, space }: { person: Person; space: Space |
               <span key={tag.id}>#{tag.name}</span>
             ))}
             {person.archivedAt && <span>{t('person.archived')}</span>}
+            {!person.listed && <span>{t('indirect.label')}</span>}
           </div>
           <h1 className="mt-0.5">
             <button
@@ -106,6 +143,9 @@ export function PersonHeader({ person, space }: { person: Person; space: Space |
             </button>
           </h1>
           <MainAffiliation person={person} />
+          {!person.listed && (
+            <IndirectNote person={person} onPromote={() => update.mutate({ listed: true })} />
+          )}
           <div className="mt-1.5">
             <InlineText
               label={t('person.summary')}
@@ -198,6 +238,10 @@ export function PersonHeader({ person, space }: { person: Person; space: Space |
                 {t('person.photo.remove')}
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onSelect={() => update.mutate({ listed: !person.listed })}>
+              {person.listed ? <UserMinus aria-hidden /> : <UserPlus aria-hidden />}
+              {person.listed ? t('indirect.makeIndirect') : t('indirect.makeContact')}
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => update.mutate({ archived: !person.archivedAt })}>
               {person.archivedAt ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
               {person.archivedAt ? t('person.unarchive') : t('person.archive')}

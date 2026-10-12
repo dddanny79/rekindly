@@ -19,6 +19,8 @@ interface ComboboxProps {
   /** Offer “create …” for a query without exact match. */
   onCreate?: (query: string) => void;
   createLabel?: (query: string) => string;
+  /** Several “create …” variants (e.g. contact or indirect contact); first is the default. */
+  createOptions?: { label: (query: string) => string; onCreate: (query: string) => void }[];
   autoFocus?: boolean;
   className?: string;
 }
@@ -31,9 +33,12 @@ export function Combobox({
   placeholder,
   onCreate,
   createLabel,
+  createOptions,
   autoFocus,
   className,
 }: ComboboxProps) {
+  const creators =
+    createOptions ?? (onCreate ? [{ label: createLabel ?? ((q: string) => q), onCreate }] : []);
   const id = useId();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -49,14 +54,14 @@ export function Combobox({
   }, [options, query]);
 
   const canCreate =
-    !!onCreate &&
+    creators.length > 0 &&
     query.trim() !== '' &&
     !options.some((o) => foldText(o.label) === foldText(query.trim()));
-  const total = filtered.length + (canCreate ? 1 : 0);
+  const total = filtered.length + (canCreate ? creators.length : 0);
 
   function choose(index: number) {
     if (index < filtered.length) onSelect(filtered[index]!);
-    else if (canCreate) onCreate!(query.trim());
+    else if (canCreate) creators[index - filtered.length]?.onCreate(query.trim());
     setQuery('');
     setOpen(false);
   }
@@ -135,22 +140,27 @@ export function Combobox({
               </span>
             </li>
           ))}
-          {canCreate && (
-            <li
-              id={optionId(filtered.length)}
-              role="option"
-              aria-selected={active === filtered.length}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => choose(filtered.length)}
-              onMouseEnter={() => setActive(filtered.length)}
-              className={cn(
-                'cursor-pointer px-2.5 py-1.5 text-foreground-2',
-                active === filtered.length && 'bg-muted',
-              )}
-            >
-              {createLabel?.(query.trim()) ?? query.trim()}
-            </li>
-          )}
+          {canCreate &&
+            creators.map((creator, i) => {
+              const index = filtered.length + i;
+              return (
+                <li
+                  key={`create-${i}`}
+                  id={optionId(index)}
+                  role="option"
+                  aria-selected={active === index}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => choose(index)}
+                  onMouseEnter={() => setActive(index)}
+                  className={cn(
+                    'cursor-pointer px-2.5 py-1.5 text-foreground-2',
+                    active === index && 'bg-muted',
+                  )}
+                >
+                  {creator.label(query.trim())}
+                </li>
+              );
+            })}
         </ul>
       )}
     </div>

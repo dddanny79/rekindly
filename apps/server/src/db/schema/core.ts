@@ -67,6 +67,8 @@ export const people = sqliteTable(
     }),
     photoFileId: text('photo_file_id').references(() => files.id, { onDelete: 'set null' }),
     favorite: bool('favorite').notNull().default(false),
+    /** false: indirect contact (known through a relationship), not in the people list. */
+    listed: bool('listed').notNull().default(true),
     contactEveryDays: integer('contact_every_days'),
     archivedAt: timestamp('archived_at'),
     deletedAt: deletedAt(),

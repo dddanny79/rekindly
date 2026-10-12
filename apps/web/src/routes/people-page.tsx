@@ -23,6 +23,8 @@ interface PeopleFilters {
   org?: string;
   favorite?: boolean;
   archived?: boolean;
+  /** Show indirect contacts instead of contacts. */
+  indirect?: boolean;
   sort?: 'updated' | 'lastContact';
 }
 
@@ -52,6 +54,7 @@ export function PeoplePage(): ReactElement {
       organizationId: search.org,
       favorite: search.favorite ? 'true' : undefined,
       archived: search.archived ? 'true' : undefined,
+      listed: search.indirect ? 'indirect' : undefined,
       sort: search.sort,
     }),
   );
@@ -149,6 +152,14 @@ export function PeoplePage(): ReactElement {
           </Button>
           <Button
             variant="secondary"
+            aria-pressed={!!search.indirect}
+            onClick={() => setSearch({ indirect: search.indirect ? undefined : true })}
+            className={cn('flex-1', search.indirect && 'border-foreground bg-muted font-semibold')}
+          >
+            {t('people.filter.indirect')}
+          </Button>
+          <Button
+            variant="secondary"
             aria-pressed={!!search.archived}
             onClick={() => setSearch({ archived: search.archived ? undefined : true })}
             className={cn('flex-1', search.archived && 'border-foreground bg-muted font-semibold')}
@@ -161,7 +172,12 @@ export function PeoplePage(): ReactElement {
       {people.isSuccess && list.length === 0 ? (
         <div className="mt-10 max-w-md">
           <p className="font-serif text-read">
-            {search.q || search.tag || search.org || search.favorite || search.archived
+            {search.q ||
+            search.tag ||
+            search.org ||
+            search.favorite ||
+            search.archived ||
+            search.indirect
               ? t('people.emptyFiltered')
               : t('people.empty')}
           </p>
