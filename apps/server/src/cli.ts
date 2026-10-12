@@ -5,6 +5,7 @@ import { Writable } from 'node:stream';
 import { passwordSchema, PASSWORD_MIN_LENGTH } from '@app/shared';
 import { getAccountRow, setPassword } from './auth/account';
 import { deleteAllSessions } from './auth/sessions';
+import { setTwoFactor } from './auth/two-factor';
 import { loadConfig } from './config';
 import { createDb, runMigrations } from './db/client';
 import { reindexAll } from './search/service';
@@ -14,6 +15,7 @@ const USAGE = `Usage: node dist/cli.js <command>
 Commands:
   reset-password   Set a new password for the account and sign out all sessions.
                    Reads the password interactively, or from stdin when piped.
+  disable-2fa      Switch off sign-in codes by email (e.g. when mail does not arrive).
   reindex          Rebuild the search index from scratch.
   backup [file]    Write a consistent copy of the database while the app runs.
                    Default: DATA_DIR/backups/app-<date>-<time>.sqlite. Back up
@@ -80,6 +82,19 @@ async function resetPassword() {
   }
 }
 
+function disableTwoFactor() {
+  const config = loadConfig();
+  const { db, sqlite } = createDb(config.dataDir);
+  try {
+    runMigrations(db, config.migrationsDir);
+    setTwoFactor(db, false);
+    console.log('Sign-in codes by email are switched off; trusted devices were forgotten.');
+    return 0;
+  } finally {
+    sqlite.close();
+  }
+}
+
 function reindex() {
   const config = loadConfig();
   const { db, sqlite } = createDb(config.dataDir);
@@ -122,6 +137,8 @@ async function main(args: string[]) {
       return resetPassword();
     case 'reindex':
       return reindex();
+    case 'disable-2fa':
+      return disableTwoFactor();
     case 'backup':
       return backup(args[1]);
     default:

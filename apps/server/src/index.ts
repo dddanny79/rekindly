@@ -11,6 +11,7 @@ import { log, setLogLevel } from './lib/log';
 import { flushSearchQueue } from './search/service';
 import { schedulePurge } from './trash/service';
 import { scheduleBackups } from './backup/backups';
+import { scheduleDigest } from './mail/digest';
 import { APP_VERSION } from './version';
 
 /** Stops with a readable message instead of a stack trace for setup mistakes. */
@@ -53,6 +54,12 @@ const stopPurge = schedulePurge(db, config.dataDir);
 const deps = createDeps(db, config);
 // Nightly backups to the configured target (if any).
 const stopBackups = scheduleBackups({ db, dataDir: config.dataDir, key: deps.secretKey() });
+const stopDigest = scheduleDigest({
+  db,
+  key: deps.secretKey(),
+  env: config.mail,
+  publicUrl: config.publicUrl,
+});
 
 const app = createApp({ deps, webDistDir: config.webDistDir });
 
@@ -68,6 +75,7 @@ function shutdown() {
   log.info('Shutting down …');
   stopPurge();
   stopBackups();
+  stopDigest();
   server.close(() => {
     sqlite.close();
     process.exit(0);

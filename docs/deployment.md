@@ -190,5 +190,6 @@ Afterwards rebuild the search index if in doubt:
 
 ```sh
 docker exec -it rekindly node dist/cli.js reset-password
+docker exec rekindly node dist/cli.js disable-2fa   # sign-in codes off (mail broken)
 docker exec rekindly node dist/cli.js reindex
 ```

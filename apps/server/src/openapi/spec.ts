@@ -57,9 +57,14 @@ export const OPERATIONS: Operation[] = [
     response: s.authStatusResponseSchema,
     public: true,
   }),
-  op('post', '/auth/login', 'Account', 'Sign in with email and password', {
-    body: s.loginRequestSchema,
+  op('post', '/auth/login/verify', 'Account', 'Finish signing in with the emailed code', {
+    body: s.loginVerifyRequestSchema,
     response: account,
+    public: true,
+  }),
+  op('post', '/auth/login', 'Account', 'Sign in with email and password (may ask for a code)', {
+    body: s.loginRequestSchema,
+    response: s.loginResponseSchema,
     public: true,
   }),
   op('post', '/auth/logout', 'Account', 'Sign out', {
@@ -78,6 +83,26 @@ export const OPERATIONS: Operation[] = [
   }),
   op('get', '/auth/passkeys', 'Account', 'List passkeys', {
     response: s.passkeyListResponseSchema,
+  }),
+  op('get', '/auth/two-factor', 'Account', 'Sign-in codes by email: state, trusted devices', {
+    response: s.twoFactorStatusSchema,
+  }),
+  op('post', '/auth/two-factor/start', 'Account', 'Send a code to confirm switching on', {
+    response: s.twoFactorStartResponseSchema,
+  }),
+  op('post', '/auth/two-factor/enable', 'Account', 'Switch on sign-in codes', {
+    body: s.twoFactorConfirmRequestSchema,
+    response: 'empty',
+    status: 204,
+  }),
+  op('post', '/auth/two-factor/disable', 'Account', 'Switch off sign-in codes (password)', {
+    body: s.twoFactorDisableRequestSchema,
+    response: 'empty',
+    status: 204,
+  }),
+  op('delete', '/auth/two-factor/devices/:id', 'Account', 'Forget a trusted device', {
+    response: 'empty',
+    status: 204,
   }),
   op('post', '/auth/passkeys/register/options', 'Account', 'Start registering a passkey', {
     response: 'json',
@@ -467,6 +492,20 @@ export const OPERATIONS: Operation[] = [
   op('post', '/ai/ask', 'AI', 'Answer a question in plain language, with sources', {
     body: s.aiAskRequestSchema,
     response: s.aiAskResponseSchema,
+  }),
+
+  // Mail
+  op('get', '/mail', 'Mail', 'Mail settings (SMTP) and status', { response: s.mailSettingsSchema }),
+  op('put', '/mail', 'Mail', 'Change mail settings and the daily summary', {
+    body: s.mailSettingsInputSchema,
+    response: s.mailSettingsSchema,
+  }),
+  op('post', '/mail/test', 'Mail', 'Send a test mail to the account address', {
+    response: 'empty',
+    status: 204,
+  }),
+  op('post', '/mail/digest', 'Mail', 'Send today’s summary now', {
+    response: z.object({ sent: z.boolean() }),
   }),
 
   // Data: export, import, backups

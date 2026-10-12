@@ -39,6 +39,7 @@ server: no telemetry, no external calls except the services you configure.
   you release are ever sent.
 - **API and MCP** — documented REST API with API tokens, and an MCP server: ask
   Claude “what do I know about Maya?”.
+- **Mail** — a daily summary of what is due, and optional sign-in codes by email.
 - **Private by design** — one account, passkeys, light and dark mode, English and
   German, works on the phone.
 
@@ -78,6 +79,7 @@ Details: [docs/import.md](docs/import.md#monica).
 | iPhone / CardDAV sync, calendar subscription                 | [carddav.md](docs/carddav.md)                         |
 | Import (vCard, CSV, Monica) and duplicates                   | [import.md](docs/import.md)                           |
 | Export, restore, automatic backups                           | [export.md](docs/export.md)                           |
+| Mail: daily summary, sign-in codes (2FA)                     | [mail.md](docs/mail.md)                               |
 | AI features                                                  | [ai.md](docs/ai.md)                                   |
 | API, tokens, MCP for Claude                                  | [api.md](docs/api.md) — live reference at `/api/docs` |
 
@@ -93,6 +95,7 @@ All configuration is via environment variables; see [`.env.example`](.env.exampl
 | `HOST`         | all (IPv6 + IPv4)      | Interface the server binds to                           |
 | `TZ`           | `UTC`                  | Time zone                                               |
 | `APP_SECRET`   | `DATA_DIR/secret.key`  | Key for stored backup credentials                       |
+| `SMTP_HOST` …  | —                      | Mail server, see [docs/mail.md](docs/mail.md)           |
 | `TRUST_PROXY`  | `false`                | `true` behind a reverse proxy                           |
 | `LOG_LEVEL`    | `info`                 | `error`, `warn`, `info`, `debug`                        |
 | `WEB_PORT`     | `5173`                 | Port of the Vite dev server (development only)          |
@@ -106,6 +109,7 @@ in development: `pnpm --filter @app/server cli <command>`):
 | Command          | Purpose                                                           |
 | ---------------- | ----------------------------------------------------------------- |
 | `reset-password` | Set a new account password and sign out all sessions              |
+| `disable-2fa`    | Switch off sign-in codes by email (when mail does not arrive)     |
 | `reindex`        | Rebuild the full-text search index (normally kept current itself) |
 | `backup [file]`  | Consistent copy of the database while the app runs                |
 
