@@ -9,8 +9,9 @@ test('API token for Claude: create, connect over MCP, revoke; AI permission per 
 }) => {
   // Release Private for AI in Settings › Spaces.
   await page.goto('/settings/spaces');
-  await page.getByRole('checkbox', { name: 'AI allowed for Private' }).click();
-  await expect(page.getByRole('checkbox', { name: 'AI allowed for Private' })).toBeChecked();
+  const allowAi = page.getByRole('checkbox', { name: 'AI allowed for Private' });
+  if (!(await allowAi.isChecked())) await allowAi.click();
+  await expect(allowAi).toBeChecked();
   const { spaces } = await (await request.get('/api/v1/spaces')).json();
   const privateSpace = spaces.find((s: { nameKey: string }) => s.nameKey === 'seed.spaces.private');
   expect(privateSpace.aiAllowed).toBe(true);

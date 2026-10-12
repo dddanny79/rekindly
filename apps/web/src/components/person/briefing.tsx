@@ -1,3 +1,4 @@
+import { AiSummary } from '@/components/ai/summary';
 import { Link } from '@tanstack/react-router';
 import { Pin, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
@@ -193,6 +194,8 @@ export function BriefingCard({ person }: { person: Person }) {
           </span>
         </Button>
       </div>
+
+      <AiSummary person={person} />
 
       {empty && !adding && (
         <p className="py-2 text-sm text-muted-foreground">{t('briefing.empty')}</p>

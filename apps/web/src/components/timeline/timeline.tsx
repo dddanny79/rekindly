@@ -1,3 +1,6 @@
+import { Sparkles } from 'lucide-react';
+import { FactSuggestions } from '@/components/ai/fact-suggestions';
+import { useCanSuggestFacts } from '@/lib/ai';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useMemo, useState, type FormEvent } from 'react';
@@ -159,6 +162,8 @@ function EntryRow({ entry, viewerId }: { entry: Entry; viewerId?: string }) {
   const date = new Date(entry.occurredAt);
   const Icon = KIND_ICONS[entry.kind];
   const others = entry.people.filter((p) => p.id !== viewerId);
+  const canSuggest = useCanSuggestFacts(entry);
+  const [suggesting, setSuggesting] = useState(false);
 
   if (editing)
     return (
@@ -189,6 +194,7 @@ function EntryRow({ entry, viewerId }: { entry: Entry; viewerId?: string }) {
       <div className="min-w-0">
         {entry.title && <div className="font-serif text-lg font-semibold">{entry.title}</div>}
         <Markdown>{entry.bodyMd}</Markdown>
+        {suggesting && <FactSuggestions entry={entry} onClose={() => setSuggesting(false)} />}
         {(others.length > 0 || entry.organization) && (
           <div className="mt-1 text-meta text-muted-foreground">
             {others.length > 0 && (
@@ -220,6 +226,17 @@ function EntryRow({ entry, viewerId }: { entry: Entry; viewerId?: string }) {
         )}
       </div>
       <div className="col-start-2 flex gap-0.5 md:col-start-3 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+        {canSuggest && !suggesting && (
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label={t('ai.suggestFacts')}
+            title={t('ai.suggestFacts')}
+            onClick={() => setSuggesting(true)}
+          >
+            <Sparkles aria-hidden />
+          </Button>
+        )}
         <EditButton label={t('timeline.edit')} onClick={() => setEditing(true)} />
         <RemoveButton
           label={t('timeline.delete')}

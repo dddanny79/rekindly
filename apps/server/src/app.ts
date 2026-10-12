@@ -30,6 +30,7 @@ import { trashRoutes } from './trash/routes';
 import { contactImportRoutes } from './contact-imports/routes';
 import { duplicateRoutes } from './duplicates/routes';
 import { apiTokenRoutes } from './api-tokens/routes';
+import { aiRoutes } from './ai/routes';
 import { mcpRoutes } from './mcp/routes';
 import { docsHtml } from './openapi/docs';
 import { openApiDocument } from './openapi/spec';
@@ -123,6 +124,7 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/contact-imports', contactImportRoutes(deps));
   v1.route('/duplicates', duplicateRoutes(deps));
   v1.route('/api-tokens', apiTokenRoutes(deps));
+  v1.route('/ai', aiRoutes(deps));
   v1.route('/', backupRoutes(deps));
   api.route('/v1', v1);
 

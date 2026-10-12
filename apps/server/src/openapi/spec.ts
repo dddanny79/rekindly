@@ -449,6 +449,26 @@ export const OPERATIONS: Operation[] = [
     status: 204,
   }),
 
+  // AI
+  op('get', '/ai', 'AI', 'AI provider settings', { response: s.aiSettingsSchema }),
+  op('put', '/ai', 'AI', 'Change the AI provider', {
+    body: s.aiSettingsInputSchema,
+    response: s.aiSettingsSchema,
+  }),
+  op('post', '/ai/test', 'AI', 'Test the AI provider (no personal data)', {
+    response: s.aiTestResponseSchema,
+  }),
+  op('post', '/ai/people/:id/summary', 'AI', 'Briefing summary of a person', {
+    response: s.aiSummaryResponseSchema,
+  }),
+  op('post', '/ai/entries/:id/facts', 'AI', 'Suggest facts from a timeline entry', {
+    response: s.aiFactSuggestionsResponseSchema,
+  }),
+  op('post', '/ai/ask', 'AI', 'Answer a question in plain language, with sources', {
+    body: s.aiAskRequestSchema,
+    response: s.aiAskResponseSchema,
+  }),
+
   // Data: export, import, backups
   op('get', '/export/json', 'Data', 'Full export (JSON file)', { response: 'binary' }),
   op('get', '/export/vcf', 'Data', 'Contacts as vCard file', {

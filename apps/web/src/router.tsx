@@ -31,6 +31,7 @@ import { DataSettingsPage } from '@/routes/settings/data-page';
 import { DuplicatesPage } from '@/routes/duplicates-page';
 import { ImportSettingsPage } from '@/routes/settings/import-page';
 import { ApiSettingsPage } from '@/routes/settings/api-page';
+import { AiSettingsPage } from '@/routes/settings/ai-page';
 import { SyncSettingsPage } from '@/routes/settings/sync-page';
 import { SetupPage } from '@/routes/setup-page';
 import { TodayPage } from '@/routes/today-page';
@@ -141,6 +142,7 @@ const routeTree = rootRoute.addChildren([
       settingsChild('/sync', SyncSettingsPage),
       settingsChild('/data', DataSettingsPage),
       settingsChild('/import', ImportSettingsPage),
+      settingsChild('/ai', AiSettingsPage),
       settingsChild('/api', ApiSettingsPage),
     ]),
     child('/more', MorePage),

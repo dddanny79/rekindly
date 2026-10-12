@@ -1,3 +1,4 @@
+import { AskAi } from '@/components/ai/ask';
 import type { ReactElement } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getRouteApi, Link } from '@tanstack/react-router';
@@ -71,6 +72,7 @@ export function SearchPage(): ReactElement {
       <PageHeader title={t('nav.search')} />
 
       <div className="mt-4 flex flex-col gap-2">
+        <AskAi />
         <Input
           type="search"
           aria-label={t('search.label')}
