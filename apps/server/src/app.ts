@@ -14,6 +14,7 @@ import { healthRoutes } from './health/routes';
 import { fieldRoutes } from './catalog/fields';
 import { relationshipTypeRoutes } from './catalog/relationship-types';
 import { tagRoutes } from './catalog/tags';
+import { backupConfigRoutes } from './backup/backup-routes';
 import { backupRoutes } from './backup/routes';
 import { calendarFeedRoutes, calendarSubscriptionRoutes } from './calendar/feeds';
 import { appPasswordRoutes } from './dav/app-passwords';
@@ -41,7 +42,12 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   const app = new Hono<AppEnv>({ strict: false });
 
   app.onError((error, c) => {
-    if (error instanceof DomainError) return c.json({ error: error.code }, error.status);
+    if (error instanceof DomainError) {
+      return c.json(
+        { error: error.code, ...(error.detail ? { detail: error.detail } : {}) },
+        error.status,
+      );
+    }
     if (error instanceof HTTPException) return error.getResponse();
     log.error(`${c.req.method} ${new URL(c.req.url).pathname} failed`, error);
     return c.json({ error: 'internal_error' }, 500);
@@ -100,6 +106,7 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/trash', trashRoutes(deps));
   v1.route('/app-passwords', appPasswordRoutes(deps));
   v1.route('/calendar-feeds', calendarFeedRoutes(deps));
+  v1.route('/backup', backupConfigRoutes(deps));
   v1.route('/', backupRoutes(deps));
   api.route('/v1', v1);
 

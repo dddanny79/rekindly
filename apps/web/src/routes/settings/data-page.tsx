@@ -2,14 +2,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormMessage } from '@/components/form-field';
+import { BackupSettingsSection } from '@/components/backup-settings';
+import { FormField, FormMessage } from '@/components/form-field';
 import { SettingsSection } from '@/components/settings-section';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import {
   EXPORT_JSON_URL,
   exportVcfUrl,
   importExport,
+  isEncryptedBackup,
   importStatusQuery,
   spacesQuery,
 } from '@/lib/data';
@@ -24,6 +27,8 @@ export function DataSettingsPage() {
   const { data: status } = useQuery(importStatusQuery);
   const [vcfSpace, setVcfSpace] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [encrypted, setEncrypted] = useState(false);
+  const [passphrase, setPassphrase] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<Record<string, number> | null>(null);
@@ -33,7 +38,7 @@ export function DataSettingsPage() {
     setBusy(true);
     setError(null);
     try {
-      const result = await importExport(file);
+      const result = await importExport(file, passphrase);
       setDone(result.imported);
       await queryClient.invalidateQueries();
     } catch (e) {
@@ -53,6 +58,8 @@ export function DataSettingsPage() {
           </a>
         </Button>
       </SettingsSection>
+
+      <BackupSettingsSection />
 
       <SettingsSection title={t('data.vcf.title')} lead={t('data.vcf.lead')}>
         <div className="flex flex-wrap items-center gap-2">
@@ -93,15 +100,30 @@ export function DataSettingsPage() {
           <div className="flex flex-col gap-3">
             <input
               type="file"
-              accept="application/json,.json"
+              accept="application/json,.json,.backup"
               aria-label={t('data.import.file')}
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const chosen = e.target.files?.[0] ?? null;
+                setFile(chosen);
+                setEncrypted(false);
+                if (chosen) void isEncryptedBackup(chosen).then(setEncrypted);
+              }}
               className="text-sm"
             />
+            {encrypted && (
+              <FormField label={t('backup.passphrase')} hint={t('data.import.encrypted')}>
+                <Input
+                  type="password"
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                  className="max-w-xs"
+                />
+              </FormField>
+            )}
             <FormMessage tone="error">{error ? errorMessage(t, error) : null}</FormMessage>
             <Button
               className="self-start"
-              disabled={!file || busy}
+              disabled={!file || busy || (encrypted && !passphrase)}
               onClick={() => void runImport()}
             >
               <Upload aria-hidden />

@@ -7,6 +7,8 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     readonly retryAfter: number | null = null,
+    /** Technical detail from the server, if any. */
+    readonly detail: string | null = null,
   ) {
     super(`${status} ${code}`);
   }
@@ -45,6 +47,7 @@ export async function api<T>(
       res.status,
       parsed.success ? parsed.data.error : 'unknown',
       retryAfter,
+      parsed.success ? (parsed.data.detail ?? null) : null,
     );
     if (res.status === 401 && !path.startsWith('/api/v1/auth/')) onUnauthorized?.();
     throw error;

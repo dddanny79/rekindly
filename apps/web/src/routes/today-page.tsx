@@ -98,6 +98,10 @@ export function TodayPage(): ReactElement {
   const colorOf = (id: string) => spaces.find((s) => s.id === id)?.color;
   const shortDate = (value: Date) =>
     new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit' }).format(value);
+  const dateTime = (iso: string) =>
+    new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+      new Date(iso),
+    );
   const longDate = new Intl.DateTimeFormat(locale, {
     weekday: 'long',
     day: 'numeric',
@@ -108,6 +112,19 @@ export function TodayPage(): ReactElement {
   return (
     <>
       <PageHeader kicker={longDate} title={t('nav.today')} />
+
+      {data?.backup && (
+        <p className="mt-4 border-l-2 border-signal pl-3 text-sm" role="alert">
+          <span className="font-semibold text-signal">
+            {data.backup.state === 'failed'
+              ? t('backup.warningFailed', { date: dateTime(data.backup.at) })
+              : t('backup.warningStale', { date: dateTime(data.backup.at) })}
+          </span>{' '}
+          <Link to="/settings/data" className="underline">
+            {t('backup.warningLink')}
+          </Link>
+        </p>
+      )}
 
       {!data ? (
         <p className="mt-5 text-muted-foreground">{t('common.loading')}</p>

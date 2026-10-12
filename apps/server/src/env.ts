@@ -7,7 +7,9 @@ import type { ChallengeStore } from './auth/challenges';
 /** Everything a request handler may need; created once per app instance. */
 export interface Deps {
   db: Db;
-  config: Pick<ServerConfig, 'publicUrl' | 'trustProxy' | 'dataDir'>;
+  config: Pick<ServerConfig, 'publicUrl' | 'trustProxy' | 'dataDir' | 'appSecret'>;
+  /** Key for secrets stored in the database (created on first use). */
+  secretKey: () => Buffer;
   loginLimiter: RateLimiter;
   challenges: ChallengeStore;
 }

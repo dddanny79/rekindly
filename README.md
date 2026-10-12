@@ -71,6 +71,7 @@ docker run -p 3000:3000 -v pg-data:/data -e PUBLIC_URL=http://localhost:3000 \
 | `PORT`         | `3000`                 | Port of the server                                      |
 | `HOST`         | all (IPv6 + IPv4)      | Interface the server binds to                           |
 | `TZ`           | `UTC`                  | Time zone                                               |
+| `APP_SECRET`   | `DATA_DIR/secret.key`  | Key for stored backup credentials                       |
 | `TRUST_PROXY`  | `false`                | `true` behind a reverse proxy                           |
 | `LOG_LEVEL`    | `info`                 | `error`, `warn`, `info`, `debug`                        |
 | `WEB_PORT`     | `5173`                 | Port of the Vite dev server (development only)          |

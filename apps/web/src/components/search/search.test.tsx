@@ -130,6 +130,7 @@ describe('Today page', () => {
           overdueDays: 42,
         },
       ],
+      backup: null,
       recent: [
         {
           person: ref,

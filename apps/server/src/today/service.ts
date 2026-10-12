@@ -8,6 +8,7 @@ import {
   type TodayBirthday,
   type TodayResponse,
 } from '@app/shared';
+import { backupWarning } from '../backup/backups';
 import type { Db } from '../db/client';
 import { entries, entryPeople, people, personViews } from '../db/schema';
 import { notDeleted, nowIso } from '../lib/sql';
@@ -162,6 +163,7 @@ export function getToday(db: Db, query: { date?: string; spaceId?: string }): To
     birthdays: birthdays(db, date, query.spaceId),
     overdueContacts: overdueContacts(db, date, query.spaceId),
     recent: recent(db, query.spaceId),
+    backup: backupWarning(db),
   };
 }
 

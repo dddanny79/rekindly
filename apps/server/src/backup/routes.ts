@@ -13,6 +13,7 @@ import { DomainError } from '../lib/errors';
 import { notDeleted } from '../lib/sql';
 import { validate } from '../lib/validate';
 import { OrgIndex } from '../organizations';
+import { decryptBackup, isBackupFile } from './crypto';
 import { exportAll, importAll, isEmpty } from './service';
 
 const stamp = () => new Date().toISOString().slice(0, 10);
@@ -80,10 +81,16 @@ export function backupRoutes({ db, config }: Deps) {
           onError: (c) => c.json({ error: 'file_too_large' }, 413),
         }),
         async (c) => {
+          const raw = Buffer.from(await c.req.arrayBuffer());
           let body: unknown;
           try {
-            body = await c.req.json();
-          } catch {
+            // An encrypted backup file needs its password (header, URL-encoded).
+            const text = isBackupFile(raw)
+              ? decryptBackup(raw, decodeURIComponent(c.req.header('x-backup-passphrase') ?? ''))
+              : raw.toString('utf8');
+            body = JSON.parse(text);
+          } catch (error) {
+            if (error instanceof DomainError) throw error;
             throw new DomainError(400, 'invalid_export');
           }
           return c.json({ imported: await importAll(db, config.dataDir, body) });

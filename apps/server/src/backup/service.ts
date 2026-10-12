@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { count, sql } from 'drizzle-orm';
+import { count, notLike, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { z } from 'zod';
 import { APP_NAME } from '@app/shared';
@@ -84,6 +84,8 @@ export async function exportAll(db: Db, dataDir: string): Promise<ExportFile> {
       .orderBy(sql`rowid`)
       .all() as Record<string, unknown>[];
   }
+  // Backup target and password stay with the instance (they are credentials).
+  data.settings = data.settings.filter((row) => !String(row.key).startsWith('backup.'));
   data.files = [];
   for (const row of db.select().from(files).all()) {
     try {
@@ -170,7 +172,9 @@ export async function importAll(db: Db, dataDir: string, input: unknown) {
     sqlite.transaction(() => {
       // References are checked at the end, so the order inside does not matter.
       sqlite.pragma('defer_foreign_keys = ON');
-      for (const table of [settings, fieldDefinitions, tags, relationshipTypes, spaces]) {
+      // The backup configuration of this instance stays (needed to restore from a target).
+      db.delete(settings).where(notLike(settings.key, 'backup.%')).run();
+      for (const table of [fieldDefinitions, tags, relationshipTypes, spaces]) {
         db.delete(table).run();
       }
       for (const chunk of chunks(fileRows))
@@ -178,7 +182,11 @@ export async function importAll(db: Db, dataDir: string, input: unknown) {
           .values(chunk as never)
           .run();
       for (const [name, table] of Object.entries(TABLES) as [TableName, SQLiteTable][]) {
-        for (const chunk of chunks(tableRows[name])) {
+        const list =
+          name === 'settings'
+            ? tableRows.settings.filter((row) => !String(row.key).startsWith('backup.'))
+            : tableRows[name];
+        for (const chunk of chunks(list)) {
           db.insert(table)
             .values(chunk as never)
             .run();

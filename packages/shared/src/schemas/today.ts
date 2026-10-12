@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { dateOnlySchema, idSchema, isoDateTimeSchema } from './common';
 import { personRefSchema, relatedToSchema } from './refs';
+import { backupWarningSchema } from './backup';
 import { reminderSchema } from './timeline';
 
 /** Days ahead (after today) for upcoming birthdays. */
@@ -55,5 +56,7 @@ export const todayResponseSchema = z.object({
   birthdays: z.array(todayBirthdaySchema),
   overdueContacts: z.array(overdueContactSchema),
   recent: z.array(recentPersonSchema),
+  /** Automatic backup failed or is long overdue. */
+  backup: backupWarningSchema,
 });
 export type TodayResponse = z.infer<typeof todayResponseSchema>;

@@ -13,6 +13,8 @@ export interface ServerConfig {
   webDistDir: string;
   /** Database and files live here. */
   dataDir: string;
+  /** Optional key for stored secrets; otherwise DATA_DIR/secret.key is used. */
+  appSecret?: string;
   /** Drizzle migrations shipped with the server. */
   migrationsDir: string;
   /** Public origin of the app; used for WebAuthn and secure cookies. */
@@ -115,6 +117,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ),
     trustProxy: read(() => parseBoolean('TRUST_PROXY', env.TRUST_PROXY), false),
     logLevel: read(() => parseLogLevel(env.LOG_LEVEL), 'info'),
+    appSecret: env.APP_SECRET || undefined,
   };
   read(() => checkTimeZone(env.TZ), undefined);
   if (problems.length) throw new ConfigError(problems);

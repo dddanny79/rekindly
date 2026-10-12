@@ -10,6 +10,7 @@ import { createDeps } from './deps';
 import { log, setLogLevel } from './lib/log';
 import { flushSearchQueue } from './search/service';
 import { schedulePurge } from './trash/service';
+import { scheduleBackups } from './backup/backups';
 import { APP_VERSION } from './version';
 
 /** Stops with a readable message instead of a stack trace for setup mistakes. */
@@ -49,7 +50,11 @@ flushSearchQueue(db);
 // Deleted data older than 30 days is purged at start and then daily.
 const stopPurge = schedulePurge(db, config.dataDir);
 
-const app = createApp({ deps: createDeps(db, config), webDistDir: config.webDistDir });
+const deps = createDeps(db, config);
+// Nightly backups to the configured target (if any).
+const stopBackups = scheduleBackups({ db, dataDir: config.dataDir, key: deps.secretKey() });
+
+const app = createApp({ deps, webDistDir: config.webDistDir });
 
 const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
   const host = info.address.includes(':') ? `[${info.address}]` : info.address;
@@ -62,6 +67,7 @@ const server = serve({ fetch: app.fetch, port: config.port, hostname: config.hos
 function shutdown() {
   log.info('Shutting down …');
   stopPurge();
+  stopBackups();
   server.close(() => {
     sqlite.close();
     process.exit(0);

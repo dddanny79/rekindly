@@ -3,6 +3,8 @@ import { z } from 'zod';
 /** Error body of every non-2xx API response. */
 export const errorResponseSchema = z.object({
   error: z.string(),
+  /** Technical detail for some errors (e.g. what a backup target answered). */
+  detail: z.string().optional(),
   /** Field-level validation issues, if any. */
   issues: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
 });

@@ -25,6 +25,7 @@ from the repository instead and then always runs the current `main`.
 | `LOG_LEVEL`   | no       | `info`  | `error`, `warn`, `info` or `debug` (`debug` logs every request).                                                                             |
 | `PORT`        | no       | `3000`  | Port inside the container.                                                                                                                   |
 | `DATA_DIR`    | no       | `/data` | Database and files. Keep the default in Docker and mount a volume there.                                                                     |
+| `APP_SECRET`  | no       | –       | Key for credentials stored in the database (backup targets). Without it, a random key is created once in `DATA_DIR/secret.key`.              |
 
 Missing or invalid values stop the container at start with a message that lists
 every problem, e.g. `PUBLIC_URL is required: …`.
@@ -146,6 +147,11 @@ Everything lives in `/data`:
 
 - `app.sqlite` (+ `app.sqlite-wal`, `app.sqlite-shm` while running) — the database
 - `files/` — photos
+- `secret.key` — key for the stored backup credentials (unless `APP_SECRET` is set)
+
+The simplest way: **automatic, encrypted backups** to WebDAV or S3, set up in the
+app (Settings → Data) — see [export](export.md#automatic-backups). The snapshots
+below are an additional, server-side option.
 
 **Consistent backup while the app runs** (the image contains no `sqlite3` binary;
 the app does it itself):

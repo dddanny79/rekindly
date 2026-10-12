@@ -29,6 +29,10 @@ import {
   createAppPasswordResponseSchema,
   calendarFeedListResponseSchema,
   createCalendarFeedResponseSchema,
+  type BackupConfigInput,
+  backupFileListResponseSchema,
+  backupSettingsSchema,
+  backupStatusSchema,
 } from '@app/shared';
 import { api, ApiError } from '@/lib/api';
 
@@ -340,11 +344,23 @@ export const importStatusQuery = queryOptions({
   queryFn: () => api(`${V1}/import/status`, z.object({ empty: z.boolean() })),
 });
 
-/** Sends an export file as it is (it is already JSON). */
-export async function importExport(file: File) {
+/** True if the file is an encrypted backup (`PGBACKUP1` header), not a plain export. */
+export async function isEncryptedBackup(file: File) {
+  const head = new Uint8Array(await file.slice(0, 9).arrayBuffer());
+  return new TextDecoder().decode(head) === 'PGBACKUP1';
+}
+
+/** Sends an export file as it is; encrypted backups go with their password. */
+export async function importExport(file: File, passphrase?: string) {
+  const encrypted = await isEncryptedBackup(file);
   const res = await fetch(`${V1}/import`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: encrypted
+      ? {
+          'content-type': 'application/octet-stream',
+          'x-backup-passphrase': encodeURIComponent(passphrase ?? ''),
+        }
+      : { 'content-type': 'application/json' },
     body: file,
     credentials: 'same-origin',
   });
@@ -354,3 +370,27 @@ export async function importExport(file: File) {
   }
   return z.object({ imported: z.record(z.string(), z.number()) }).parse(await res.json());
 }
+
+// Automatic backups ------------------------------------------------------------------
+
+const importedSchema = z.object({ imported: z.record(z.string(), z.number()) });
+
+export const backupQuery = queryOptions({
+  queryKey: ['backup'],
+  queryFn: () => api(`${V1}/backup`, backupSettingsSchema),
+});
+
+export const backupFilesQuery = queryOptions({
+  queryKey: ['backup', 'files'],
+  queryFn: () => api(`${V1}/backup/files`, backupFileListResponseSchema).then((r) => r.files),
+  enabled: false,
+});
+
+export const backupApi = {
+  save: (input: BackupConfigInput) =>
+    api(`${V1}/backup`, backupSettingsSchema, { method: 'PUT', json: input }),
+  test: () => api(`${V1}/backup/test`, null, { method: 'POST' }),
+  run: () => api(`${V1}/backup/run`, backupStatusSchema, { method: 'POST' }),
+  restore: (name: string, passphrase: string) =>
+    api(`${V1}/backup/restore`, importedSchema, { json: { name, passphrase } }),
+};

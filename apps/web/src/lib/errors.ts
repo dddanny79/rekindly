@@ -26,6 +26,12 @@ const KNOWN = [
   'invalid_export',
   'export_too_new',
   'not_empty',
+  'wrong_passphrase',
+  'backup_passphrase_required',
+  'backup_target_required',
+  'backup_target_failed',
+  'backup_not_configured',
+  'backup_secrets_unreadable',
 ] as const;
 
 /** User-facing message for a failed request or WebAuthn ceremony. */
@@ -37,7 +43,8 @@ export function errorMessage(t: TFunction, error: unknown): string {
       });
     }
     const code = KNOWN.find((known) => known === error.code);
-    return code ? t(`errors.${code}`) : t('errors.unknown');
+    const message = code ? t(`errors.${code}`) : t('errors.unknown');
+    return error.detail ? `${message} (${error.detail})` : message;
   }
   if (
     (error instanceof WebAuthnError && error.code === 'ERROR_CEREMONY_ABORTED') ||
