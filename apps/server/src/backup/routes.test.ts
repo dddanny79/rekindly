@@ -1,3 +1,5 @@
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
 import type {
@@ -234,6 +236,27 @@ describe('export and import', () => {
     const list = await target.json<ThemeListResponse>(target.request('/api/v1/themes'));
     expect(list.defaultThemeId).toBe(own.id);
     expect(list.themes.find((th) => th.id === own.id)?.theme.name).toBe('Mitgenommen');
+  });
+
+  it('stays restorable when a photo file went missing on disk', async () => {
+    const { t, jana } = await filled();
+    const before = await exportOf(t);
+    // An older export that still points to a photo it does not contain.
+    const dangling = { ...before, data: { ...before.data, files: [] } };
+    const target = await app();
+    expect(
+      (await target.request('/api/v1/import', { method: 'POST', json: dangling })).status,
+    ).toBe(200);
+    expect(
+      (await target.json<Person>(target.request(`/api/v1/people/${jana.id}`))).photoUrl,
+    ).toBeNull();
+
+    // The photo disappears from disk: the export leaves out file and reference.
+    const photo = before.data.files[0]!;
+    rmSync(join(t.dataDir, 'files', String(photo.path)));
+    const after = await exportOf(t);
+    expect(after.data.files).toHaveLength(0);
+    expect(after.data.people.find((p) => p.id === jana.id)?.photoFileId).toBeNull();
   });
 
   it('imports files of version 1, which have no themes', async () => {

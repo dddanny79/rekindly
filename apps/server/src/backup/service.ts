@@ -107,9 +107,10 @@ export async function exportAll(db: Db, dataDir: string): Promise<ExportFile> {
       const content = await readFile(join(dataDir, 'files', row.path));
       data.files.push({ ...row, data: content.toString('base64') });
     } catch {
-      // A missing file is skipped; the photo reference stays and shows nothing.
+      // A missing file is skipped, and so is the reference to it (below).
     }
   }
+  data.people = withoutMissingPhotos(data.people, data.files);
   return {
     format: EXPORT_FORMAT,
     version: EXPORT_VERSION,
@@ -117,6 +118,23 @@ export async function exportAll(db: Db, dataDir: string): Promise<ExportFile> {
     app: { name: APP_NAME, version: APP_VERSION },
     data,
   };
+}
+
+/**
+ * People whose photo file is not part of the export lose the reference, so the
+ * file stays importable even if a photo went missing on disk (older exports may
+ * contain such references; the import drops them the same way).
+ */
+function withoutMissingPhotos(
+  people: Record<string, unknown>[],
+  photos: Record<string, unknown>[],
+): Record<string, unknown>[] {
+  const present = new Set(photos.map((file) => file.id));
+  return people.map((person) =>
+    person.photoFileId && !present.has(person.photoFileId)
+      ? { ...person, photoFileId: null }
+      : person,
+  );
 }
 
 /** Import is only allowed into an instance without people, organizations or entries. */
@@ -182,6 +200,8 @@ export async function importAll(db: Db, dataDir: string, input: unknown) {
       delete row.data;
       fileRows.push(row);
     }
+
+    tableRows.people = withoutMissingPhotos(tableRows.people, fileRows);
 
     const sqlite = db.$client;
     sqlite.transaction(() => {
