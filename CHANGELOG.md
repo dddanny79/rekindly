@@ -6,6 +6,19 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+### Added
+
+- **Ask next time:** collect questions for the next conversation with someone (“How
+  was the marathon?”). They sit at the top of the briefing, can be added there or with
+  `/ask …` (also `/frag …`) in the timeline input, reordered, edited and deleted (to
+  the trash). Tick one once you have asked; with an answer, a note with question and
+  answer is added to the timeline. Open questions are searchable and part of the MCP
+  briefing, exports and backups.
+
+### Changed
+
+- Export format version 3 (adds `questions`); files of version 1 and 2 still import.
+
 ## [0.2.0] — 2026-10-13
 
 ### Added

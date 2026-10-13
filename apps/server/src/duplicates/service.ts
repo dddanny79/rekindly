@@ -18,6 +18,7 @@ import {
   duplicateDismissals,
   entryPeople,
   facts,
+  questions,
   fieldValues,
   organizations,
   people,
@@ -321,6 +322,10 @@ export function mergePeople(db: Db, keepId: string, mergeId: string, take: Merge
     db.update(reminders)
       .set({ personId: keepId })
       .where(and(eq(reminders.personId, mergeId), isNull(reminders.deletedAt)))
+      .run();
+    db.update(questions)
+      .set({ personId: keepId })
+      .where(and(eq(questions.personId, mergeId), isNull(questions.deletedAt)))
       .run();
 
     // Timeline: every entry of the merged person now belongs to the kept one.

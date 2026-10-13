@@ -31,6 +31,7 @@ async function setup() {
     lastName: 'Berger',
   });
   await post(`/people/${jana.id}/facts`, { text: 'Trinkt nur grünen Tee' });
+  await post(`/people/${jana.id}/questions`, { text: 'Wie gefällt die neue Wohnung?' });
   await post(`/people/${jana.id}/relationships`, { personId: tom.id, typeId: t.typeId('sibling') });
   await post('/entries', {
     kind: 'call',
@@ -139,6 +140,7 @@ describe('MCP server', () => {
     expect(brief.isError).toBe(false);
     expect(brief.text).toContain('# Jana Berger');
     expect(brief.text).toContain('Trinkt nur grünen Tee');
+    expect(brief.text).toContain('## Ask next time\n- Wie gefällt die neue Wohnung?');
     expect(brief.text).toContain('Geschwister: Tom Berger');
     expect(brief.text).toContain('Über den Umzug nach Leipzig gesprochen');
     expect(brief.text).toContain(`http://localhost:3000/people/${jana.id}`);

@@ -18,9 +18,20 @@ import {
   updateContactPointRequestSchema,
   updatePersonRequestSchema,
   updateRelationshipRequestSchema,
+  askQuestionRequestSchema,
+  createQuestionRequestSchema,
+  reorderQuestionsRequestSchema,
+  updateQuestionRequestSchema,
 } from '@app/shared';
 import { setFieldValue } from '../catalog/fields';
 import { addFact, deleteFact, reorderFacts, updateFact } from '../facts/service';
+import {
+  addQuestion,
+  askQuestion,
+  deleteQuestion,
+  reorderQuestions,
+  updateQuestion,
+} from '../questions/service';
 import { addReminder } from '../reminders/service';
 import { recordView } from '../today/service';
 import type { AppEnv, Deps } from '../env';
@@ -183,6 +194,24 @@ export function peopleRoutes({ db, config }: Deps) {
         removePersonTag(db, c.req.param('id'), c.req.param('tagId'));
         return noContent();
       })
+
+      // Questions for next time
+      .post('/:id/questions', validate('json', createQuestionRequestSchema), (c) =>
+        c.json(addQuestion(db, c.req.param('id'), c.req.valid('json')), 201),
+      )
+      .put('/:id/questions/order', validate('json', reorderQuestionsRequestSchema), (c) =>
+        c.json({ questions: reorderQuestions(db, c.req.param('id'), c.req.valid('json').ids) }),
+      )
+      .patch('/:id/questions/:itemId', validate('json', updateQuestionRequestSchema), (c) =>
+        c.json(updateQuestion(db, c.req.param('id'), c.req.param('itemId'), c.req.valid('json'))),
+      )
+      .delete('/:id/questions/:itemId', (c) => {
+        deleteQuestion(db, c.req.param('id'), c.req.param('itemId'));
+        return noContent();
+      })
+      .post('/:id/questions/:itemId/asked', validate('json', askQuestionRequestSchema), (c) =>
+        c.json(askQuestion(db, c.req.param('id'), c.req.param('itemId'), c.req.valid('json'))),
+      )
 
       // Facts
       .post('/:id/facts', validate('json', createFactRequestSchema), (c) =>

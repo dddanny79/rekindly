@@ -136,6 +136,9 @@ export function personBriefing(ctx: ContextOptions, person: Person, spaceName: s
           .join('\n')}`
       : null,
     person.facts.length ? `## Facts\n${person.facts.map((f) => `- ${f.text}`).join('\n')}` : null,
+    person.questions.length
+      ? `## Ask next time\n${person.questions.map((q) => `- ${q.text}`).join('\n')}`
+      : null,
     person.reminders.length
       ? `## Open follow-ups\n${person.reminders.map((r) => `- ${r.dueOn}: ${r.title}`).join('\n')}`
       : null,

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { fieldValueSchema } from './catalog';
 import { personRefSchema, relatedToSchema } from './refs';
-import { factSchema, lastContactSchema, reminderSchema } from './timeline';
+import { factSchema, questionSchema, lastContactSchema, reminderSchema } from './timeline';
 
 export { personRefSchema, type PersonRef, relatedToSchema, type RelatedTo } from './refs';
 import {
@@ -177,6 +177,8 @@ export const personSchema = z.object({
   tags: z.array(tagRefSchema),
   fields: z.array(fieldValueSchema),
   facts: z.array(factSchema),
+  /** Open questions for the next conversation, in their order. */
+  questions: z.array(questionSchema),
   /** Open follow-ups, earliest first. */
   reminders: z.array(reminderSchema),
   lastContact: lastContactSchema.nullable(),

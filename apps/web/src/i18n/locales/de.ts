@@ -732,7 +732,8 @@ export const de: Translations = {
     forgetTitle: 'Diesen Browser vergessen? Er braucht beim nächsten Mal wieder einen Code.',
   },
   briefing: {
-    empty: 'Noch nichts fürs Briefing — pinne Fakten oder lege eine Wiedervorlage an.',
+    empty:
+      'Noch nichts fürs Briefing — pinne Fakten, notiere eine Frage oder lege eine Wiedervorlage an.',
     reminder: 'Wiedervorlage',
     addReminder: 'Wiedervorlage hinzufügen',
     reminderTitle: 'Was ist zu tun?',
@@ -753,6 +754,20 @@ export const de: Translations = {
     logCall: 'Telefonat erfassen',
     rhythmCounts: 'Es zählen Telefonate, Treffen und Nachrichten im Verlauf.',
   },
+  questions: {
+    title: 'Nächstes Mal fragen',
+    short: 'Frage',
+    add: 'Frage fürs nächste Mal hinzufügen',
+    input: 'Neue Frage',
+    addPlaceholder: 'Was möchtest du fragen? (Enter)',
+    text: 'Frage',
+    asked: '„{{text}}“ als gefragt abhaken',
+    answer: 'Antwort auf „{{text}}“',
+    answerPlaceholder: 'Was war die Antwort? (optional)',
+    done: 'Gefragt',
+    move: '„{{text}}“ verschieben (ziehen oder Leertaste und Pfeiltasten)',
+    removeTitle: 'Diese Frage entfernen?',
+  },
   facts: {
     title: 'Fakten',
     text: 'Fakt',
@@ -767,7 +782,7 @@ export const de: Translations = {
   timeline: {
     input: 'Neuer Eintrag im Verlauf',
     placeholder: 'Notiz oder Telefonat … (/call, @Name, Enter)',
-    hint: '@Person · /typ · /wv 2w · Markdown',
+    hint: '@Person · /typ · /wv 2w · /frag · Markdown',
     kind: 'Art',
     kinds: {
       note: 'Notiz',
@@ -848,6 +863,7 @@ export const de: Translations = {
       role: 'Rolle',
       organization: 'Organisation',
       fact: 'Fakt',
+      question: 'Nächstes Mal fragen',
       summary: 'Wer ist das',
       tag: 'Tag',
       contact: 'Kontakt',
@@ -922,6 +938,7 @@ export const de: Translations = {
       entry: 'Verlaufseintrag',
       reminder: 'Wiedervorlage',
       fact: 'Fakt',
+      question: 'Frage',
       contactPoint: 'Kontaktweg',
       address: 'Adresse',
       affiliation: 'Zugehörigkeit',

@@ -67,6 +67,7 @@ describe('database', () => {
         'people',
         'person_tags',
         'person_views',
+        'questions',
         'relationship_types',
         'relationships',
         'reminders',

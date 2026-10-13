@@ -40,6 +40,7 @@ const base: Person = {
   tags: [],
   fields: [],
   facts: [],
+  questions: [],
   reminders: [],
   lastContact: null,
 };
@@ -105,5 +106,19 @@ describe('BriefingCard', () => {
       '↗ Call · Budget approved',
     );
     expect(screen.getByTestId('briefing-rhythm')).toHaveTextContent('overdue by 10 days');
+  });
+
+  it('puts questions for next time at the top', () => {
+    renderCard({
+      ...base,
+      questions: [{ id: 'q1', text: 'How was the marathon?', sort: 0, createdAt: base.createdAt }],
+    });
+    const list = screen.getByTestId('briefing-questions');
+    expect(list).toHaveTextContent('Ask next time');
+    expect(list).toHaveTextContent('How was the marathon?');
+    expect(
+      screen.getByRole('checkbox', { name: 'Mark “How was the marathon?” as asked' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Nothing for the briefing yet/)).not.toBeInTheDocument();
   });
 });
