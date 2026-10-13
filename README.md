@@ -56,6 +56,8 @@ server: no telemetry, no external calls except the services you configure.
 | ------------------------------------ | -------------------------------------- | ----------------------------------------------------------------- |
 | ![Today](docs/screenshots/today.png) | ![Search](docs/screenshots/search.png) | ![Person page on a phone, dark mode](docs/screenshots/mobile.png) |
 
+![Settings › Appearance: built-in themes and person-page layouts with live previews](docs/screenshots/appearance.png)
+
 ## Quick start
 
 ```sh
