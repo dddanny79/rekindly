@@ -19,7 +19,7 @@ import {
   type Theme,
   type ThemeColorToken,
 } from '@app/shared';
-import { LayoutDiagram } from '@/components/appearance/layout-diagram';
+import { PagePreview } from '@/components/appearance/page-preview';
 import { FormField, FormMessage } from '@/components/form-field';
 import { SegmentedControl } from '@/components/segmented-control';
 import { SettingsSection } from '@/components/settings-section';
@@ -206,7 +206,6 @@ function LayoutEditor({
           />
         </Labeled>
       )}
-      <LayoutDiagram layout={resolved} />
       <ol aria-label={t('appearance.editor.sections')} className="border-t border-border-strong">
         {sections.map((section, index) => {
           const name = t(`appearance.sections.${section.id}`);
@@ -288,44 +287,6 @@ function Labeled({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** A sample of the design elements, so a change is visible without leaving the editor. */
-function Sample() {
-  const { t } = useTranslation();
-  return (
-    <div className="rounded-sm border bg-popover p-4" aria-hidden>
-      <p className="kicker text-area-business">{t('appearance.sample.kicker')}</p>
-      <p className="font-serif text-title">{t('appearance.sample.name')}</p>
-      <p className="font-serif text-deck text-foreground-2 italic">{t('appearance.sample.deck')}</p>
-      <div className="rule-double mt-3" />
-      <div className="mt-3 flex items-start gap-3 border-b pb-2">
-        <span className="mt-1 size-4 rounded-sm border border-input" />
-        <span>
-          <span className="block font-semibold">{t('appearance.sample.followUp')}</span>
-          <span className="text-sm font-semibold text-signal">{t('appearance.sample.due')}</span>
-        </span>
-      </div>
-      <p className="mt-2 font-serif text-read">{t('appearance.sample.note')}</p>
-      <p className="mt-1 text-meta text-muted-foreground">{t('appearance.sample.meta')}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="inline-flex h-9 items-center rounded-sm border border-foreground bg-foreground px-3.5 text-sm font-semibold text-background">
-          {t('appearance.sample.primary')}
-        </span>
-        <span className="inline-flex h-9 items-center rounded-sm border border-input px-3.5 text-sm">
-          {t('appearance.sample.secondary')}
-        </span>
-        <span className="kbd">⌘K</span>
-        {(['olive', 'navy', 'plum', 'teal', 'ochre', 'slate'] as const).map((c) => (
-          <span
-            key={c}
-            className="size-3 rounded-full"
-            style={{ background: `var(--space-${c})` }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /** Settings › Appearance › edit an own theme, previewed live across the app. */
 export function ThemeEditorPage() {
   const { themeId } = route.useParams();
@@ -395,192 +356,215 @@ function ThemeEditor({ id, initial }: { id: string; initial: Theme }) {
       <h2 className="mt-2 font-serif text-h2">{t('appearance.editor.title')}</h2>
       <p className="mt-1 text-meta text-muted-foreground">{t('appearance.editor.lead')}</p>
 
-      <div className="mt-5">
-        <Sample />
-      </div>
-
-      <SettingsSection title={t('appearance.editor.about')}>
-        <div className="grid gap-3">
-          <FormField label={t('appearance.editor.name')}>
-            <Input
-              value={draft.name}
-              maxLength={60}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+      <div className="lg:grid lg:grid-cols-[minmax(0,36rem)_minmax(0,1fr)] lg:gap-10">
+        <div className="mt-4 lg:order-2 lg:mt-9">
+          <div className="lg:sticky lg:top-4">
+            <PagePreview
+              theme={parsed.success ? parsed.data : initial}
+              layout={resolveLayout('theme', draft.personPage)}
+              mode={mode}
             />
-          </FormField>
-          <FormField label={t('appearance.editor.description')}>
-            <Input
-              value={draft.description ?? ''}
-              maxLength={300}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value || undefined })}
-            />
-          </FormField>
-          <FormField label={t('appearance.editor.author')} hint={t('appearance.editor.authorHint')}>
-            <Input
-              value={draft.author ?? ''}
-              maxLength={80}
-              onChange={(e) => setDraft({ ...draft, author: e.target.value || undefined })}
-            />
-          </FormField>
+            <p className="mt-2 text-meta text-muted-foreground">
+              {t('appearance.editor.previewHint')}
+            </p>
+          </div>
         </div>
-      </SettingsSection>
-
-      <SettingsSection
-        title={t('appearance.editor.colors')}
-        lead={t('appearance.editor.colorsLead')}
-      >
-        <Labeled label={t('appearance.editor.mode')}>
-          <SegmentedControl
-            label={t('appearance.editor.mode')}
-            value={mode}
-            options={[
-              { value: 'light', label: t('theme.light') },
-              { value: 'dark', label: t('theme.dark') },
-            ]}
-            onChange={setMode}
-            className="max-w-xs"
-          />
-        </Labeled>
-        {GROUPS.map((group) => (
-          <div key={group.key} className="mt-4">
-            <h3 className="kicker text-muted-foreground">{t(`appearance.groups.${group.key}`)}</h3>
-            <div className="mt-1">
-              {group.tokens.map((token) => (
-                <ColorRow
-                  key={token}
-                  token={token}
-                  value={colors[token]}
-                  background={colors.background}
-                  onChange={(value) => setColor(token, value)}
+        <div className="min-w-0">
+          <SettingsSection title={t('appearance.editor.about')}>
+            <div className="grid gap-3">
+              <FormField label={t('appearance.editor.name')}>
+                <Input
+                  value={draft.name}
+                  maxLength={60}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 />
-              ))}
-            </div>
-          </div>
-        ))}
-      </SettingsSection>
-
-      <SettingsSection title={t('appearance.editor.type')}>
-        <div className="grid gap-4">
-          {(['content', 'ui'] as const).map((slot) => (
-            <FormField key={slot} label={t(`appearance.editor.font.${slot}`)}>
-              <Select
-                value={draft.fonts?.[slot] ?? (slot === 'content' ? 'newsreader' : 'source-sans-3')}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    fonts: {
-                      ...draft.fonts,
-                      [slot]: e.target.value as (typeof THEME_FONT_KEYS)[number],
-                    },
-                  })
-                }
+              </FormField>
+              <FormField label={t('appearance.editor.description')}>
+                <Input
+                  value={draft.description ?? ''}
+                  maxLength={300}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value || undefined })}
+                />
+              </FormField>
+              <FormField
+                label={t('appearance.editor.author')}
+                hint={t('appearance.editor.authorHint')}
               >
-                {THEME_FONT_KEYS.map((key) => (
-                  <option key={key} value={key}>
-                    {THEME_FONTS[key].label}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-          ))}
-          <Labeled label={t('appearance.editor.textSize')}>
-            <SegmentedControl
-              label={t('appearance.editor.textSize')}
-              value={draft.textSize ?? 'normal'}
-              options={THEME_TEXT_SIZES.map((v) => ({
-                value: v,
-                label: t(`appearance.textSize.${v}`),
-              }))}
-              onChange={(textSize) => setDraft({ ...draft, textSize })}
-            />
-          </Labeled>
-          <Labeled label={t('appearance.editor.density')}>
-            <SegmentedControl
-              label={t('appearance.editor.density')}
-              value={draft.density ?? 'normal'}
-              options={THEME_DENSITIES.map((v) => ({
-                value: v,
-                label: t(`appearance.density.${v}`),
-              }))}
-              onChange={(density) => setDraft({ ...draft, density })}
-            />
-          </Labeled>
-          <Labeled label={t('appearance.editor.radius')}>
-            <SegmentedControl
-              label={t('appearance.editor.radius')}
-              value={draft.radius ?? 'small'}
-              options={THEME_RADII.map((v) => ({ value: v, label: t(`appearance.radius.${v}`) }))}
-              onChange={(radius) => setDraft({ ...draft, radius })}
-            />
-          </Labeled>
-        </div>
-      </SettingsSection>
+                <Input
+                  value={draft.author ?? ''}
+                  maxLength={80}
+                  onChange={(e) => setDraft({ ...draft, author: e.target.value || undefined })}
+                />
+              </FormField>
+            </div>
+          </SettingsSection>
 
-      <SettingsSection
-        title={t('appearance.editor.layout')}
-        lead={t('appearance.editor.layoutLead')}
-      >
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={!!draft.personPage}
-            onChange={(e) => {
-              const next = { ...draft };
-              if (e.target.checked) next.personPage = structuredClone(layoutTemplate('classic')!);
-              else delete next.personPage;
-              setDraft(next);
-            }}
-          />
-          {t('appearance.editor.ownLayout')}
-        </label>
-        {draft.personPage && (
-          <div className="mt-4">
-            <LayoutEditor
-              layout={draft.personPage}
-              onChange={(personPage) => setDraft({ ...draft, personPage })}
+          <SettingsSection
+            title={t('appearance.editor.colors')}
+            lead={t('appearance.editor.colorsLead')}
+          >
+            <Labeled label={t('appearance.editor.mode')}>
+              <SegmentedControl
+                label={t('appearance.editor.mode')}
+                value={mode}
+                options={[
+                  { value: 'light', label: t('theme.light') },
+                  { value: 'dark', label: t('theme.dark') },
+                ]}
+                onChange={setMode}
+                className="max-w-xs"
+              />
+            </Labeled>
+            {GROUPS.map((group) => (
+              <div key={group.key} className="mt-4">
+                <h3 className="kicker text-muted-foreground">
+                  {t(`appearance.groups.${group.key}`)}
+                </h3>
+                <div className="mt-1">
+                  {group.tokens.map((token) => (
+                    <ColorRow
+                      key={token}
+                      token={token}
+                      value={colors[token]}
+                      background={colors.background}
+                      onChange={(value) => setColor(token, value)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </SettingsSection>
+
+          <SettingsSection title={t('appearance.editor.type')}>
+            <div className="grid gap-4">
+              {(['content', 'ui'] as const).map((slot) => (
+                <FormField key={slot} label={t(`appearance.editor.font.${slot}`)}>
+                  <Select
+                    value={
+                      draft.fonts?.[slot] ?? (slot === 'content' ? 'newsreader' : 'source-sans-3')
+                    }
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        fonts: {
+                          ...draft.fonts,
+                          [slot]: e.target.value as (typeof THEME_FONT_KEYS)[number],
+                        },
+                      })
+                    }
+                  >
+                    {THEME_FONT_KEYS.map((key) => (
+                      <option key={key} value={key}>
+                        {THEME_FONTS[key].label}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+              ))}
+              <Labeled label={t('appearance.editor.textSize')}>
+                <SegmentedControl
+                  label={t('appearance.editor.textSize')}
+                  value={draft.textSize ?? 'normal'}
+                  options={THEME_TEXT_SIZES.map((v) => ({
+                    value: v,
+                    label: t(`appearance.textSize.${v}`),
+                  }))}
+                  onChange={(textSize) => setDraft({ ...draft, textSize })}
+                />
+              </Labeled>
+              <Labeled label={t('appearance.editor.density')}>
+                <SegmentedControl
+                  label={t('appearance.editor.density')}
+                  value={draft.density ?? 'normal'}
+                  options={THEME_DENSITIES.map((v) => ({
+                    value: v,
+                    label: t(`appearance.density.${v}`),
+                  }))}
+                  onChange={(density) => setDraft({ ...draft, density })}
+                />
+              </Labeled>
+              <Labeled label={t('appearance.editor.radius')}>
+                <SegmentedControl
+                  label={t('appearance.editor.radius')}
+                  value={draft.radius ?? 'small'}
+                  options={THEME_RADII.map((v) => ({
+                    value: v,
+                    label: t(`appearance.radius.${v}`),
+                  }))}
+                  onChange={(radius) => setDraft({ ...draft, radius })}
+                />
+              </Labeled>
+            </div>
+          </SettingsSection>
+
+          <SettingsSection
+            title={t('appearance.editor.layout')}
+            lead={t('appearance.editor.layoutLead')}
+          >
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!draft.personPage}
+                onChange={(e) => {
+                  const next = { ...draft };
+                  if (e.target.checked)
+                    next.personPage = structuredClone(layoutTemplate('classic')!);
+                  else delete next.personPage;
+                  setDraft(next);
+                }}
+              />
+              {t('appearance.editor.ownLayout')}
+            </label>
+            {draft.personPage && (
+              <div className="mt-4">
+                <LayoutEditor
+                  layout={draft.personPage}
+                  onChange={(personPage) => setDraft({ ...draft, personPage })}
+                />
+              </div>
+            )}
+          </SettingsSection>
+
+          <SettingsSection title={t('appearance.editor.css')} lead={t('appearance.editor.cssLead')}>
+            <textarea
+              aria-label={t('appearance.editor.css')}
+              value={draft.css ?? ''}
+              onChange={(e) => setDraft({ ...draft, css: e.target.value || undefined })}
+              rows={6}
+              spellCheck={false}
+              className="w-full rounded-sm border border-input bg-popover p-2.5 font-mono text-meta"
+              placeholder=".kicker { letter-spacing: 0.2em; }"
             />
+          </SettingsSection>
+
+          {issues.length > 0 && (
+            <ul className="mt-6 text-sm text-destructive" role="alert">
+              {issues.slice(0, 5).map((issue, i) => (
+                <li key={i}>
+                  {issue.path.join('.') || t('appearance.editor.theme')}: {issue.message}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button onClick={() => void onSave()} disabled={!parsed.success || save.isPending}>
+              {t('common.save')}
+            </Button>
+            <Button variant="secondary" asChild>
+              <Link to="/settings/appearance">{t('common.cancel')}</Link>
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={!parsed.success}
+              onClick={() => parsed.success && downloadTheme(parsed.data)}
+            >
+              <Download aria-hidden />
+              {t('appearance.export')}
+            </Button>
           </div>
-        )}
-      </SettingsSection>
-
-      <SettingsSection title={t('appearance.editor.css')} lead={t('appearance.editor.cssLead')}>
-        <textarea
-          aria-label={t('appearance.editor.css')}
-          value={draft.css ?? ''}
-          onChange={(e) => setDraft({ ...draft, css: e.target.value || undefined })}
-          rows={6}
-          spellCheck={false}
-          className="w-full rounded-sm border border-input bg-popover p-2.5 font-mono text-meta"
-          placeholder=".kicker { letter-spacing: 0.2em; }"
-        />
-      </SettingsSection>
-
-      {issues.length > 0 && (
-        <ul className="mt-6 text-sm text-destructive" role="alert">
-          {issues.slice(0, 5).map((issue, i) => (
-            <li key={i}>
-              {issue.path.join('.') || t('appearance.editor.theme')}: {issue.message}
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="mt-6 flex flex-wrap gap-2">
-        <Button onClick={() => void onSave()} disabled={!parsed.success || save.isPending}>
-          {t('common.save')}
-        </Button>
-        <Button variant="secondary" asChild>
-          <Link to="/settings/appearance">{t('common.cancel')}</Link>
-        </Button>
-        <Button
-          variant="ghost"
-          disabled={!parsed.success}
-          onClick={() => parsed.success && downloadTheme(parsed.data)}
-        >
-          <Download aria-hidden />
-          {t('appearance.export')}
-        </Button>
+          <div className="mt-2">{error && <FormMessage tone="error">{error}</FormMessage>}</div>
+        </div>
       </div>
-      <div className="mt-2">{error && <FormMessage tone="error">{error}</FormMessage>}</div>
     </div>
   );
 }

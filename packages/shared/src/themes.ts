@@ -532,16 +532,10 @@ const declarations = (vars: Record<string, string>) =>
     .map(([name, value]) => `  ${name}: ${value};`)
     .join('\n');
 
-/**
- * CSS custom properties for a theme, light on `html:root`, dark on
- * `html:root[data-theme=dark]` (one step more specific than the stylesheet, so the
- * order of the style elements does not matter), plus the theme's own CSS.
- */
-export function themeToCss(t: Theme): string {
-  const light = { ...DEFAULT_COLORS.light, ...t.colors?.light };
-  const dark = { ...DEFAULT_COLORS.dark, ...t.colors?.dark };
+/** Fonts, radii and spacing of a theme as CSS custom properties. */
+function baseVariables(t: Theme): Record<string, string> {
   const radius = RADIUS[t.radius ?? 'small'];
-  const base = {
+  return {
     '--font-content': THEME_FONTS[t.fonts?.content ?? 'newsreader'].stack,
     '--font-ui': THEME_FONTS[t.fonts?.ui ?? 'source-sans-3'].stack,
     '--radius-base-xs': radius.xs,
@@ -550,25 +544,47 @@ export function themeToCss(t: Theme): string {
     '--spacing': SPACING[t.density ?? 'normal'],
     '--text-scale': TEXT_SCALE[t.textSize ?? 'normal'],
   };
-  const colors = (set: Record<string, string>) =>
-    Object.fromEntries(THEME_COLOR_TOKENS.map((token) => [`--${token}`, set[token]!]));
+}
+
+function colorVariables(t: Theme, mode: 'light' | 'dark'): Record<string, string> {
+  const set = { ...DEFAULT_COLORS[mode], ...t.colors?.[mode] };
+  return Object.fromEntries(THEME_COLOR_TOKENS.map((token) => [`--${token}`, set[token]]));
+}
+
+/**
+ * All custom properties of a theme in one mode, e.g. to show a preview of it inside
+ * an element (the variables cascade from there like from the root).
+ */
+export function themeVariables(t: Theme, mode: 'light' | 'dark'): Record<string, string> {
+  return { ...baseVariables(t), ...colorVariables(t, mode), ...DERIVED };
+}
+
+/** Tokens defined through others; repeated so they resolve inside a preview, too. */
+const DERIVED = {
+  '--card': 'var(--popover)',
+  '--card-foreground': 'var(--foreground)',
+  '--popover-foreground': 'var(--foreground)',
+  '--primary': 'var(--foreground)',
+  '--primary-foreground': 'var(--background)',
+  '--secondary': 'var(--muted)',
+  '--secondary-foreground': 'var(--foreground)',
+  '--accent': 'var(--muted)',
+  '--accent-foreground': 'var(--foreground)',
+  '--area-private': 'var(--space-olive)',
+  '--area-business': 'var(--space-navy)',
+};
+
+/**
+ * CSS custom properties for a theme, light on `html:root`, dark on
+ * `html:root[data-theme=dark]` (one step more specific than the stylesheet, so the
+ * order of the style elements does not matter), plus the theme's own CSS.
+ */
+export function themeToCss(t: Theme): string {
   return [
-    `html:root {\n${declarations({ ...base, ...colors(light) })}\n}`,
-    `html:root[data-theme='dark'] {\n${declarations(colors(dark))}\n}`,
+    `html:root {\n${declarations(themeVariables(t, 'light'))}\n}`,
+    `html:root[data-theme='dark'] {\n${declarations(colorVariables(t, 'dark'))}\n}`,
     t.css?.trim() ?? '',
   ]
     .filter(Boolean)
     .join('\n');
-}
-
-/** A short list of colours to preview a theme (swatches in the picker). */
-export function themeSwatches(t: Theme, mode: 'light' | 'dark') {
-  const set = { ...DEFAULT_COLORS[mode], ...t.colors?.[mode] };
-  return {
-    background: set.background,
-    foreground: set.foreground,
-    muted: set.muted,
-    signal: set.signal,
-    spaces: [set['space-olive'], set['space-navy'], set['space-plum']],
-  };
 }

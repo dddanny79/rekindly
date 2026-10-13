@@ -8,6 +8,7 @@ import {
   resolveLayout,
   themeSchema,
   themeToCss,
+  themeVariables,
   type Theme,
 } from './index';
 
@@ -115,6 +116,15 @@ describe('themeToCss', () => {
     expect(css).toContain("'Atkinson Hyperlegible Next Variable'");
     expect(css).toContain('--text-scale: 112.5%;');
     expect(themeToCss({ ...minimal, css: '.x{}' } as Theme).endsWith('.x{}')).toBe(true);
+  });
+});
+
+describe('themeVariables', () => {
+  it('gives the variables of one mode, for previews', () => {
+    const vars = themeVariables(BUILT_IN_THEMES.hearth!, 'dark');
+    expect(vars['--background']).toBe(BUILT_IN_THEMES.hearth!.colors!.dark!.background);
+    expect(vars['--font-content']).toContain('Fraunces');
+    expect(vars['--radius-base-sm']).toBe('10px');
   });
 });
 

@@ -12,8 +12,7 @@ import {
   type Theme,
   type ThemeRecord,
 } from '@app/shared';
-import { LayoutDiagram } from '@/components/appearance/layout-diagram';
-import { ThemeSwatch } from '@/components/appearance/theme-swatch';
+import { PagePreview } from '@/components/appearance/page-preview';
 import { FormMessage } from '@/components/form-field';
 import { RemoveButton } from '@/components/row-actions';
 import { SettingsSection } from '@/components/settings-section';
@@ -27,6 +26,7 @@ import {
 } from '@/lib/appearance';
 import { themesApi, themesQuery, useWrite } from '@/lib/data';
 import { errorMessage } from '@/lib/errors';
+import { resolveTheme, useThemePreference } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import type { TFunction } from 'i18next';
 
@@ -106,6 +106,8 @@ export function AppearanceSettingsPage() {
   const { data } = useQuery(themesQuery);
   const device = useDeviceAppearance();
   const active = useActiveAppearance();
+  // Previews show the mode the app is in (switchable right above them).
+  const mode = resolveTheme(useThemePreference());
   const fileInput = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ tone: 'error' | 'success'; text: string } | null>(null);
   const [deleted, setDeleted] = useState<{ id: string; name: string } | null>(null);
@@ -128,6 +130,8 @@ export function AppearanceSettingsPage() {
         ...record.theme,
         name: t('appearance.copyName', { name: themeName(t, record) }),
       };
+      const description = themeDescription(t, record);
+      if (description) copy.description = description;
       delete copy.author;
       const created = await create.mutateAsync(copy);
       setDeviceAppearance({ themeId: created.id });
@@ -204,7 +208,13 @@ export function AppearanceSettingsPage() {
               value={record.id}
               checked={active.themeId === record.id}
               onChange={(themeId) => setDeviceAppearance({ themeId })}
-              preview={<ThemeSwatch theme={record.theme} />}
+              preview={
+                <PagePreview
+                  theme={record.theme}
+                  layout={resolveLayout(active.layoutId, record.theme.personPage)}
+                  mode={mode}
+                />
+              }
               title={themeName(t, record)}
               badges={
                 <>
@@ -318,7 +328,13 @@ export function AppearanceSettingsPage() {
               value={id}
               checked={active.layoutId === id}
               onChange={(layoutId) => setDeviceAppearance({ layoutId })}
-              preview={<LayoutDiagram layout={resolveLayout(id, active.theme.personPage)} />}
+              preview={
+                <PagePreview
+                  theme={active.theme}
+                  layout={resolveLayout(id, active.theme.personPage)}
+                  mode={mode}
+                />
+              }
               title={layoutName(t, id)}
               badges={
                 id === data.defaultLayoutId ? <Badge>{t('appearance.badge.default')}</Badge> : null
