@@ -38,7 +38,7 @@ test('a person with two phones, email, address, tag and custom field — all inl
     ['Work', '+49 221 555 01 42'],
   ] as const) {
     await contact.getByRole('button', { name: 'Add contact' }).click();
-    await contact.getByLabel('Label').fill(label);
+    await contact.getByLabel('Label', { exact: true }).selectOption(label);
     await contact.getByLabel('Value').fill(value);
     await contact.getByRole('button', { name: 'Save' }).click();
     await expect(contact.getByRole('link', { name: value })).toHaveAttribute(
@@ -48,12 +48,15 @@ test('a person with two phones, email, address, tag and custom field — all inl
   }
   await contact.getByRole('button', { name: 'Add contact' }).click();
   await contact.getByLabel('Kind').selectOption('email');
+  await contact.getByLabel('Label', { exact: true }).selectOption('Own label …');
+  await contact.getByLabel('Own label').fill('Newsletter');
   await contact.getByLabel('Value').fill('j.berger@example.com');
   await contact.getByRole('button', { name: 'Save' }).click();
   await expect(contact.getByRole('link', { name: 'j.berger@example.com' })).toHaveAttribute(
     'href',
     'mailto:j.berger@example.com',
   );
+  await expect(contact.getByText('Newsletter')).toBeVisible();
 
   const addresses = section(page, 'Addresses');
   await addresses.getByRole('button', { name: 'Add address' }).click();
