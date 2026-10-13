@@ -14,7 +14,8 @@ what you talked about last time, what you promised to follow up on — and gives
 short briefing before a call or meeting. For friends and family as much as for
 clients and colleagues, kept apart in separate spaces.
 
-One person per instance, one Docker container, SQLite. Your data stays on your
+One person per instance, on purpose (several people run one instance each, see
+[docs/deployment.md](docs/deployment.md#several-people)), one Docker container, SQLite. Your data stays on your
 server: no telemetry, no external calls except the services you configure.
 
 > **Status: 0.x, early release.** It is used daily, but expect changes. Export and

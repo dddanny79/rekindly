@@ -41,7 +41,7 @@ docker run -d --name rekindly --restart unless-stopped \
   -v rekindly-data:/data \
   -e PUBLIC_URL=http://localhost:3000 \
   -e TZ=Europe/Berlin \
-  ghcr.io/dddanny79/rekindly:edge
+  ghcr.io/dddanny79/rekindly:latest
 ```
 
 Open `PUBLIC_URL`; on the first start the setup wizard creates the only account.
@@ -71,7 +71,7 @@ Two ways; both use the same settings from step 3 on.
   Directory `/`, Dockerfile Location `/Dockerfile`. With Auto Deploy, Coolify rebuilds
   on every push to the branch.
 - **From the image:** `+ New` → _Docker Image_, `ghcr.io/dddanny79/rekindly:latest`
-  (latest release) or `:edge` (recent `main`).
+  (latest release), or a version such as `:0.2` to stay on one minor version.
 
 Then:
 
@@ -95,9 +95,51 @@ Migrations run automatically at start.
 
 ## Unraid, Portainer, Synology
 
-Same as plain Docker: image `ghcr.io/dddanny79/rekindly:edge`, container
+Same as plain Docker: image `ghcr.io/dddanny79/rekindly:latest`, container
 port `3000`, a path or volume for `/data` (owned by uid 1000, see above), and the
 variables `PUBLIC_URL` and `TZ`. On Unraid use a path below `/mnt/user/appdata/`.
+
+## Several people
+
+Rekindly is made for **one person per installation**: nobody else can read your
+notes, and there are no users, roles or permissions to get wrong. If several people
+want to use it, each runs their own instance. It is one small container with its own
+data volume, so a few of them fit on the same server.
+
+With Docker Compose, one service and one volume per person, each with its own
+address (behind a reverse proxy, e.g. `anna.example.com` and `ben.example.com`):
+
+```yaml
+services:
+  anna:
+    image: ghcr.io/dddanny79/rekindly:latest
+    restart: unless-stopped
+    environment:
+      PUBLIC_URL: https://anna.example.com
+      TRUST_PROXY: 'true'
+      TZ: Europe/Berlin
+    volumes:
+      - anna:/data
+  ben:
+    image: ghcr.io/dddanny79/rekindly:latest
+    restart: unless-stopped
+    environment:
+      PUBLIC_URL: https://ben.example.com
+      TRUST_PROXY: 'true'
+      TZ: Europe/Berlin
+    volumes:
+      - ben:/data
+
+volumes:
+  anna:
+  ben:
+```
+
+In Coolify, create one application per person, each with its own domain and its own
+persistent storage for `/data`. Every instance has its own setup, backups and sync.
+To pass contacts from one person to another, export them as vCard (Settings → Data)
+and import the file in the other instance; birthdays and follow-ups can be shared as
+a calendar subscription (Settings → Sync).
 
 ## Reverse proxy
 
