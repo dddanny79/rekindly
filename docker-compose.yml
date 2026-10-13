@@ -3,7 +3,7 @@
 # TRUST_PROXY=true, and do not publish the port.
 services:
   app:
-    image: ghcr.io/dddanny79/rekindly:edge
+    image: ghcr.io/dddanny79/rekindly:latest
     restart: unless-stopped
     ports:
       - '3000:3000'
