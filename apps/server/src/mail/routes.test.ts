@@ -4,15 +4,16 @@ import { createSignedInApp } from '../test/helpers';
 import { smtpSink } from '../test/smtp';
 import { digestDue, sendDigest } from './digest';
 import { mailSettings } from './config';
+import { failureCode } from './send';
 
 const cleanups: (() => unknown)[] = [];
 afterEach(async () => {
   for (const c of cleanups.splice(0)) await c();
 });
 
-async function setup() {
+async function setup(options: { rejectAuth?: boolean } = {}) {
   const t = await createSignedInApp();
-  const smtp = await smtpSink();
+  const smtp = await smtpSink(options);
   cleanups.push(
     () => t.cleanup(),
     () => smtp.close(),
@@ -66,8 +67,32 @@ describe('mail', () => {
     await configure({ port: 1 });
     const res = await t.request('/api/v1/mail/test', { method: 'POST' });
     expect(res.status).toBe(502);
-    expect(await res.json()).toMatchObject({ error: 'mail_failed' });
+    expect(await res.json()).toMatchObject({ error: 'mail_unreachable' });
     expect((await t.json<MailSettings>(t.request('/api/v1/mail'))).status.lastError).toBeTruthy();
+  });
+
+  it('explains why a mail failed: login refused or encryption not matching the port', async () => {
+    const refused = await setup({ rejectAuth: true });
+    await refused.configure();
+    const auth = await refused.t.request('/api/v1/mail/test', { method: 'POST' });
+    expect(await auth.json()).toMatchObject({ error: 'mail_auth_failed' });
+
+    const tls = await setup();
+    await tls.configure({ security: 'tls' });
+    const mismatch = await tls.t.request('/api/v1/mail/test', { method: 'POST' });
+    expect(await mismatch.json()).toMatchObject({ error: 'mail_tls_mismatch' });
+  });
+
+  it('failureCode sorts the usual SMTP errors', () => {
+    const error = (code: string, message = '') => Object.assign(new Error(message), { code });
+    expect(failureCode(error('ETIMEDOUT', 'Connection timeout'))).toBe('mail_unreachable');
+    expect(failureCode(error('EDNS', 'getaddrinfo ENOTFOUND mail.example.com'))).toBe(
+      'mail_unreachable',
+    );
+    expect(failureCode(error('EAUTH', '535 Authentication failed'))).toBe('mail_auth_failed');
+    expect(failureCode(error('EENVELOPE', '553 Sender address rejected'))).toBe('mail_rejected');
+    expect(failureCode(error('ESOCKET', 'wrong version number'))).toBe('mail_tls_mismatch');
+    expect(failureCode(error('EMESSAGE', 'Message too large'))).toBe('mail_failed');
   });
 
   it('daily summary: due follow-ups and birthdays with links; nothing due, no mail', async () => {

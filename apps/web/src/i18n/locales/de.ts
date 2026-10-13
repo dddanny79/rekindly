@@ -1269,6 +1269,14 @@ export const de: Translations = {
     invalid_code: 'Der Code ist falsch oder nicht mehr gültig.',
     mail_not_configured: 'Der Mailversand ist noch nicht eingerichtet (Einstellungen › Mail).',
     mail_failed: 'Die Mail konnte nicht verschickt werden.',
+    mail_unreachable:
+      'Der Mailserver antwortet nicht. Häufige Ursachen: Der Hoster dieses Servers sperrt ausgehende Mail-Ports, die Firewall des Mailservers (z. B. Fail2ban, mailcow) blockiert diesen Server, oder Adresse bzw. Port stimmen nicht. Siehe docs/mail.md.',
+    mail_auth_failed:
+      'Der Mailserver hat die Anmeldung abgelehnt. Prüfe Benutzername und Passwort (ggf. ein App-Passwort).',
+    mail_tls_mismatch:
+      'Verschlüsselung und Port passen nicht zusammen: Port 465 braucht „TLS“, Port 587 braucht „STARTTLS“.',
+    mail_rejected:
+      'Der Mailserver hat Absender oder Empfänger abgelehnt. Der Absender muss das Postfach sein oder ein Alias, mit dem es senden darf.',
     mail_invalid_from:
       'Gib eine gültige Absenderadresse ein, z. B. Rekindly <rekindly@example.com>.',
     mail_password_unreadable:
