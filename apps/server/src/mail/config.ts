@@ -8,7 +8,9 @@ import { DomainError } from '../lib/errors';
 import { nowIso } from '../lib/sql';
 
 const CONFIG = 'mail.config';
-const STATUS = 'mail.status';
+/** Delivery state (last sent, last error); stays with the instance. */
+export const MAIL_STATUS_SETTING = 'mail.status';
+const STATUS = MAIL_STATUS_SETTING;
 
 type Security = MailSettings['security'];
 

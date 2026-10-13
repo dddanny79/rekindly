@@ -48,3 +48,29 @@ password also needs a six-digit code that is mailed to you:
 ```sh
 docker exec rekindly node dist/cli.js disable-2fa
 ```
+
+The switch belongs to the instance: it is not part of an export or backup, so a
+restore on another server never turns sign-in codes on there (the stored SMTP
+password cannot be read on a different server). Switch it on again after a move.
+
+## When mail does not arrive
+
+**Settings → Mail → Send test mail** shows why sending failed:
+
+| Message                              | Cause and fix                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **The mail server does not answer**  | The connection never comes about. Either the host of the Rekindly server blocks outgoing mail ports (25, 465, 587; ask them to unblock or use port 2525 if your mail server offers it), or the **mail server's firewall blocks this server**: Fail2ban or mailcow's netfilter ban whole networks (mailcow: `/24` by default) after failed logins from anyone in them. Unban the server's IP and put it on the whitelist. Or host/port are simply wrong. |
+| **Login refused**                    | User name or password wrong. Many providers want an app password.                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Encryption and port do not match** | Port 465 needs **TLS**, port 587 needs **STARTTLS**.                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Sender or recipient refused**      | The sender must be the mailbox you log in with, or an alias it may send as.                                                                                                                                                                                                                                                                                                                                                                             |
+
+To tell a blocked port from a blocking mail server, run this on the Rekindly server
+(or in the container's terminal); it tries your mail server and, for comparison,
+Gmail:
+
+```sh
+node -e "const n=require('net');const t=(h,p)=>new Promise(r=>{const s=n.connect({host:h,port:p,timeout:6000});s.on('connect',()=>{r(h+':'+p+' open');s.destroy()});s.on('timeout',()=>{r(h+':'+p+' timeout');s.destroy()});s.on('error',e=>r(h+':'+p+' '+e.code))});(async()=>{for(const h of ['mail.example.com','smtp.gmail.com'])for(const p of [465,587])console.log(await t(h,p))})()"
+```
+
+Gmail open but your mail server not: your mail server blocks this server. Both
+timing out: the host blocks the ports.

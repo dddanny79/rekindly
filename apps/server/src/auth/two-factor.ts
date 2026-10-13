@@ -13,7 +13,9 @@ import { nowIso } from '../lib/sql';
 import { htmlMail, type Mail } from '../mail/send';
 import { localeOf } from '../mail/digest';
 
-const SETTING = 'auth.twoFactor';
+/** Settings key of the sign-in-code switch (stays with the instance, see backup/service). */
+export const TWO_FACTOR_SETTING = 'auth.twoFactor';
+const SETTING = TWO_FACTOR_SETTING;
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 export const TRUST_DAYS = 30;

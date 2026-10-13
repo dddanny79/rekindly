@@ -1250,6 +1250,14 @@ export const en = {
     invalid_code: 'The code is wrong or no longer valid.',
     mail_not_configured: 'Mail is not set up yet (Settings › Mail).',
     mail_failed: 'The mail could not be sent.',
+    mail_unreachable:
+      'The mail server does not answer. Common causes: the host of this server blocks outgoing mail ports, the mail server’s firewall (e.g. Fail2ban, mailcow) blocks this server, or the address or port is wrong. See docs/mail.md.',
+    mail_auth_failed:
+      'The mail server refused the login. Check user name and password (an app password, if your provider uses them).',
+    mail_tls_mismatch:
+      'Encryption and port do not match: port 465 needs “TLS”, port 587 needs “STARTTLS”.',
+    mail_rejected:
+      'The mail server refused the sender or recipient. The sender must be the mailbox or an alias it may send as.',
     mail_invalid_from: 'Enter a valid sender address, e.g. Rekindly <rekindly@example.com>.',
     mail_password_unreadable:
       'The stored SMTP password cannot be read here (e.g. after moving servers). Enter it again.',

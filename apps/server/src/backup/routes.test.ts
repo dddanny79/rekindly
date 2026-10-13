@@ -1,6 +1,15 @@
 import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { Entry, Organization, Person, SearchResponse } from '@app/shared';
+import type {
+  Entry,
+  Organization,
+  Person,
+  SearchResponse,
+  ThemeListResponse,
+  ThemeRecord,
+} from '@app/shared';
+import { setTwoFactor, twoFactorEnabled } from '../auth/two-factor';
+import { updateMailStatus } from '../mail/config';
 import { createSignedInApp } from '../test/helpers';
 import type { ExportFile } from './service';
 
@@ -110,7 +119,7 @@ describe('export and import', () => {
   it('restores an export into an empty instance with identical data (acceptance)', async () => {
     const { t: source, jana } = await filled();
     const exported = await exportOf(source);
-    expect(exported).toMatchObject({ format: 'rekindly-export', version: 1 });
+    expect(exported).toMatchObject({ format: 'rekindly-export', version: 2 });
     expect(exported.data.people).toHaveLength(4);
     expect(exported.data.files).toHaveLength(1);
     expect(JSON.stringify(exported)).not.toContain('password');
@@ -176,6 +185,66 @@ describe('export and import', () => {
     const res = await empty.request('/api/v1/import', {
       method: 'POST',
       json: { ...exported, format: 'personengedaechtnis-export' },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('carries own themes, but leaves sign-in codes and mail state with the instance', async () => {
+    const { t } = await filled();
+    const own = await t.json<ThemeRecord>(
+      t.request('/api/v1/themes', {
+        method: 'POST',
+        json: { theme: { format: 'rekindly-theme', version: 1, name: 'Mitgenommen' } },
+      }),
+      201,
+    );
+    await t.request('/api/v1/themes/defaults', {
+      method: 'PUT',
+      json: { defaultThemeId: own.id },
+    });
+    setTwoFactor(t.db, true);
+    updateMailStatus(t.db, { lastSentAt: '2026-10-13T08:00:00.000Z', lastError: null });
+
+    const exported = await exportOf(t);
+    expect(exported.data.themes).toHaveLength(1);
+    const keys = exported.data.settings.map((row) => row.key);
+    expect(keys).toContain('appearance.defaultTheme');
+    expect(keys).not.toContain('auth.twoFactor');
+    expect(keys).not.toContain('mail.status');
+
+    // A file that still carries the switch (e.g. from 0.2 before this fix) must not
+    // turn on sign-in codes on a server that cannot send them.
+    const target = await app();
+    const withSwitch = {
+      ...exported,
+      data: {
+        ...exported.data,
+        settings: [
+          ...exported.data.settings,
+          {
+            key: 'auth.twoFactor',
+            value: { enabled: true },
+            updatedAt: '2026-10-13T08:00:00.000Z',
+          },
+        ],
+      },
+    };
+    await target.json(target.request('/api/v1/import', { method: 'POST', json: withSwitch }));
+    expect(twoFactorEnabled(target.db)).toBe(false);
+    const list = await target.json<ThemeListResponse>(target.request('/api/v1/themes'));
+    expect(list.defaultThemeId).toBe(own.id);
+    expect(list.themes.find((th) => th.id === own.id)?.theme.name).toBe('Mitgenommen');
+  });
+
+  it('imports files of version 1, which have no themes', async () => {
+    const { t } = await filled();
+    const exported = await exportOf(t);
+    const data: Partial<typeof exported.data> = { ...exported.data };
+    delete data.themes;
+    const empty = await app();
+    const res = await empty.request('/api/v1/import', {
+      method: 'POST',
+      json: { ...exported, version: 1, data },
     });
     expect(res.status).toBe(200);
   });

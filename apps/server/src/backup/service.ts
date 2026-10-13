@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { count, notLike, sql } from 'drizzle-orm';
+import { count, eq, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { z } from 'zod';
 import { APP_NAME } from '@app/shared';
@@ -26,15 +26,19 @@ import {
   settings,
   spaces,
   tags,
+  themes,
 } from '../db/schema';
+import { TWO_FACTOR_SETTING } from '../auth/two-factor';
 import { DomainError } from '../lib/errors';
+import { MAIL_STATUS_SETTING } from '../mail/config';
 import { reindexAll } from '../search/service';
 import { APP_VERSION } from '../version';
 
 export const EXPORT_FORMAT = 'rekindly-export';
 /** Exports from before the app was named Rekindly. */
 const LEGACY_EXPORT_FORMATS = ['personengedaechtnis-export'] as const;
-export const EXPORT_VERSION = 1;
+/** 2: own themes (`themes`). Files of version 1 still import. */
+export const EXPORT_VERSION = 2;
 
 /**
  * Exported tables in insert order (parents first). Rows are exported as the
@@ -61,7 +65,17 @@ const TABLES = {
   fieldValues,
   settings,
   davExtras,
+  themes,
 } as const satisfies Record<string, SQLiteTable>;
+
+/**
+ * Settings that belong to the instance, not to the data: the backup target and its
+ * password, the sign-in-code switch (on another server the stored SMTP password
+ * cannot be read, so codes could not be sent and nobody could sign in) and the
+ * delivery state of mail. They are neither exported nor replaced by an import.
+ */
+export const instanceSetting = (key: unknown) =>
+  String(key).startsWith('backup.') || key === TWO_FACTOR_SETTING || key === MAIL_STATUS_SETTING;
 
 type TableName = keyof typeof TABLES;
 
@@ -86,8 +100,7 @@ export async function exportAll(db: Db, dataDir: string): Promise<ExportFile> {
       .orderBy(sql`rowid`)
       .all() as Record<string, unknown>[];
   }
-  // Backup target and password stay with the instance (they are credentials).
-  data.settings = data.settings.filter((row) => !String(row.key).startsWith('backup.'));
+  data.settings = data.settings.filter((row) => !instanceSetting(row.key));
   data.files = [];
   for (const row of db.select().from(files).all()) {
     try {
@@ -174,9 +187,10 @@ export async function importAll(db: Db, dataDir: string, input: unknown) {
     sqlite.transaction(() => {
       // References are checked at the end, so the order inside does not matter.
       sqlite.pragma('defer_foreign_keys = ON');
-      // The backup configuration of this instance stays (needed to restore from a target).
-      db.delete(settings).where(notLike(settings.key, 'backup.%')).run();
-      for (const table of [fieldDefinitions, tags, relationshipTypes, spaces]) {
+      // Settings of this instance stay (e.g. the backup target needed to restore).
+      for (const { key } of db.select({ key: settings.key }).from(settings).all())
+        if (!instanceSetting(key)) db.delete(settings).where(eq(settings.key, key)).run();
+      for (const table of [fieldDefinitions, tags, relationshipTypes, spaces, themes]) {
         db.delete(table).run();
       }
       for (const chunk of chunks(fileRows))
@@ -186,7 +200,7 @@ export async function importAll(db: Db, dataDir: string, input: unknown) {
       for (const [name, table] of Object.entries(TABLES) as [TableName, SQLiteTable][]) {
         const list =
           name === 'settings'
-            ? tableRows.settings.filter((row) => !String(row.key).startsWith('backup.'))
+            ? tableRows.settings.filter((row) => !instanceSetting(row.key))
             : tableRows[name];
         for (const chunk of chunks(list)) {
           db.insert(table)
