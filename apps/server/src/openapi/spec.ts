@@ -508,6 +508,40 @@ export const OPERATIONS: Operation[] = [
     response: z.object({ sent: z.boolean() }),
   }),
 
+  // Appearance
+  op('get', '/themes', 'Appearance', 'Themes, layout templates and the instance defaults', {
+    response: s.themeListResponseSchema,
+  }),
+  op('put', '/themes/defaults', 'Appearance', 'Set the default theme and layout of the instance', {
+    body: s.themeDefaultsRequestSchema,
+    response: s.themeDefaultsRequestSchema.required(),
+  }),
+  op(
+    'post',
+    '/themes',
+    'Appearance',
+    'Create or import a theme (file format, see docs/themes.md)',
+    {
+      body: s.saveThemeRequestSchema,
+      response: s.themeRecordSchema,
+      status: 201,
+    },
+  ),
+  op('get', '/themes/:id', 'Appearance', 'One theme (built-in or own)', {
+    response: s.themeRecordSchema,
+  }),
+  op('put', '/themes/:id', 'Appearance', 'Change an own theme', {
+    body: s.saveThemeRequestSchema,
+    response: s.themeRecordSchema,
+  }),
+  op('delete', '/themes/:id', 'Appearance', 'Move an own theme to the trash (30 days)', {
+    response: 'empty',
+    status: 204,
+  }),
+  op('post', '/themes/:id/restore', 'Appearance', 'Restore a deleted theme', {
+    response: s.themeRecordSchema,
+  }),
+
   // Data: export, import, backups
   op('get', '/export/json', 'Data', 'Full export (JSON file)', { response: 'binary' }),
   op('get', '/export/vcf', 'Data', 'Contacts as vCard file', {

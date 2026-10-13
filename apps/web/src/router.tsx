@@ -37,6 +37,8 @@ import { SyncSettingsPage } from '@/routes/settings/sync-page';
 import { SetupPage } from '@/routes/setup-page';
 import { TodayPage } from '@/routes/today-page';
 import { TrashPage } from '@/routes/trash-page';
+import { AppearanceSettingsPage } from '@/routes/settings/appearance-page';
+import { ThemeEditorPage } from '@/routes/settings/theme-editor-page';
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -136,6 +138,8 @@ const routeTree = rootRoute.addChildren([
     child('/trash', TrashPage),
     settingsRoute.addChildren([
       settingsChild('/', SettingsPage),
+      settingsChild('/appearance', AppearanceSettingsPage),
+      settingsChild('/appearance/themes/$themeId', ThemeEditorPage),
       settingsChild('/spaces', SpacesSettingsPage),
       settingsChild('/tags', TagsSettingsPage),
       settingsChild('/relationship-types', RelationshipTypesSettingsPage),

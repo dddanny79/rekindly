@@ -20,3 +20,5 @@ export * from './schemas/duplicates';
 export * from './schemas/api';
 export * from './schemas/ai';
 export * from './schemas/mail';
+export * from './schemas/themes';
+export * from './themes';

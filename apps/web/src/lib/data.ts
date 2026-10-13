@@ -42,6 +42,10 @@ import {
   type MergePeopleRequest,
   apiTokenListResponseSchema,
   createApiTokenResponseSchema,
+  type Theme,
+  type ThemeDefaultsRequest,
+  themeListResponseSchema,
+  themeRecordSchema,
 } from '@app/shared';
 import { api, ApiError } from '@/lib/api';
 
@@ -461,4 +465,22 @@ export const apiTokensApi = {
   create: (input: { name: string; scope: 'read' | 'write'; expiresInDays: number | null }) =>
     api(`${V1}/api-tokens`, createApiTokenResponseSchema, { json: input }),
   remove: (id: string) => api(`${V1}/api-tokens/${id}`, null, { method: 'DELETE' }),
+};
+
+// Themes ---------------------------------------------------------------------------------
+
+export const themesQuery = queryOptions({
+  queryKey: ['themes'],
+  queryFn: () => api(`${V1}/themes`, themeListResponseSchema),
+  staleTime: 5 * 60_000,
+});
+
+export const themesApi = {
+  create: (theme: Theme) => api(`${V1}/themes`, themeRecordSchema, { json: { theme } }),
+  update: ({ id, theme }: { id: string; theme: Theme }) =>
+    api(`${V1}/themes/${id}`, themeRecordSchema, { method: 'PUT', json: { theme } }),
+  remove: (id: string) => api(`${V1}/themes/${id}`, null, { method: 'DELETE' }),
+  restore: (id: string) => api(`${V1}/themes/${id}/restore`, themeRecordSchema, { method: 'POST' }),
+  setDefaults: (input: ThemeDefaultsRequest) =>
+    api(`${V1}/themes/defaults`, ok, { method: 'PUT', json: input }),
 };

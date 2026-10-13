@@ -1,9 +1,10 @@
-import { Link, Outlet } from '@tanstack/react-router';
+import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/page-header';
 
 const TABS = [
   { to: '/settings', key: 'general' },
+  { to: '/settings/appearance', key: 'appearance' },
   { to: '/settings/spaces', key: 'spaces' },
   { to: '/settings/tags', key: 'tags' },
   { to: '/settings/relationship-types', key: 'relationshipTypes' },
@@ -18,6 +19,15 @@ const TABS = [
 
 export function SettingsLayout() {
   const { t } = useTranslation();
+  // The appearance pages show previews side by side and get more room.
+  const width = useRouterState({
+    select: ({ location: { pathname } }) =>
+      pathname.startsWith('/settings/appearance/themes/')
+        ? 'max-w-6xl'
+        : pathname.startsWith('/settings/appearance')
+          ? 'max-w-4xl'
+          : 'max-w-xl',
+  });
   return (
     <>
       <PageHeader title={t('nav.settings')} />
@@ -40,7 +50,7 @@ export function SettingsLayout() {
           ))}
         </ul>
       </nav>
-      <div className="max-w-xl">
+      <div className={width}>
         <Outlet />
       </div>
     </>

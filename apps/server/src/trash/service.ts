@@ -29,6 +29,7 @@ import { removeFile } from '../files/service';
 import { DomainError, notFound } from '../lib/errors';
 import { log } from '../lib/log';
 import { touchPerson } from '../people/refs';
+import { purgeDeletedThemes } from '../themes/service';
 
 const DAY = 86_400_000;
 const purgeAt = (deletedAt: string) =>
@@ -519,12 +520,10 @@ export async function purgeTrash(db: Db, dataDir: string, before?: string) {
 }
 
 /** The daily job: purge everything older than the retention period. */
-export function purgeExpired(db: Db, dataDir: string, now = new Date()) {
-  return purgeTrash(
-    db,
-    dataDir,
-    new Date(now.getTime() - TRASH_RETENTION_DAYS * DAY).toISOString(),
-  );
+export async function purgeExpired(db: Db, dataDir: string, now = new Date()) {
+  const before = new Date(now.getTime() - TRASH_RETENTION_DAYS * DAY).toISOString();
+  const result = await purgeTrash(db, dataDir, before);
+  return { ...result, purged: result.purged + purgeDeletedThemes(db, before) };
 }
 
 /** Runs `purgeExpired` now and then once a day. */

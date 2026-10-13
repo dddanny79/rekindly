@@ -4,6 +4,10 @@ Binding visual reference for the web app. Direction: **“Typesetting & tool”*
 content is set like a well-made newspaper column, controls are a quiet tool.
 Derived from the design exploration of 2026-10-11 (kept outside the repository).
 
+Users can switch to other themes or build their own (`docs/themes.md`). This document
+describes the default theme; themes only change the tokens below (colours, fonts,
+radii, spacing, text size), never the principles.
+
 ## Principles
 
 - **Content in serif, controls in sans.** Names, headings, lead text, notes: Newsreader.

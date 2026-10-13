@@ -19,6 +19,14 @@
           t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
         document.documentElement.dataset.theme = t;
+        // The last theme of this device (src/lib/appearance.ts), so it shows at once.
+        var css = localStorage.getItem('appearance-css');
+        if (css) {
+          var style = document.createElement('style');
+          style.id = 'app-theme';
+          style.textContent = css;
+          document.head.appendChild(style);
+        }
       } catch (e) {}
     </script>
   </head>

@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ApiStatus } from '@/components/api-status';
@@ -53,8 +53,11 @@ export function SettingsPage() {
           <TwoFactorSettings />
         </SettingsSection>
 
-        <SettingsSection title={t('theme.label')} lead={t('theme.hint')}>
+        <SettingsSection title={t('theme.label')} lead={t('appearance.generalLead')}>
           <ThemeControl className="max-w-md" />
+          <p className="mt-3 text-sm">
+            <Link to="/settings/appearance">{t('appearance.moreLink')}</Link>
+          </p>
         </SettingsSection>
 
         <SettingsSection title={t('language.label')}>

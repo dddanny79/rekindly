@@ -6,3 +6,4 @@ export * from './calendar';
 export * from './imports';
 export * from './duplicates';
 export * from './api';
+export * from './themes';

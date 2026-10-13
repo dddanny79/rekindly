@@ -92,7 +92,7 @@ describe('App shell', () => {
       vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
     );
     renderApp('/settings');
-    const group = await screen.findByRole('radiogroup', { name: 'Appearance' });
+    const group = await screen.findByRole('radiogroup', { name: 'Light or dark' });
     expect(screen.getByRole('radio', { name: 'System' })).toHaveAttribute('aria-checked', 'true');
 
     await userEvent.click(screen.getByRole('radio', { name: 'Dark' }));

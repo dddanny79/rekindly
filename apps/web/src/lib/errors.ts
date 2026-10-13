@@ -53,6 +53,9 @@ const KNOWN = [
   'mail_failed',
   'mail_invalid_from',
   'mail_password_unreadable',
+  'theme_built_in',
+  'theme_unknown',
+  'layout_unknown',
 ] as const;
 
 /** User-facing message for a failed request or WebAuthn ceremony. */
