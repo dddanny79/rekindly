@@ -1,4 +1,8 @@
-/** The daily summary mail: due follow-ups, coming birthdays, people overdue to contact. */
+/**
+ * The daily summary mail: due follow-ups, coming birthdays and other recurring days,
+ * people overdue to contact.
+ */
+import { personDateLabel } from '@app/shared';
 import { getAccountRow } from '../auth/account';
 import type { Db } from '../db/client';
 import { log } from '../lib/log';
@@ -23,11 +27,14 @@ const TEXT = {
     title: 'Today',
     due: 'Due follow-ups',
     overdueBy: (n: number) => `overdue by ${n} ${n === 1 ? 'day' : 'days'}`,
-    birthdays: 'Birthdays',
+    birthdays: 'Birthdays and other days',
+    birthday: 'Birthday',
     today: 'today',
     tomorrow: 'tomorrow',
     inDays: (n: number) => `in ${n} days`,
     turns: (n: number) => `turns ${n}`,
+    years: (n: number) => `${n} ${n === 1 ? 'year' : 'years'}`,
+    yearsSince: (n: number) => `${n} ${n === 1 ? 'year' : 'years'} ago`,
     overdue: 'Long time no talk',
     never: 'no contact yet',
     last: (d: string) => `last ${d}`,
@@ -40,11 +47,14 @@ const TEXT = {
     title: 'Heute',
     due: 'Fällige Wiedervorlagen',
     overdueBy: (n: number) => `seit ${n} ${n === 1 ? 'Tag' : 'Tagen'} fällig`,
-    birthdays: 'Geburtstage',
+    birthdays: 'Geburtstage und Jahrestage',
+    birthday: 'Geburtstag',
     today: 'heute',
     tomorrow: 'morgen',
     inDays: (n: number) => `in ${n} Tagen`,
     turns: (n: number) => `wird ${n}`,
+    years: (n: number) => `${n} ${n === 1 ? 'Jahr' : 'Jahre'}`,
+    yearsSince: (n: number) => `seit ${n} ${n === 1 ? 'Jahr' : 'Jahren'}`,
     overdue: 'Lange nicht gesprochen',
     never: 'noch kein Kontakt',
     last: (d: string) => `zuletzt ${d}`,
@@ -62,9 +72,10 @@ const localDate = (date: Date) =>
 const daysBetween = (from: string, to: string) =>
   Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
 
-/** The summary for a day, or null if nothing is due. Birthdays: the next 7 days. */
+/** The summary for a day, or null if nothing is due. Birthdays and other days: the next 7 days. */
 export function buildDigest(db: Db, publicUrl: URL, now = new Date()): Mail | null {
-  const t = TEXT[localeOf(db)];
+  const locale = localeOf(db);
+  const t = TEXT[locale];
   const date = localDate(now);
   const today = getToday(db, { date });
   const link = (personId: string) => new URL(`/people/${personId}`, publicUrl).toString();
@@ -75,12 +86,24 @@ export function buildDigest(db: Db, publicUrl: URL, now = new Date()): Mail | nu
       href: r.person ? link(r.person.id) : undefined,
     };
   });
-  const birthdays = today.birthdays
-    .filter((b) => b.inDays <= 7)
-    .map((b) => ({
-      text: `${b.person.displayName} — ${b.inDays === 0 ? t.today : b.inDays === 1 ? t.tomorrow : t.inDays(b.inDays)}${b.turns ? `, ${t.turns(b.turns)}` : ''}`,
+  const when = (days: number) => (days === 0 ? t.today : days === 1 ? t.tomorrow : t.inDays(days));
+  // Birthdays and other recurring days in one list, soonest first. Memorial days
+  // count the years since, without any congratulating tone.
+  const birthdays = [
+    ...today.birthdays.map((b) => ({
+      inDays: b.inDays,
+      text: `${b.person.displayName} — ${t.birthday}, ${when(b.inDays)}${b.turns ? `, ${t.turns(b.turns)}` : ''}`,
       href: link(b.person.id),
-    }));
+    })),
+    ...today.dates.map((d) => ({
+      inDays: d.inDays,
+      text: `${d.person.displayName} — ${personDateLabel(d, locale)}, ${when(d.inDays)}${d.years ? `, ${d.kind === 'memorial' ? t.yearsSince(d.years) : t.years(d.years)}` : ''}`,
+      href: link(d.person.id),
+    })),
+  ]
+    .filter((b) => b.inDays <= 7)
+    .sort((a, b) => a.inDays - b.inDays)
+    .map(({ text, href }) => ({ text, href }));
   const overdue = today.overdueContacts.map((o) => ({
     text: `${o.person.displayName} — ${o.lastContactAt ? t.last(o.lastContactAt.slice(0, 10)) : t.never}`,
     href: link(o.person.id),

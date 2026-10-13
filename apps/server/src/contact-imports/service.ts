@@ -16,6 +16,7 @@ import {
   entries,
   entryPeople,
   facts,
+  personDates,
   organizations,
   people,
   personTags,
@@ -25,7 +26,7 @@ import {
   tags,
 } from '../db/schema';
 import { findTagByName } from '../catalog/tags';
-import { addressKey, ensureOrganizationPath } from '../dav/inbound';
+import { addressKey, dateKey, ensureOrganizationPath } from '../dav/inbound';
 import { createEntry } from '../entries/service';
 import { removeFile, storePhoto } from '../files/service';
 import { DomainError, notFound } from '../lib/errors';
@@ -264,6 +265,26 @@ function addFactsAndReminders(db: Db, personId: string, c: ImportContact, track:
   for (const [sort, text] of (c.facts ?? []).entries()) {
     if (known.has(text)) continue;
     track('facts', db.insert(facts).values({ personId, text, sort }).returning().get().id);
+  }
+  const knownDays = new Set(
+    db
+      .select()
+      .from(personDates)
+      .where(and(eq(personDates.personId, personId), notDeleted(personDates)))
+      .all()
+      .map(dateKey),
+  );
+  for (const day of c.dates) {
+    if (knownDays.has(dateKey(day))) continue;
+    knownDays.add(dateKey(day));
+    track(
+      'person_dates',
+      db
+        .insert(personDates)
+        .values({ personId, ...day })
+        .returning()
+        .get().id,
+    );
   }
   for (const r of c.reminders ?? []) {
     const row = db
@@ -656,6 +677,7 @@ const TRASHABLE = {
   affiliations,
   entries,
   facts,
+  person_dates: personDates,
   reminders,
   relationships,
 } as const;

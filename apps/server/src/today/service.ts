@@ -6,11 +6,13 @@ import {
   TODAY_BIRTHDAY_DAYS,
   TODAY_RECENT_LIMIT,
   type TodayBirthday,
+  type TodayDate,
+  personDateYears,
   type TodayResponse,
 } from '@app/shared';
 import { backupWarning } from '../backup/backups';
 import type { Db } from '../db/client';
-import { entries, entryPeople, people, personViews } from '../db/schema';
+import { entries, entryPeople, people, personDates, personViews } from '../db/schema';
 import { notDeleted, nowIso } from '../lib/sql';
 import { getLivePerson, toPersonRef } from '../people/refs';
 import { relatedToFor } from '../people/related';
@@ -72,6 +74,51 @@ function birthdays(db: Db, today: string, spaceId?: string): TodayBirthday[] {
     person: toPersonRef(person),
     birthday: person.birthday!,
     ...next,
+    relatedTo: related.get(person.id) ?? null,
+  }));
+}
+
+/**
+ * Recurring days (wedding anniversaries, memorial days …) in the birthday window,
+ * of the same people whose birthdays are shown.
+ */
+export function upcomingDates(
+  db: Db,
+  today: string,
+  options: { spaceId?: string; days?: number; personId?: string } = {},
+): TodayDate[] {
+  const list = db
+    .select({ day: personDates, person: people })
+    .from(personDates)
+    .innerJoin(people, eq(people.id, personDates.personId))
+    .where(
+      and(
+        notDeleted(personDates),
+        activePeople(options.spaceId),
+        options.personId ? eq(people.id, options.personId) : undefined,
+      ),
+    )
+    .all()
+    .map(({ day, person }) => ({ day, person, next: nextBirthday(day.date, today) }))
+    .filter(({ next }) => next.inDays <= (options.days ?? TODAY_BIRTHDAY_DAYS))
+    .sort(
+      (a, b) =>
+        a.next.inDays - b.next.inDays ||
+        toPersonRef(a.person).displayName.localeCompare(toPersonRef(b.person).displayName),
+    );
+  const related = relatedToFor(
+    db,
+    list.filter(({ person }) => !person.listed).map(({ person }) => person.id),
+  );
+  return list.map(({ day, person, next }) => ({
+    person: toPersonRef(person),
+    dateId: day.id,
+    kind: day.kind,
+    label: day.label,
+    date: day.date,
+    on: next.on,
+    inDays: next.inDays,
+    years: personDateYears(day, next.on),
     relatedTo: related.get(person.id) ?? null,
   }));
 }
@@ -161,6 +208,7 @@ export function getToday(db: Db, query: { date?: string; spaceId?: string }): To
     date,
     reminders,
     birthdays: birthdays(db, date, query.spaceId),
+    dates: upcomingDates(db, date, { spaceId: query.spaceId }),
     overdueContacts: overdueContacts(db, date, query.spaceId),
     recent: recent(db, query.spaceId),
     backup: backupWarning(db),

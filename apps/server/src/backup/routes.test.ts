@@ -72,6 +72,7 @@ async function filled() {
   await post(t, `/people/${jana.id}/facts`, { text: 'Tochter Lea', pinned: true });
   await post(t, `/people/${jana.id}/tags`, { name: 'kunde' });
   await post(t, `/people/${jana.id}/questions`, { text: 'Wie war der Urlaub?' });
+  await post(t, `/people/${jana.id}/dates`, { kind: 'wedding', date: '2015-06-12' });
   await post(t, `/people/${jana.id}/relationships`, {
     personId: tom.id,
     typeId: t.typeId('friend'),
@@ -126,6 +127,7 @@ describe('export and import', () => {
     expect(exported.data.people).toHaveLength(4);
     expect(exported.data.files).toHaveLength(1);
     expect(exported.data.questions).toHaveLength(1);
+    expect(exported.data.personDates).toHaveLength(1);
     expect(JSON.stringify(exported)).not.toContain('password');
 
     const target = await app();
@@ -143,6 +145,7 @@ describe('export and import', () => {
     const person = await target.json<Person>(target.request(`/api/v1/people/${jana.id}`));
     expect(person).toMatchObject({ displayName: 'Jana (Jani) Müller', birthday: '--10-24' });
     expect(person.questions.map((q) => q.text)).toEqual(['Wie war der Urlaub?']);
+    expect(person.dates.map((d) => d.kind)).toEqual(['wedding']);
     expect((await target.request(person.photoUrl!)).status).toBe(200);
     const found = await target.json<SearchResponse>(target.request('/api/v1/search?q=angebot'));
     expect(found.results.map((r) => r.id).sort()).toEqual(
@@ -267,6 +270,7 @@ describe('export and import', () => {
     const exported = await exportOf(t);
     const v2: Partial<typeof exported.data> = { ...exported.data };
     delete v2.questions;
+    delete v2.personDates;
     const v1: Partial<typeof exported.data> = { ...v2 };
     delete v1.themes;
     for (const [version, data] of [

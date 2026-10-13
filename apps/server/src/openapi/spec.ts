@@ -312,6 +312,19 @@ export const OPERATIONS: Operation[] = [
     response: 'empty',
     status: 204,
   }),
+  op('post', '/people/:id/dates', 'People', 'Add a recurring day (wedding anniversary …)', {
+    body: s.createPersonDateRequestSchema,
+    response: s.personDateSchema,
+    status: 201,
+  }),
+  op('patch', '/people/:id/dates/:itemId', 'People', 'Change a recurring day', {
+    body: s.updatePersonDateRequestSchema,
+    response: s.personDateSchema,
+  }),
+  op('delete', '/people/:id/dates/:itemId', 'People', 'Move a recurring day to the trash', {
+    response: 'empty',
+    status: 204,
+  }),
   op('post', '/people/:id/questions', 'People', 'Add a question for next time', {
     body: s.createQuestionRequestSchema,
     response: s.questionSchema,

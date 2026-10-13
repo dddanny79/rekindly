@@ -1,8 +1,10 @@
 /**
  * vCard 3.0 as iOS Contacts reads and writes it (RFC 2426 plus Apple's
  * conventions: `itemN.X-ABLabel` for custom labels, `X-APPLE-OMIT-YEAR` for
- * birthdays without a year). Pure functions, no database access.
+ * birthdays without a year, `itemN.X-ABDATE` for other dates). Pure functions, no
+ * database access.
  */
+import { PERSON_DATE_LABELS, type PersonDateKind } from '@app/shared';
 
 export type PointKind = 'phone' | 'email' | 'url' | 'messenger' | 'social';
 
@@ -22,6 +24,15 @@ export interface CardAddress {
   country: string | null;
 }
 
+/** A recurring day besides the birthday. */
+export interface CardDate {
+  kind: PersonDateKind;
+  /** Own label; null = the name of the kind. */
+  label: string | null;
+  /** `YYYY-MM-DD` or `--MM-DD`. */
+  date: string;
+}
+
 /** What the app knows about a person, in vCard terms. */
 export interface CardData {
   uid: string;
@@ -39,6 +50,7 @@ export interface CardData {
   note: string | null;
   points: CardPoint[];
   addresses: CardAddress[];
+  dates: CardDate[];
 }
 
 export interface VcardLine {
@@ -202,6 +214,42 @@ export const typeLabel = (type: string, locale: 'en' | 'de') =>
 /** `_$!<Mobile>!$_` (Apple's built-in label) → `Mobile`. */
 const appleLabel = (label: string) => label.replace(/^_\$!<(.*)>!\$_$/, '$1');
 
+/** Apple's built-in label for anniversaries; the app's wedding anniversary. */
+const APPLE_ANNIVERSARY = '_$!<Anniversary>!$_';
+
+/** Date labels (en/de, plus common variants) that stand for a kind of day. */
+const DATE_LABEL_KINDS = new Map<string, PersonDateKind>([
+  ...(['en', 'de'] as const).flatMap((locale) =>
+    (Object.entries(PERSON_DATE_LABELS[locale]) as [PersonDateKind, string][])
+      .filter(([kind]) => kind !== 'custom')
+      .map(([kind, label]) => [label.toLowerCase(), kind] as const),
+  ),
+  ['wedding', 'wedding'],
+  ['hochzeit', 'wedding'],
+  ['jubiläum', 'anniversary'],
+  ['date of death', 'memorial'],
+  ['memorial', 'memorial'],
+  ['sterbetag', 'memorial'],
+  ['nameday', 'nameday'],
+  ['met', 'met'],
+  ['first met', 'met'],
+]);
+
+/** A date line's label → kind and own label (null when the kind says it all). */
+function dateKind(
+  label: string | null,
+  locale: 'en' | 'de',
+): { kind: PersonDateKind; label: string | null } {
+  const other = typeLabel('OTHER', locale)!;
+  if (!label) return { kind: 'custom', label: other };
+  if (label === APPLE_ANNIVERSARY) return { kind: 'wedding', label: null };
+  const text = appleLabel(label).trim();
+  const kind = DATE_LABEL_KINDS.get(text.toLowerCase());
+  // Apple's `_$!<Other>!$_` and an empty label are just “other”.
+  if (kind) return { kind, label: null };
+  return { kind: 'custom', label: text && text !== 'Other' ? text : other };
+}
+
 // Building --------------------------------------------------------------------------------
 
 const PRODID = '-//Rekindly//CardDAV//EN';
@@ -252,7 +300,13 @@ function typed(
  */
 export function buildVcard(
   card: CardData,
-  options: { extraLines?: string[]; link?: { url: string; label: string }; photo?: Buffer } = {},
+  options: {
+    extraLines?: string[];
+    link?: { url: string; label: string };
+    photo?: Buffer;
+    /** Language of the labels of recurring days. */
+    locale?: 'en' | 'de';
+  } = {},
 ): string {
   const b = new Builder();
   b.raw('BEGIN:VCARD');
@@ -299,6 +353,17 @@ export function buildVcard(
       .join(';');
     typed(b, 'ADR', value, a.label, [], false);
   }
+  for (const day of card.dates) {
+    // Without a year: Apple's placeholder year, like the birthday.
+    const [value, params] = day.date.startsWith('--')
+      ? [`1604-${day.date.slice(2)}`, ['X-APPLE-OMIT-YEAR=1604']]
+      : [day.date, []];
+    const label =
+      day.kind === 'wedding'
+        ? APPLE_ANNIVERSARY
+        : (day.label ?? PERSON_DATE_LABELS[options.locale ?? 'en'][day.kind]);
+    b.labelled('X-ABDATE', value, label, params);
+  }
   if (options.link) b.labelled('URL', options.link.url, options.link.label);
   if (options.photo) {
     b.add('PHOTO', options.photo.toString('base64'), ['ENCODING=b', 'TYPE=JPEG']);
@@ -338,6 +403,9 @@ const KNOWN = new Set([
   'PHOTO',
   'REV',
   'X-SOCIALPROFILE',
+  'X-ABDATE',
+  'ANNIVERSARY',
+  'X-ANNIVERSARY',
 ]);
 
 const nullable = (value: string | undefined) => {
@@ -417,8 +485,15 @@ export function parseVcard(
     note: null,
     points: [],
     addresses: [],
+    dates: [],
     photo: null,
     extraLines: [],
+  };
+  const addDate = (day: CardDate) => {
+    if (
+      !card.dates.some((d) => d.kind === day.kind && d.label === day.label && d.date === day.date)
+    )
+      card.dates.push(day);
   };
   let fn: string | null = null;
 
@@ -448,6 +523,19 @@ export function parseVcard(
       case 'BDAY':
         card.birthday = parseBirthday(line);
         break;
+      case 'ANNIVERSARY':
+      case 'X-ANNIVERSARY': {
+        // vCard 4 (and some clients in 3.0): the date of marriage.
+        const date = parseBirthday(line);
+        if (date) addDate({ kind: 'wedding', label: null, date });
+        break;
+      }
+      case 'X-ABDATE': {
+        const date = parseBirthday(line);
+        const raw = line.group ? (groupLabels.get(line.group) ?? null) : null;
+        if (date) addDate({ ...dateKind(raw, options.locale), date });
+        break;
+      }
       case 'ORG':
         card.organization = splitStructured(value)
           .map((p) => p.trim())
@@ -561,7 +649,7 @@ export function servedVcard(
 
 /**
  * True if two cards carry the same data as far as the app stores it (names,
- * birthday, organization, note, contact points and addresses in any order,
+ * birthday, organization, note, contact points, addresses and dates in any order,
  * kept extra lines, photo present or not).
  */
 export function sameContent(
@@ -578,6 +666,7 @@ export function sameContent(
       note: c.note,
       points: c.points.map((p) => JSON.stringify(p)).sort(),
       addresses: c.addresses.map((a) => JSON.stringify(a)).sort(),
+      dates: c.dates.map((d) => JSON.stringify(d)).sort(),
       // Group names of extra lines are renamed when stored (itemN → extraN).
       extras: c.extraLines.map((l) => l.replace(/^[A-Za-z0-9-]+\./, '')).sort(),
     });

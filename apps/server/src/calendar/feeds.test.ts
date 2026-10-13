@@ -22,11 +22,14 @@ const inDays = (n: number) => {
   return local(d);
 };
 
-async function feed(input: { spaceIds?: string[] | null; includeBirthdays?: boolean } = {}) {
+async function feed(
+  input: { spaceIds?: string[] | null; includeBirthdays?: boolean; includeDates?: boolean } = {},
+) {
   const created = await post<CreateCalendarFeedResponse>('/calendar-feeds', {
     name: 'iPhone',
     spaceIds: input.spaceIds ?? null,
     includeBirthdays: input.includeBirthdays ?? false,
+    ...(input.includeDates === undefined ? {} : { includeDates: input.includeDates }),
   });
   const path = new URL(created.url).pathname;
   const res = await t.app.request(path); // no cookie needed
@@ -82,6 +85,32 @@ describe('calendar feeds', () => {
     expect(lines).toContain('SUMMARY:Geburtstag: Jana Berger');
     expect(lines).toContain('DTSTART;VALUE=DATE:20080308');
     expect(lines).toContain('SUMMARY:Geburtstag: Lea Berger (über Jana Berger)');
+    expect(lines.filter((l) => l === 'RRULE:FREQ=YEARLY')).toHaveLength(2);
+  });
+
+  it('adds recurring days only when asked, as yearly events', async () => {
+    const jana = await post<Person>('/people', {
+      spaceId: t.businessSpace,
+      firstName: 'Jana',
+      lastName: 'Berger',
+    });
+    await post(`/people/${jana.id}/dates`, { kind: 'wedding', date: '2015-06-12' });
+    await post(`/people/${jana.id}/dates`, { kind: 'custom', label: 'Hauskauf', date: '--09-01' });
+    const gone = await post<{ id: string }>(`/people/${jana.id}/dates`, {
+      kind: 'nameday',
+      date: '--07-26',
+    });
+    await t.request(`/api/v1/people/${jana.id}/dates/${gone.id}`, { method: 'DELETE' });
+
+    // Older clients leave the option out: no recurring days.
+    expect((await feed({ includeBirthdays: true })).lines.join('\n')).not.toContain('Hochzeitstag');
+    const { created, lines } = await feed({ includeDates: true });
+    expect(created.feed.includeDates).toBe(true);
+    expect(lines).toContain('DTSTART;VALUE=DATE:20150612');
+    expect(lines).toContain('SUMMARY:Hochzeitstag: Jana Berger');
+    expect(lines).toContain('DTSTART;VALUE=DATE:20000901');
+    expect(lines).toContain('SUMMARY:Hauskauf: Jana Berger');
+    expect(lines.join('\n')).not.toContain('Namenstag');
     expect(lines.filter((l) => l === 'RRULE:FREQ=YEARLY')).toHaveLength(2);
   });
 

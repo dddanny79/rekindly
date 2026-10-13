@@ -1,5 +1,5 @@
 import { personDisplayName } from '@app/shared';
-import type { CardAddress, CardPoint } from '../dav/vcard';
+import type { CardAddress, CardDate, CardPoint } from '../dav/vcard';
 
 /** A contact read from an import file, before it becomes a person or organization. */
 export interface ImportContact {
@@ -19,6 +19,8 @@ export interface ImportContact {
   note: string | null;
   points: CardPoint[];
   addresses: CardAddress[];
+  /** Recurring days besides the birthday (vCard X-ABDATE / ANNIVERSARY, Monica). */
+  dates: CardDate[];
   tags: string[];
   favorite: boolean;
   photo: Buffer | null;
@@ -88,6 +90,7 @@ export const emptyContact = (): ImportContact => ({
   note: null,
   points: [],
   addresses: [],
+  dates: [],
   tags: [],
   favorite: false,
   photo: null,

@@ -66,6 +66,7 @@ describe('database', () => {
         'passkeys',
         'people',
         'person_tags',
+        'person_dates',
         'person_views',
         'questions',
         'relationship_types',

@@ -38,6 +38,7 @@ import { ensureTag, tagsForPeople } from '../catalog/tags';
 import { lastContactOf } from '../entries/service';
 import { listFacts } from '../facts/service';
 import { listQuestions } from '../questions/service';
+import { listPersonDates } from '../person-dates/service';
 import { fileUrl } from '../files/service';
 import { DomainError, notFound } from '../lib/errors';
 import { foldedContains, notDeleted, nowIso } from '../lib/sql';
@@ -332,6 +333,7 @@ export function getPerson(db: Db, id: string): Person {
     fields: fieldValuesFor(db, [id]).get(id) ?? [],
     facts: listFacts(db, id),
     questions: listQuestions(db, id),
+    dates: listPersonDates(db, id),
     reminders: listReminders(db, { personId: id, status: 'open' }),
     lastContact: lastContactOf(db, id),
   };

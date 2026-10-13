@@ -6,6 +6,8 @@ import {
   entrySchema,
   factSchema,
   questionSchema,
+  personDateSchema,
+  type PersonDateKind,
   askQuestionResponseSchema,
   reminderSchema,
   fieldDefinitionListResponseSchema,
@@ -288,6 +290,21 @@ export const factsApi = {
     api(`${V1}/people/${personId}/facts/order`, z.unknown(), { method: 'PUT', json: { ids } }),
 };
 
+export const personDatesApi = {
+  create: (
+    personId: string,
+    input: { kind: PersonDateKind; label?: string | null; date: string },
+  ) => api(`${V1}/people/${personId}/dates`, personDateSchema, { json: input }),
+  update: (
+    personId: string,
+    id: string,
+    patch: { kind?: PersonDateKind; label?: string | null; date?: string },
+  ) =>
+    api(`${V1}/people/${personId}/dates/${id}`, personDateSchema, { method: 'PATCH', json: patch }),
+  remove: (personId: string, id: string) =>
+    api(`${V1}/people/${personId}/dates/${id}`, null, { method: 'DELETE' }),
+};
+
 export const questionsApi = {
   create: (personId: string, input: { text: string }) =>
     api(`${V1}/people/${personId}/questions`, questionSchema, { json: input }),
@@ -361,8 +378,12 @@ export const calendarFeedsQuery = queryOptions({
 });
 
 export const calendarFeedsApi = {
-  create: (input: { name: string; spaceIds: string[] | null; includeBirthdays: boolean }) =>
-    api(`${V1}/calendar-feeds`, createCalendarFeedResponseSchema, { json: input }),
+  create: (input: {
+    name: string;
+    spaceIds: string[] | null;
+    includeBirthdays: boolean;
+    includeDates: boolean;
+  }) => api(`${V1}/calendar-feeds`, createCalendarFeedResponseSchema, { json: input }),
   remove: (id: string) => api(`${V1}/calendar-feeds/${id}`, null, { method: 'DELETE' }),
 };
 

@@ -5,11 +5,12 @@ import {
   APP_NAME,
   type CalendarFeed,
   createCalendarFeedRequestSchema,
+  personDateLabel,
   personDisplayName,
 } from '@app/shared';
 import { getAccountRow } from '../auth/account';
 import type { Db } from '../db/client';
-import { calendarFeeds, people } from '../db/schema';
+import { calendarFeeds, people, personDates } from '../db/schema';
 import type { AppEnv, Deps } from '../env';
 import { notFound } from '../lib/errors';
 import { log } from '../lib/log';
@@ -29,6 +30,7 @@ const toFeed = (row: Row): CalendarFeed => ({
   name: row.name,
   spaceIds: row.spaceIds ?? null,
   includeBirthdays: row.includeBirthdays,
+  includeDates: row.includeDates,
   createdAt: row.createdAt,
   lastUsedAt: row.lastUsedAt,
 });
@@ -46,7 +48,8 @@ function localToday() {
 
 /**
  * The calendar of a feed: open follow-ups on their due date (overdue ones on
- * today, so they stay visible), optionally birthdays as yearly events.
+ * today, so they stay visible), optionally birthdays and other recurring days
+ * (wedding anniversaries, memorial days …) as yearly events.
  */
 export function feedCalendar(db: Db, feed: Row, origin: string): string {
   const locale = getAccountRow(db)?.locale === 'de' ? 'de' : 'en';
@@ -96,6 +99,31 @@ export function feedCalendar(db: Db, feed: Row, origin: string): string {
       });
     }
   }
+
+  if (feed.includeDates) {
+    const rows = db
+      .select({ day: personDates, person: people })
+      .from(personDates)
+      .innerJoin(people, eq(people.id, personDates.personId))
+      .where(and(notDeleted(personDates), notDeleted(people), isNull(people.archivedAt)))
+      .all()
+      .filter(({ person }) => inSpaces(person.spaceId));
+    const related = relatedToFor(
+      db,
+      rows.filter(({ person }) => !person.listed).map(({ person }) => person.id),
+    );
+    for (const { day, person } of rows) {
+      const via = related.get(person.id);
+      events.push({
+        uid: `date-${day.id}@${new URL(origin).host}`,
+        date: day.date.startsWith('--') ? `2000${day.date.slice(1)}` : day.date,
+        yearly: true,
+        summary: `${personDateLabel(day, locale)}: ${personDisplayName(person)}${via ? ` (${t.via} ${via.person.displayName})` : ''}`,
+        url: `${origin}/people/${person.id}`,
+        updatedAt: day.updatedAt,
+      });
+    }
+  }
   return buildCalendar(`${APP_NAME} · ${feed.name}`, events);
 }
 
@@ -124,6 +152,7 @@ export function calendarFeedRoutes({ db, config }: Deps) {
           tokenHash: hash(token),
           spaceIds,
           includeBirthdays: input.includeBirthdays,
+          includeDates: input.includeDates,
         })
         .returning()
         .get();

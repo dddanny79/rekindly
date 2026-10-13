@@ -30,6 +30,11 @@ const jana: CardData = {
       country: 'Deutschland',
     },
   ],
+  dates: [
+    { kind: 'wedding', label: null, date: '2015-06-12' },
+    { kind: 'memorial', label: null, date: '--03-10' },
+    { kind: 'custom', label: 'Hauskauf', date: '2019-09-01' },
+  ],
 };
 
 describe('vCard', () => {
@@ -51,7 +56,12 @@ describe('vCard', () => {
     expect(lines).toContain('item1.X-ABLabel:Zentrale Köln');
     expect(lines).toContain('EMAIL;type=INTERNET,WORK:jana@example.com');
     expect(lines).toContain('ADR;type=WORK:;;Domplatz 1;Köln;;50667;Deutschland');
-    expect(lines).toContain('item2.URL:https://contacts.example.com/people/p-1');
+    expect(lines).toContain('item2.X-ABDATE:2015-06-12');
+    expect(lines).toContain('item2.X-ABLabel:_$!<Anniversary>!$_');
+    expect(lines).toContain('item3.X-ABDATE;X-APPLE-OMIT-YEAR=1604:1604-03-10');
+    expect(lines).toContain('item3.X-ABLabel:Anniversary of death');
+    expect(lines).toContain('item4.X-ABLabel:Hauskauf');
+    expect(lines).toContain('item5.URL:https://contacts.example.com/people/p-1');
     // Every physical line is at most 75 octets.
     for (const line of text.split('\r\n')) expect(Buffer.byteLength(line)).toBeLessThanOrEqual(75);
   });
@@ -82,8 +92,37 @@ describe('vCard', () => {
       note: jana.note,
       points: jana.points,
       addresses: jana.addresses,
+      dates: jana.dates,
       extraLines: [],
     });
+    // German labels read back the same.
+    const de = parseVcard(buildVcard(jana, { locale: 'de' }), { locale: 'en' });
+    expect(unfold(buildVcard(jana, { locale: 'de' }))).toContain('item3.X-ABLabel:Todestag');
+    expect(de.dates).toEqual(jana.dates);
+  });
+
+  it('reads dates from iPhones and other clients', () => {
+    const card = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      'N:Berger;Tom;;;',
+      'item1.X-ABDATE;X-APPLE-OMIT-YEAR=1604;type=pref:1604-07-26',
+      'item1.X-ABLabel:Namenstag',
+      'item2.X-ABDATE:2001-04-02',
+      'item2.X-ABLabel:Erster Arbeitstag',
+      'item3.X-ABDATE:2010-08-20',
+      'item3.X-ABLabel:_$!<Other>!$_',
+      'ANNIVERSARY:20120505',
+      'X-ABDATE:2003-01-01',
+      'END:VCARD',
+    ].join('\r\n');
+    expect(parseVcard(card, { locale: 'de' }).dates).toEqual([
+      { kind: 'nameday', label: null, date: '--07-26' },
+      { kind: 'custom', label: 'Erster Arbeitstag', date: '2001-04-02' },
+      { kind: 'custom', label: 'Andere', date: '2010-08-20' },
+      { kind: 'wedding', label: null, date: '2012-05-05' },
+      { kind: 'custom', label: 'Andere', date: '2003-01-01' },
+    ]);
   });
 
   it('reads what an iPhone sends and keeps unknown lines', () => {
@@ -98,7 +137,8 @@ describe('vCard', () => {
       'TEL;type=WORK;type=VOICE:0221 5550123',
       'item2.X-ABDATE;type=pref:2019-05-01',
       'item2.X-ABLabel:_$!<Anniversary>!$_',
-      'X-ABRELATEDNAMES:Anna',
+      'item3.X-ABRELATEDNAMES:Anna',
+      'item3.X-ABLabel:Partner',
       'BDAY;VALUE=date:1979-03-08',
       'PHOTO;ENCODING=b;TYPE=JPEG:/9j/AAAA',
       'END:VCARD',
@@ -112,15 +152,12 @@ describe('vCard', () => {
       { kind: 'phone', label: 'Work', value: '0221 5550123', isPrimary: false },
     ]);
     expect(parsed.photo?.length).toBeGreaterThan(0);
-    expect(parsed.extraLines).toEqual([
-      'item2.X-ABDATE;type=pref:2019-05-01',
-      'item2.X-ABLabel:_$!<Anniversary>!$_',
-      'X-ABRELATEDNAMES:Anna',
-    ]);
+    expect(parsed.dates).toEqual([{ kind: 'wedding', label: null, date: '2019-05-01' }]);
+    expect(parsed.extraLines).toEqual(['item3.X-ABRELATEDNAMES:Anna', 'item3.X-ABLabel:Partner']);
     // Written back under a group name that cannot clash with the app's itemN.
     const back = unfold(buildVcard({ ...jana, points: [] }, { extraLines: parsed.extraLines }));
-    expect(back).toContain('extra1.X-ABDATE;type=pref:2019-05-01');
-    expect(back).toContain('extra1.X-ABLabel:_$!<Anniversary>!$_');
+    expect(back).toContain('extra1.X-ABRELATEDNAMES:Anna');
+    expect(back).toContain('extra1.X-ABLabel:Partner');
   });
 
   it('translates Apple built-in labels into the app language', () => {
