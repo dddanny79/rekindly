@@ -47,6 +47,8 @@ server: no telemetry, no external calls except the services you configure.
 - **API and MCP** — documented REST API with API tokens, and an MCP server: ask
   Claude “what do I know about Maya?”.
 - **Mail** — a daily summary of what is due, and optional sign-in codes by email.
+- **Themes and layouts** — six built-in themes (light and dark) and five layouts for
+  the person page; build your own in the app and share it as a file.
 - **Private by design** — one account, passkeys, light and dark mode, English and
   German, works on the phone.
 
@@ -89,6 +91,7 @@ Details: [docs/import.md](docs/import.md#monica).
 | Mail: daily summary, sign-in codes (2FA)                     | [mail.md](docs/mail.md)                               |
 | AI features                                                  | [ai.md](docs/ai.md)                                   |
 | API, tokens, MCP for Claude                                  | [api.md](docs/api.md) — live reference at `/api/docs` |
+| Themes, layouts, the theme file format                       | [themes.md](docs/themes.md)                           |
 
 ## Configuration
 

@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/page-header';
 
 const TABS = [
   { to: '/settings', key: 'general' },
+  { to: '/settings/appearance', key: 'appearance' },
   { to: '/settings/spaces', key: 'spaces' },
   { to: '/settings/tags', key: 'tags' },
   { to: '/settings/relationship-types', key: 'relationshipTypes' },

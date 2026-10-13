@@ -78,6 +78,7 @@ describe('database', () => {
         'spaces',
         'sync_states',
         'tags',
+        'themes',
         'trusted_devices',
       ].sort(),
     );
