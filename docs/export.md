@@ -13,12 +13,12 @@
 API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
 `GET /api/v1/import/status`, `POST /api/v1/import` (body: the export file).
 
-## Format (version 1)
+## Format (version 2)
 
 ```json
 {
   "format": "rekindly-export",
-  "version": 1,
+  "version": 2,
   "exportedAt": "2026-10-12T14:00:00.000Z",
   "app": { "name": "Rekindly", "version": "0.0.0" },
   "data": {
@@ -40,6 +40,7 @@ API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
     "fieldValues": [],
     "settings": [],
     "davExtras": [],
+    "themes": [],
     "files": [
       {
         "id": "…",
@@ -62,9 +63,14 @@ API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
 - **The trash is included** (rows with `deletedAt`), so a restore brings it back.
 - `entryPeople` keeps the order in which people were linked to an entry.
 - `davExtras`: vCard fields from address book clients that the app has no field for.
+- `themes`: themes made or imported on this instance (the built-in ones are part of the app).
 - **Not included:** the account (name, email, password), passkeys, sessions, app
-  passwords, API tokens and calendar links (credentials stay with the instance), and data the
-  app derives itself (search index, CardDAV cache, recently viewed).
+  passwords, API tokens and calendar links (credentials stay with the instance), the
+  settings that belong to the instance (backup target, the sign-in-code switch, mail
+  delivery state), and data the app derives itself (search index, CardDAV cache,
+  recently viewed). The stored SMTP password and AI key are included only sealed with
+  the instance's key; on another server, enter them again.
+- Version 2 added `themes`; files of version 1 import as before.
 - `version` grows with incompatible changes; an import refuses files from a newer
   version than it knows.
 

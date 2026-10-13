@@ -3,16 +3,33 @@
 @import '@fontsource-variable/newsreader/opsz.css';
 @import '@fontsource-variable/newsreader/opsz-italic.css';
 @import '@fontsource-variable/source-sans-3/wght.css';
+@import '@fontsource-variable/source-sans-3/wght-italic.css';
+/* Fonts of the other themes: declared here, downloaded only when a theme uses them. */
+@import '@fontsource-variable/source-serif-4/opsz.css';
+@import '@fontsource-variable/source-serif-4/opsz-italic.css';
+@import '@fontsource-variable/literata/opsz.css';
+@import '@fontsource-variable/literata/opsz-italic.css';
+@import '@fontsource-variable/fraunces/opsz.css';
+@import '@fontsource-variable/fraunces/opsz-italic.css';
+@import '@fontsource-variable/inter/opsz.css';
+@import '@fontsource-variable/inter/opsz-italic.css';
+@import '@fontsource-variable/ibm-plex-sans/wght.css';
+@import '@fontsource-variable/ibm-plex-sans/wght-italic.css';
+@import '@fontsource-variable/atkinson-hyperlegible-next/wght.css';
+@import '@fontsource-variable/atkinson-hyperlegible-next/wght-italic.css';
 
 /*
  * Design reference: docs/design.md. The theme is set on <html data-theme="light|dark">
  * (resolved from the user's choice or the system preference, see src/lib/theme.ts).
+ * Fonts, radii, spacing, text size and colours are custom properties that a theme
+ * overrides at runtime (src/lib/appearance.ts, docs/themes.md); the values here are
+ * the defaults of the built-in Rekindly theme.
  */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
-  --font-sans: 'Source Sans 3 Variable', system-ui, sans-serif;
-  --font-serif: 'Newsreader Variable', Georgia, serif;
+  --font-sans: var(--font-ui);
+  --font-serif: var(--font-content);
 
   --text-display: 3.5rem;
   --text-display--line-height: 1;
@@ -42,11 +59,11 @@
   --text-kbd: 0.6875rem;
   --text-kbd--line-height: 18px;
 
-  --radius-xs: 2px;
-  --radius-sm: 3px;
-  --radius-md: 3px;
-  --radius-lg: 8px;
-  --radius-xl: 8px;
+  --radius-xs: var(--radius-base-xs);
+  --radius-sm: var(--radius-base-sm);
+  --radius-md: var(--radius-base-sm);
+  --radius-lg: var(--radius-base-lg);
+  --radius-xl: var(--radius-base-lg);
 
   --shadow-overlay: 0 18px 48px rgb(0 0 0 / 0.22);
 
@@ -84,6 +101,12 @@
 }
 
 :root {
+  --font-content: 'Newsreader Variable', Georgia, serif;
+  --font-ui: 'Source Sans 3 Variable', system-ui, sans-serif;
+  --radius-base-xs: 2px;
+  --radius-base-sm: 3px;
+  --radius-base-lg: 8px;
+  --text-scale: 100%;
   --background: #faf9f6;
   --foreground: #141414;
   --foreground-2: #3b3a36;
@@ -147,6 +170,7 @@
   }
   html {
     color-scheme: light;
+    font-size: var(--text-scale);
   }
   body {
     @apply bg-background font-sans text-base text-foreground antialiased;

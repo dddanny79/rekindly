@@ -9,7 +9,29 @@ export interface Mail {
   html: string;
 }
 
-/** Sends one mail to the account's address; failures become `mail_failed` with detail. */
+/**
+ * The API error for a failed delivery, so the app can explain the likely cause
+ * (docs/mail.md): server not reachable, login refused, TLS mode not matching the
+ * port, or sender/recipient refused. Anything else stays `mail_failed`.
+ */
+export function failureCode(error: unknown): string {
+  const code = (error as { code?: string }).code;
+  const message = error instanceof Error ? error.message : String(error);
+  if (code === 'EAUTH') return 'mail_auth_failed';
+  if (code === 'EENVELOPE') return 'mail_rejected';
+  if (/wrong version number|ssl3_get_record|unknown protocol|tls|ssl/i.test(message))
+    return 'mail_tls_mismatch';
+  if (
+    code === 'ETIMEDOUT' ||
+    code === 'EDNS' ||
+    code === 'ECONNECTION' ||
+    /ECONNREFUSED|EHOSTUNREACH|ENETUNREACH|ENOTFOUND|EAI_AGAIN|timeout/i.test(message)
+  )
+    return 'mail_unreachable';
+  return 'mail_failed';
+}
+
+/** Sends one mail to the account's address; failures carry their reason as detail. */
 export async function sendMail(config: SmtpConfig, mail: Mail): Promise<void> {
   const transport = nodemailer.createTransport({
     host: config.host,
@@ -27,7 +49,7 @@ export async function sendMail(config: SmtpConfig, mail: Mail): Promise<void> {
   } catch (error) {
     const detail = (error as Error).message.slice(0, 300);
     log.warn(`Mail to ${config.to} failed: ${detail}`);
-    throw new DomainError(502, 'mail_failed', detail);
+    throw new DomainError(502, failureCode(error), detail);
   } finally {
     transport.close();
   }

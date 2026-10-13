@@ -140,13 +140,14 @@ export function PeoplePage(): ReactElement {
               sort: e.target.value === 'name' ? undefined : (e.target.value as 'updated'),
             })
           }
-          className="md:w-44"
+          className="col-span-2 md:w-44"
         >
           <option value="name">{t('people.sort.name')}</option>
           <option value="updated">{t('people.sort.updated')}</option>
           <option value="lastContact">{t('people.sort.lastContact')}</option>
         </Select>
-        <div className="flex gap-2">
+        {/* Own row on phones, wrapping when the labels do not fit side by side. */}
+        <div className="col-span-2 flex flex-wrap gap-2">
           <Button
             variant="secondary"
             aria-pressed={!!search.favorite}

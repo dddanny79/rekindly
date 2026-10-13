@@ -30,6 +30,7 @@ import { trashRoutes } from './trash/routes';
 import { contactImportRoutes } from './contact-imports/routes';
 import { duplicateRoutes } from './duplicates/routes';
 import { apiTokenRoutes } from './api-tokens/routes';
+import { themeRoutes } from './themes/routes';
 import { aiRoutes } from './ai/routes';
 import { mailRoutes } from './mail/routes';
 import { mcpRoutes } from './mcp/routes';
@@ -127,6 +128,7 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   v1.route('/api-tokens', apiTokenRoutes(deps));
   v1.route('/ai', aiRoutes(deps));
   v1.route('/mail', mailRoutes(deps));
+  v1.route('/themes', themeRoutes(deps));
   v1.route('/', backupRoutes(deps));
   api.route('/v1', v1);
 

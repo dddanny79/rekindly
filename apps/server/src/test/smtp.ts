@@ -2,7 +2,7 @@ import type { AddressInfo } from 'node:net';
 import { SMTPServer } from 'smtp-server';
 
 /** A local SMTP server that keeps every received mail (raw text). */
-export async function smtpSink() {
+export async function smtpSink(options: { rejectAuth?: boolean } = {}) {
   const mails: string[] = [];
   const logins: { username?: string; password?: string }[] = [];
   const server = new SMTPServer({
@@ -12,7 +12,8 @@ export async function smtpSink() {
     logger: false,
     onAuth(auth, _session, callback) {
       logins.push({ username: auth.username, password: auth.password });
-      callback(null, { user: auth.username });
+      if (options.rejectAuth) callback(new Error('Invalid username or password'));
+      else callback(null, { user: auth.username });
     },
     onData(stream, _session, callback) {
       let raw = '';

@@ -11,6 +11,9 @@ import { peopleApi, useWrite } from '@/lib/data';
 import { contactHref } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 
+const PRESET_LABELS = ['mobile', 'work', 'home'] as const;
+const CUSTOM = '__custom';
+
 function ContactPointForm({
   initial,
   onSubmit,
@@ -31,7 +34,15 @@ function ContactPointForm({
 }) {
   const { t } = useTranslation();
   const [kind, setKind] = useState<ContactPointKind>(initial?.kind ?? 'phone');
+  // A native select instead of a datalist: Safari on the iPhone shows no list for those.
+  // An existing label that is no preset (e.g. imported) stays selectable as it is.
+  const translated = PRESET_LABELS.map((key) => t(`contact.labels.${key}`));
+  const presets =
+    initial?.label && !translated.includes(initial.label)
+      ? [...translated, initial.label]
+      : translated;
   const [label, setLabel] = useState(initial?.label ?? '');
+  const [custom, setCustom] = useState(false);
   const [value, setValue] = useState(initial?.value ?? '');
   const [isPrimary, setPrimary] = useState(initial?.isPrimary ?? false);
 
@@ -55,19 +66,33 @@ function ContactPointForm({
             </option>
           ))}
         </Select>
-        <Input
+        <Select
           aria-label={t('contact.label')}
+          value={custom ? CUSTOM : label}
+          onChange={(e) => {
+            const chosen = e.target.value;
+            setCustom(chosen === CUSTOM);
+            setLabel(chosen === CUSTOM ? '' : chosen);
+          }}
+        >
+          <option value="">{t('contact.noLabel')}</option>
+          {presets.map((preset) => (
+            <option key={preset} value={preset}>
+              {preset}
+            </option>
+          ))}
+          <option value={CUSTOM}>{t('contact.customLabel')}</option>
+        </Select>
+      </div>
+      {custom && (
+        <Input
+          aria-label={t('contact.ownLabel')}
           placeholder={t('contact.labelPlaceholder')}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
-          list="contact-labels"
+          autoFocus
         />
-      </div>
-      <datalist id="contact-labels">
-        {(['mobile', 'work', 'home'] as const).map((key) => (
-          <option key={key} value={t(`contact.labels.${key}`)} />
-        ))}
-      </datalist>
+      )}
       <Input
         aria-label={t('contact.value')}
         placeholder={t(`contact.placeholders.${kind}`)}

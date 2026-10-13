@@ -18,6 +18,7 @@ import type { Translations } from '@/i18n/locales/en';
 import { useAuthStatus } from '@/lib/auth';
 import { setPaletteOpen, usePaletteShortcut } from '@/lib/palette';
 import { modKeyLabel } from '@/lib/platform';
+import { useApplyAppearance } from '@/lib/appearance';
 
 interface NavItem {
   to: LinkProps['to'];
@@ -149,6 +150,7 @@ function MobileTabBar() {
 
 export function AppShell() {
   usePaletteShortcut();
+  useApplyAppearance();
   return (
     <div className="flex min-h-dvh">
       <Sidebar />

@@ -51,7 +51,8 @@ export function DataSettingsPage() {
   return (
     <>
       <SettingsSection title={t('data.export.title')} lead={t('data.export.lead')}>
-        <Button asChild>
+        {/* Long label: may wrap on narrow phones instead of running off the screen. */}
+        <Button asChild className="h-auto min-h-9 py-2 whitespace-normal">
           <a href={EXPORT_JSON_URL} download>
             <Download aria-hidden />
             {t('data.export.json')}
