@@ -72,7 +72,7 @@ test('an indirect contact from the relationship form (acceptance)', async ({ pag
     birthday: `2008-${pad(soon.getMonth() + 1)}-${pad(soon.getDate())}`,
   });
   await page.goto('/');
-  const birthdays = page.getByRole('region', { name: 'Birthdays · 14 days' });
+  const birthdays = page.getByRole('region', { name: 'Birthdays and other days · 14 days' });
   await expect(birthdays).toContainText('Lea Bergfeld');
   await expect(birthdays).toContainText('Child of Jana Bergfeld');
 

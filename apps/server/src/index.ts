@@ -6,6 +6,8 @@ import { deleteExpiredSessions } from './auth/sessions';
 import { ConfigError, loadConfig, type ServerConfig } from './config';
 import { createDb, runMigrations } from './db/client';
 import { seed } from './db/seed';
+import { getAccountRow } from './auth/account';
+import { adoptKeptDates } from './dav/inbound';
 import { createDeps } from './deps';
 import { log, setLogLevel } from './lib/log';
 import { flushSearchQueue } from './search/service';
@@ -45,6 +47,8 @@ try {
 const { db, sqlite } = handle;
 runMigrations(db, config.migrationsDir);
 seed(db);
+// Dates that address books sent before 0.3 become recurring days (once).
+adoptKeptDates(db, getAccountRow(db)?.locale === 'de' ? 'de' : 'en');
 deleteExpiredSessions(db);
 // Index whatever is still queued (e.g. everything after the index migration).
 flushSearchQueue(db);

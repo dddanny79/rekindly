@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { fieldValueSchema } from './catalog';
 import { personRefSchema, relatedToSchema } from './refs';
-import { factSchema, lastContactSchema, reminderSchema } from './timeline';
+import { factSchema, questionSchema, lastContactSchema, reminderSchema } from './timeline';
 
 export { personRefSchema, type PersonRef, relatedToSchema, type RelatedTo } from './refs';
 import {
@@ -14,6 +14,53 @@ import {
 } from './common';
 
 // Building blocks ---------------------------------------------------------------
+
+/**
+ * Days that come back every year, besides the birthday. `wedding` is the vCard
+ * anniversary; `custom` needs a label.
+ */
+export const PERSON_DATE_KINDS = [
+  'wedding',
+  'anniversary',
+  'memorial',
+  'nameday',
+  'met',
+  'custom',
+] as const;
+export const personDateKindSchema = z.enum(PERSON_DATE_KINDS);
+export type PersonDateKind = z.infer<typeof personDateKindSchema>;
+
+export const personDateSchema = z.object({
+  id: idSchema,
+  kind: personDateKindSchema,
+  /** Own name of a custom day; null for the other kinds (named by their kind). */
+  label: z.string().nullable(),
+  /** `--MM-DD` or `YYYY-MM-DD` (year optional, like birthdays). */
+  date: z.string(),
+  /** Shown on Today, in the daily mail and in calendar feeds (always in the details). */
+  remind: z.boolean(),
+});
+export type PersonDate = z.infer<typeof personDateSchema>;
+
+const personDateLabel = optionalText(60).optional();
+export const createPersonDateRequestSchema = z
+  .object({
+    kind: personDateKindSchema,
+    label: personDateLabel,
+    date: birthdaySchema,
+    /** Default true. */
+    remind: z.boolean().optional(),
+  })
+  .refine((v) => v.kind !== 'custom' || !!v.label, {
+    message: 'A custom day needs a label',
+    path: ['label'],
+  });
+export const updatePersonDateRequestSchema = z.object({
+  kind: personDateKindSchema.optional(),
+  label: personDateLabel,
+  date: birthdaySchema.optional(),
+  remind: z.boolean().optional(),
+});
 
 export const CONTACT_POINT_KINDS = ['phone', 'email', 'url', 'messenger', 'social'] as const;
 export const contactPointKindSchema = z.enum(CONTACT_POINT_KINDS);
@@ -177,6 +224,10 @@ export const personSchema = z.object({
   tags: z.array(tagRefSchema),
   fields: z.array(fieldValueSchema),
   facts: z.array(factSchema),
+  /** Open questions for the next conversation, in their order. */
+  questions: z.array(questionSchema),
+  /** Recurring days (wedding anniversary, memorial day …), in calendar order. */
+  dates: z.array(personDateSchema),
   /** Open follow-ups, earliest first. */
   reminders: z.array(reminderSchema),
   lastContact: lastContactSchema.nullable(),

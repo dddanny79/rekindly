@@ -1,7 +1,8 @@
 /**
  * A small, realistic and completely invented data set for screenshots and the demo:
  * a handful of people across two spaces, with organizations, facts, a timeline,
- * follow-ups, birthdays and relationships. Dates are relative to today.
+ * follow-ups, questions for next time, birthdays and other recurring days, and
+ * relationships. Dates are relative to today.
  *
  *   pnpm --filter @app/server showcase-data
  */
@@ -10,6 +11,8 @@ import type { Db } from '../db/client';
 import { relationshipTypes, spaces } from '../db/schema';
 import { createEntry } from '../entries/service';
 import { addFact } from '../facts/service';
+import { addPersonDate } from '../person-dates/service';
+import { addQuestion } from '../questions/service';
 import { createOrganization } from '../organizations/service';
 import {
   addContactPoint,
@@ -92,6 +95,7 @@ export function insertShowcase(db: Db) {
   point(maya, 'phone', '+1 415 555 0142', 'Mobile');
   addFact(db, maya, { text: 'Prefers calls before 10 am', pinned: true });
   addFact(db, maya, { text: 'Training for the Berlin Marathon in September' });
+  addQuestion(db, maya, { text: 'How did the marathon go?' });
   addPersonTag(db, maya, 'pilot');
 
   const jonas = person(
@@ -199,6 +203,9 @@ export function insertShowcase(db: Db) {
     'Dinner at hers with Luca. They are moving to Munich in spring — Luca got the job at the hospital.',
     'Dinner at Sarah’s',
   );
+  addQuestion(db, sarah, { text: 'Has Luca started at the hospital?' });
+  addQuestion(db, sarah, { text: 'When is the move to Munich?' });
+  addPersonDate(db, sarah, { kind: 'anniversary', date: birthday(9, 6) });
   addReminder(db, sarah, {
     title: 'Birthday present: hiking map of the Dolomites',
     dueOn: inDays(1),
@@ -225,6 +232,8 @@ export function insertShowcase(db: Db) {
     birthday: birthday(12, 72),
   });
   addFact(db, helen, { text: 'Has a spare key' });
+  addPersonDate(db, helen, { kind: 'memorial', date: birthday(4, 3) });
+  addPersonDate(db, helen, { kind: 'wedding', date: birthday(140, 48) });
   note(
     [helen],
     'note',

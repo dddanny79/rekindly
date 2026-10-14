@@ -18,6 +18,8 @@ import {
   duplicateDismissals,
   entryPeople,
   facts,
+  questions,
+  personDates,
   fieldValues,
   organizations,
   people,
@@ -322,6 +324,25 @@ export function mergePeople(db: Db, keepId: string, mergeId: string, take: Merge
       .set({ personId: keepId })
       .where(and(eq(reminders.personId, mergeId), isNull(reminders.deletedAt)))
       .run();
+    db.update(questions)
+      .set({ personId: keepId })
+      .where(and(eq(questions.personId, mergeId), isNull(questions.deletedAt)))
+      .run();
+    // Recurring days: the same day once.
+    const dayKey = (d: { kind: string; label: string | null; date: string }) =>
+      `${d.kind}|${d.label ?? ''}|${d.date}`;
+    const liveDays = (personId: string) =>
+      db
+        .select()
+        .from(personDates)
+        .where(and(eq(personDates.personId, personId), isNull(personDates.deletedAt)))
+        .all();
+    const keptDays = new Set(liveDays(keepId).map(dayKey));
+    for (const d of liveDays(mergeId)) {
+      if (keptDays.has(dayKey(d))) continue;
+      keptDays.add(dayKey(d));
+      db.update(personDates).set({ personId: keepId }).where(eq(personDates.id, d.id)).run();
+    }
 
     // Timeline: every entry of the merged person now belongs to the kept one.
     const keptEntries = new Set(

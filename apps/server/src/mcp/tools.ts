@@ -4,6 +4,7 @@
  * are visible: what a tool returns goes to the assistant's AI provider.
  */
 import { z } from 'zod';
+import { personDateLabel } from '@app/shared';
 import { aiSpaces, allowedPerson, day, NotAllowedError, personBriefing } from '../ai/context';
 import type { Db } from '../db/client';
 import { createEntry } from '../entries/service';
@@ -81,7 +82,7 @@ export const TOOLS: Tool[] = [
     name: 'get_person_briefing',
     title: 'Person briefing',
     description:
-      'Everything known about a person: who they are, organizations, contact details, facts, open follow-ups, relationships and recent conversations. Use before a call or meeting, or to answer “what do I know about X?”.',
+      'Everything known about a person: who they are, organizations, contact details, facts, questions to ask next time, open follow-ups, relationships and recent conversations. Use before a call or meeting, or to answer “what do I know about X?”.',
     input: personInput,
     write: false,
     run: (ctx, args: z.infer<typeof personInput>) => {
@@ -94,7 +95,7 @@ export const TOOLS: Tool[] = [
     name: 'get_today',
     title: 'Today',
     description:
-      'Follow-ups due today or overdue, upcoming birthdays (14 days) and people one is overdue to contact.',
+      'Follow-ups due today or overdue, upcoming birthdays and other recurring days such as wedding anniversaries or memorial days (14 days), and people one is overdue to contact.',
     input: z.object({}),
     write: false,
     run: (ctx) => {
@@ -103,11 +104,13 @@ export const TOOLS: Tool[] = [
       const ok = (ref: { spaceId: string } | null | undefined) => !!ref && allowed.has(ref.spaceId);
       const reminders = today.reminders.filter((r) => ok(r.person));
       const birthdays = today.birthdays.filter((b) => ok(b.person));
+      const dates = today.dates.filter((d) => ok(d.person));
       const overdue = today.overdueContacts.filter((o) => ok(o.person));
       return [
         `Date: ${today.date}`,
         `## Due follow-ups\n${reminders.map((r) => `- ${r.dueOn}: ${r.title} — ${r.person!.displayName} (id ${r.person!.id})`).join('\n') || '- none'}`,
         `## Birthdays\n${birthdays.map((b) => `- ${b.on} (in ${b.inDays} days): ${b.person.displayName}${b.turns ? `, turns ${b.turns}` : ''}`).join('\n') || '- none'}`,
+        `## Other recurring days\n${dates.map((d) => `- ${d.on} (in ${d.inDays} days): ${personDateLabel(d, 'en')} — ${d.person.displayName}${d.years ? (d.kind === 'memorial' ? `, ${d.years} years ago` : `, ${d.years} years`) : ''}`).join('\n') || '- none'}`,
         `## Overdue to contact\n${overdue.map((o) => `- ${o.person.displayName} (every ${o.contactEveryDays} days, last ${o.lastContactAt ? day(o.lastContactAt) : 'never'})`).join('\n') || '- none'}`,
       ].join('\n\n');
     },

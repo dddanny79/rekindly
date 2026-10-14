@@ -35,6 +35,7 @@ const op = (
 const imported = z.object({ imported: z.record(z.string(), z.number()) });
 const account = z.object({ account: s.accountSchema });
 const facts = z.object({ facts: z.array(s.factSchema) });
+const questions = z.object({ questions: z.array(s.questionSchema) });
 const spaceQuery = z.object({ spaceId: s.idSchema.optional() });
 
 export const OPERATIONS: Operation[] = [
@@ -311,6 +312,43 @@ export const OPERATIONS: Operation[] = [
     response: 'empty',
     status: 204,
   }),
+  op('post', '/people/:id/dates', 'People', 'Add a recurring day (wedding anniversary …)', {
+    body: s.createPersonDateRequestSchema,
+    response: s.personDateSchema,
+    status: 201,
+  }),
+  op('patch', '/people/:id/dates/:itemId', 'People', 'Change a recurring day', {
+    body: s.updatePersonDateRequestSchema,
+    response: s.personDateSchema,
+  }),
+  op('delete', '/people/:id/dates/:itemId', 'People', 'Move a recurring day to the trash', {
+    response: 'empty',
+    status: 204,
+  }),
+  op('post', '/people/:id/questions', 'People', 'Add a question for next time', {
+    body: s.createQuestionRequestSchema,
+    response: s.questionSchema,
+    status: 201,
+  }),
+  op('put', '/people/:id/questions/order', 'People', 'Reorder questions', {
+    body: s.reorderQuestionsRequestSchema,
+    response: questions,
+  }),
+  op('patch', '/people/:id/questions/:itemId', 'People', 'Change a question', {
+    body: s.updateQuestionRequestSchema,
+    response: s.questionSchema,
+  }),
+  op('delete', '/people/:id/questions/:itemId', 'People', 'Move a question to the trash', {
+    response: 'empty',
+    status: 204,
+  }),
+  op(
+    'post',
+    '/people/:id/questions/:itemId/asked',
+    'People',
+    'Mark a question as asked (with an answer, a note is added to the timeline)',
+    { body: s.askQuestionRequestSchema, response: s.askQuestionResponseSchema },
+  ),
   op('post', '/people/:id/reminders', 'Timeline', 'Add a follow-up', {
     body: s.createReminderRequestSchema,
     response: s.reminderSchema,
@@ -458,6 +496,10 @@ export const OPERATIONS: Operation[] = [
     body: s.createCalendarFeedRequestSchema,
     response: s.createCalendarFeedResponseSchema,
     status: 201,
+  }),
+  op('patch', '/calendar-feeds/:id', 'Sync', 'Change a calendar subscription (same link)', {
+    body: s.updateCalendarFeedRequestSchema,
+    response: s.calendarFeedResponseSchema,
   }),
   op('delete', '/calendar-feeds/:id', 'Sync', 'Revoke a calendar subscription link', {
     response: 'empty',

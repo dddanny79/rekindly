@@ -8,7 +8,7 @@ import { spaces } from '../db/schema';
 import { listEntries } from '../entries/service';
 import { notDeleted } from '../lib/sql';
 import { getPerson } from '../people/service';
-import type { Person } from '@app/shared';
+import { type Person, personDateLabel } from '@app/shared';
 
 type Locale = 'en' | 'de';
 
@@ -98,6 +98,10 @@ export function personBriefing(ctx: ContextOptions, person: Person, spaceName: s
           .join('; '),
       ),
       line('Birthday', person.birthday),
+      line(
+        'Days to remember',
+        person.dates.map((d) => `${personDateLabel(d, 'en')} ${d.date}`).join('; '),
+      ),
       line('Pronouns', person.pronouns),
       line(
         'Met',
@@ -136,6 +140,9 @@ export function personBriefing(ctx: ContextOptions, person: Person, spaceName: s
           .join('\n')}`
       : null,
     person.facts.length ? `## Facts\n${person.facts.map((f) => `- ${f.text}`).join('\n')}` : null,
+    person.questions.length
+      ? `## Ask next time\n${person.questions.map((q) => `- ${q.text}`).join('\n')}`
+      : null,
     person.reminders.length
       ? `## Open follow-ups\n${person.reminders.map((r) => `- ${r.dueOn}: ${r.title}`).join('\n')}`
       : null,

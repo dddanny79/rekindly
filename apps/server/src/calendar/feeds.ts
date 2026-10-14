@@ -5,11 +5,13 @@ import {
   APP_NAME,
   type CalendarFeed,
   createCalendarFeedRequestSchema,
+  updateCalendarFeedRequestSchema,
+  personDateLabel,
   personDisplayName,
 } from '@app/shared';
 import { getAccountRow } from '../auth/account';
 import type { Db } from '../db/client';
-import { calendarFeeds, people } from '../db/schema';
+import { calendarFeeds, people, personDates } from '../db/schema';
 import type { AppEnv, Deps } from '../env';
 import { notFound } from '../lib/errors';
 import { log } from '../lib/log';
@@ -28,7 +30,9 @@ const toFeed = (row: Row): CalendarFeed => ({
   id: row.id,
   name: row.name,
   spaceIds: row.spaceIds ?? null,
-  includeBirthdays: row.includeBirthdays,
+  birthdays: row.birthdays,
+  includeBirthdays: row.birthdays !== 'none',
+  includeDates: row.includeDates,
   createdAt: row.createdAt,
   lastUsedAt: row.lastUsedAt,
 });
@@ -46,7 +50,9 @@ function localToday() {
 
 /**
  * The calendar of a feed: open follow-ups on their due date (overdue ones on
- * today, so they stay visible), optionally birthdays as yearly events.
+ * today, so they stay visible), optionally birthdays (all, or only of indirect
+ * contacts, which CardDAV does not put on the phone) and the recurring days marked
+ * for reminders (wedding anniversaries, memorial days …) as yearly events.
  */
 export function feedCalendar(db: Db, feed: Row, origin: string): string {
   const locale = getAccountRow(db)?.locale === 'de' ? 'de' : 'en';
@@ -70,11 +76,18 @@ export function feedCalendar(db: Db, feed: Row, origin: string): string {
     });
   }
 
-  if (feed.includeBirthdays) {
+  if (feed.birthdays !== 'none') {
     const rows = db
       .select()
       .from(people)
-      .where(and(notDeleted(people), isNull(people.archivedAt), isNotNull(people.birthday)))
+      .where(
+        and(
+          notDeleted(people),
+          isNull(people.archivedAt),
+          isNotNull(people.birthday),
+          feed.birthdays === 'indirect' ? eq(people.listed, false) : undefined,
+        ),
+      )
       .all()
       .filter((p) => inSpaces(p.spaceId));
     const related = relatedToFor(
@@ -93,6 +106,38 @@ export function feedCalendar(db: Db, feed: Row, origin: string): string {
         summary: `${t.birthday}: ${personDisplayName(p)}${via ? ` (${t.via} ${via.person.displayName})` : ''}`,
         url: `${origin}/people/${p.id}`,
         updatedAt: p.updatedAt,
+      });
+    }
+  }
+
+  if (feed.includeDates) {
+    const rows = db
+      .select({ day: personDates, person: people })
+      .from(personDates)
+      .innerJoin(people, eq(people.id, personDates.personId))
+      .where(
+        and(
+          notDeleted(personDates),
+          eq(personDates.remind, true),
+          notDeleted(people),
+          isNull(people.archivedAt),
+        ),
+      )
+      .all()
+      .filter(({ person }) => inSpaces(person.spaceId));
+    const related = relatedToFor(
+      db,
+      rows.filter(({ person }) => !person.listed).map(({ person }) => person.id),
+    );
+    for (const { day, person } of rows) {
+      const via = related.get(person.id);
+      events.push({
+        uid: `date-${day.id}@${new URL(origin).host}`,
+        date: day.date.startsWith('--') ? `2000${day.date.slice(1)}` : day.date,
+        yearly: true,
+        summary: `${personDateLabel(day, locale)}: ${personDisplayName(person)}${via ? ` (${t.via} ${via.person.displayName})` : ''}`,
+        url: `${origin}/people/${person.id}`,
+        updatedAt: day.updatedAt,
       });
     }
   }
@@ -123,11 +168,29 @@ export function calendarFeedRoutes({ db, config }: Deps) {
           name: input.name,
           tokenHash: hash(token),
           spaceIds,
-          includeBirthdays: input.includeBirthdays,
+          birthdays: input.birthdays ?? (input.includeBirthdays ? 'all' : 'none'),
+          includeDates: input.includeDates,
         })
         .returning()
         .get();
       return c.json({ feed: toFeed(row), url: `${config.publicUrl.origin}/ics/${token}.ics` }, 201);
+    })
+    .patch('/:id', validate('json', updateCalendarFeedRequestSchema), (c) => {
+      const input = c.req.valid('json');
+      const spaceIds = input.spaceIds ? [...new Set(input.spaceIds)] : input.spaceIds;
+      spaceIds?.forEach((id) => getLiveSpace(db, id));
+      const patch = {
+        name: input.name,
+        spaceIds,
+        birthdays: input.birthdays,
+        includeDates: input.includeDates,
+      };
+      const byId = eq(calendarFeeds.id, c.req.param('id'));
+      const row = Object.values(patch).some((v) => v !== undefined)
+        ? db.update(calendarFeeds).set(patch).where(byId).returning().get()
+        : db.select().from(calendarFeeds).where(byId).get();
+      if (!row) throw notFound();
+      return c.json({ feed: toFeed(row) });
     })
     .delete('/:id', (c) => {
       const res = db

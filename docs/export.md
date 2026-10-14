@@ -13,12 +13,12 @@
 API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
 `GET /api/v1/import/status`, `POST /api/v1/import` (body: the export file).
 
-## Format (version 2)
+## Format (version 3)
 
 ```json
 {
   "format": "rekindly-export",
-  "version": 2,
+  "version": 3,
   "exportedAt": "2026-10-12T14:00:00.000Z",
   "app": { "name": "Rekindly", "version": "0.0.0" },
   "data": {
@@ -41,6 +41,8 @@ API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
     "settings": [],
     "davExtras": [],
     "themes": [],
+    "questions": [],
+    "personDates": [],
     "files": [
       {
         "id": "…",
@@ -64,13 +66,18 @@ API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
 - `entryPeople` keeps the order in which people were linked to an entry.
 - `davExtras`: vCard fields from address book clients that the app has no field for.
 - `themes`: themes made or imported on this instance (the built-in ones are part of the app).
+- `questions`: questions for next time, open ones and asked ones (`askedAt`).
+- `personDates`: recurring days besides the birthday (`kind`, own `label` for custom
+  days, `date` as `YYYY-MM-DD` or `--MM-DD`, `remind`: shown on Today, in the daily
+  mail and calendar subscriptions; missing in older files = on).
 - **Not included:** the account (name, email, password), passkeys, sessions, app
   passwords, API tokens and calendar links (credentials stay with the instance), the
   settings that belong to the instance (backup target, the sign-in-code switch, mail
   delivery state), and data the app derives itself (search index, CardDAV cache,
   recently viewed). The stored SMTP password and AI key are included only sealed with
   the instance's key; on another server, enter them again.
-- Version 2 added `themes`; files of version 1 import as before.
+- Version 3 added `questions` and `personDates`, version 2 `themes`; older files
+  import as before.
 - `version` grows with incompatible changes; an import refuses files from a newer
   version than it knows.
 

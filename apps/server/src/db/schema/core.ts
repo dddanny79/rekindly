@@ -197,6 +197,45 @@ export const facts = sqliteTable(
   (t) => [index('facts_person_idx').on(t.personId)],
 );
 
+/** Questions for the next conversation with a person; open until asked. */
+export const questions = sqliteTable(
+  'questions',
+  {
+    id: id(),
+    personId: text('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    text: text('text').notNull(),
+    sort: integer('sort').notNull().default(0),
+    askedAt: timestamp('asked_at'),
+    deletedAt: deletedAt(),
+    ...timestamps,
+  },
+  (t) => [index('questions_person_idx').on(t.personId)],
+);
+
+/** Recurring days of a person besides the birthday (see PERSON_DATE_KINDS). */
+export const personDates = sqliteTable(
+  'person_dates',
+  {
+    id: id(),
+    personId: text('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    kind: text('kind', {
+      enum: ['wedding', 'anniversary', 'memorial', 'nameday', 'met', 'custom'],
+    }).notNull(),
+    label: text('label'),
+    /** `--MM-DD` or `YYYY-MM-DD`. */
+    date: text('date').notNull(),
+    /** Shown on Today, in the daily mail and in calendar feeds; always in the details. */
+    remind: bool('remind').notNull().default(true),
+    deletedAt: deletedAt(),
+    ...timestamps,
+  },
+  (t) => [index('person_dates_person_idx').on(t.personId)],
+);
+
 export const entries = sqliteTable(
   'entries',
   {

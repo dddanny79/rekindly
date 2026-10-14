@@ -1,11 +1,11 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDb, runMigrations } from './client';
-import { people, relationshipTypes, spaces } from './schema';
+import { calendarFeeds, people, relationshipTypes, spaces } from './schema';
 import { seed } from './seed';
 
 const MIGRATIONS_DIR = fileURLToPath(new URL('../../drizzle', import.meta.url));
@@ -66,7 +66,9 @@ describe('database', () => {
         'passkeys',
         'people',
         'person_tags',
+        'person_dates',
         'person_views',
+        'questions',
         'relationship_types',
         'relationships',
         'reminders',
@@ -96,6 +98,38 @@ describe('database', () => {
         .map((s) => s.nameKey),
     ).toEqual(['seed.spaces.private', 'seed.spaces.business']);
     expect(db.select().from(relationshipTypes).all()).toHaveLength(6);
+    sqlite.close();
+  });
+
+  it('0019 keeps the birthday choice of existing calendar feeds', () => {
+    // The migrations up to 0018, as an instance before this change had them.
+    const old = join(dir, 'migrations-0018');
+    cpSync(MIGRATIONS_DIR, old, { recursive: true });
+    const journalPath = join(old, 'meta', '_journal.json');
+    const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
+      entries: { tag: string }[];
+    };
+    journal.entries = journal.entries.filter((e) => e.tag < '0019');
+    writeFileSync(journalPath, JSON.stringify(journal));
+    const before = createDb(dir);
+    runMigrations(before.db, old);
+    before.sqlite.exec(`
+      insert into calendar_feeds (id, name, token_hash, include_birthdays) values
+        ('a', 'with', 'h1', 1), ('b', 'without', 'h2', 0);
+    `);
+    before.sqlite.close();
+
+    const { db, sqlite } = open();
+    expect(
+      db
+        .select({ id: calendarFeeds.id, birthdays: calendarFeeds.birthdays })
+        .from(calendarFeeds)
+        .orderBy(calendarFeeds.id)
+        .all(),
+    ).toEqual([
+      { id: 'a', birthdays: 'all' },
+      { id: 'b', birthdays: 'none' },
+    ]);
     sqlite.close();
   });
 

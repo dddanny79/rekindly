@@ -6,6 +6,7 @@ import type { PersonRef, SpaceColor } from '@app/shared';
 import { Avatar } from '@/components/avatar';
 import { PageHeader } from '@/components/page-header';
 import { ReminderRow } from '@/components/person/briefing';
+import { useDayText } from '@/lib/day-text';
 import { Button } from '@/components/ui/button';
 import { todayQuery } from '@/lib/data';
 import { fromDateOnly, toDateOnly } from '@/lib/dates';
@@ -88,7 +89,10 @@ function PersonLink({
   );
 }
 
-/** Start page: what is due, upcoming birthdays, who is overdue, recently viewed. */
+/**
+ * Start page: what is due, upcoming birthdays and other recurring days, who is
+ * overdue, recently viewed.
+ */
 export function TodayPage(): ReactElement {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
@@ -102,6 +106,32 @@ export function TodayPage(): ReactElement {
     new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
       new Date(iso),
     );
+  const dayText = useDayText();
+  // Birthdays and other recurring days in one list, soonest first.
+  const days = data
+    ? [
+        ...data.birthdays.map((b) => ({
+          key: `birthday-${b.person.id}`,
+          person: b.person,
+          relatedTo: b.relatedTo,
+          on: b.on,
+          inDays: b.inDays,
+          what: t('person.birthday'),
+          extra: b.turns !== null ? t('person.turns', { age: b.turns }) : null,
+        })),
+        ...data.dates.map((d) => ({
+          key: d.dateId,
+          person: d.person,
+          relatedTo: d.relatedTo,
+          on: d.on,
+          inDays: d.inDays,
+          what: dayText.label(d),
+          extra: dayText.years(d.kind, d.years),
+        })),
+      ].sort(
+        (a, b) => a.inDays - b.inDays || a.person.displayName.localeCompare(b.person.displayName),
+      )
+    : [];
   const longDate = new Intl.DateTimeFormat(locale, {
     weekday: 'long',
     day: 'numeric',
@@ -144,29 +174,29 @@ export function TodayPage(): ReactElement {
 
             <Section
               title={t('today.birthdays')}
-              count={data.birthdays.length}
+              count={days.length}
               empty={t('today.birthdaysEmpty')}
             >
-              {data.birthdays.map((b) => (
+              {days.map((d) => (
                 <li
-                  key={b.person.id}
+                  key={d.key}
                   className="flex items-center justify-between gap-3 border-b py-2"
+                  data-testid="today-day"
                 >
                   <span className="min-w-0">
-                    <PersonLink person={b.person} color={colorOf(b.person.spaceId)} />
-                    {b.relatedTo && (
-                      <span className="mt-0.5 block truncate pl-9 text-meta text-muted-foreground">
-                        {relatedToText(t, b.relatedTo)}
-                      </span>
-                    )}
+                    <PersonLink person={d.person} color={colorOf(d.person.spaceId)} />
+                    <span className="mt-0.5 block truncate pl-9 text-meta text-muted-foreground">
+                      {d.what}
+                      {d.relatedTo && ` · ${relatedToText(t, d.relatedTo)}`}
+                    </span>
                   </span>
                   <span className="num shrink-0 text-right text-meta">
-                    <span className={cn('font-bold', b.inDays === 0 && 'text-signal')}>
-                      {shortDate(fromDateOnly(b.on))}
+                    <span className={cn('font-bold', d.inDays === 0 && 'text-signal')}>
+                      {shortDate(fromDateOnly(d.on))}
                     </span>
                     <span className="block text-muted-foreground">
-                      {t('person.birthdayIn', { count: b.inDays })}
-                      {b.turns !== null && ` · ${t('person.turns', { age: b.turns })}`}
+                      {t('person.birthdayIn', { count: d.inDays })}
+                      {d.extra && ` · ${d.extra}`}
                     </span>
                   </span>
                 </li>

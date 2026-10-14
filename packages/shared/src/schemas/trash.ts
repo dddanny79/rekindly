@@ -11,6 +11,8 @@ export const TRASH_KINDS = [
   'entry',
   'reminder',
   'fact',
+  'question',
+  'personDate',
   'contactPoint',
   'address',
   'affiliation',

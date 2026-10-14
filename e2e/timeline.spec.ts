@@ -104,6 +104,121 @@ test('a follow-up from an entry shows in the briefing and is done with a click',
   await expect(checkbox).toHaveCount(0);
 });
 
+test('questions for next time: /ask in the composer, in the briefing, asked with an answer', async ({
+  page,
+  request,
+}) => {
+  const quinn = await person(request, 'Quinn', 'Question');
+  await page.goto(`/people/${quinn.id}`);
+  const input = page.getByLabel('New timeline entry');
+  await input.fill('Talked about the new flat\n/ask How did the move go?');
+  await expect(page.getByTestId('composer-questions')).toContainText('Ask next time · 1');
+  await input.press('Enter');
+
+  const briefing = region(page, 'Briefing');
+  const questions = briefing.getByTestId('briefing-questions');
+  await expect(questions).toContainText('How did the move go?');
+  // The rest of the text is a normal note, without the question.
+  const saved = region(page, 'Timeline').getByRole('listitem').first();
+  await expect(saved).toContainText('Talked about the new flat');
+  await expect(saved).not.toContainText('How did the move go?');
+
+  // A second one from the briefing itself.
+  await briefing.getByRole('button', { name: 'Add a question for next time' }).click();
+  await briefing.getByLabel('New question').fill('Is the cat settled in?');
+  await briefing.getByLabel('New question').press('Enter');
+  await expect(questions.getByRole('listitem')).toHaveCount(2);
+  await briefing.getByLabel('New question').press('Escape');
+
+  // On a phone, the questions are visible without scrolling.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(questions.getByText('How did the move go?')).toBeInViewport();
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  // Asked without an answer: only gone from the briefing.
+  await briefing.getByRole('checkbox', { name: 'Mark “Is the cat settled in?” as asked' }).check();
+  await briefing.getByRole('button', { name: 'Asked' }).click();
+  await expect(questions.getByRole('listitem')).toHaveCount(1);
+  await expect(region(page, 'Timeline').getByRole('listitem')).toHaveCount(1);
+
+  // Asked with an answer: a note with question and answer in the timeline.
+  await briefing.getByRole('checkbox', { name: 'Mark “How did the move go?” as asked' }).check();
+  await briefing
+    .getByLabel('Answer to “How did the move go?”')
+    .fill('Fine, the cellar is still full.');
+  await briefing.getByLabel('Answer to “How did the move go?”').press('Enter');
+  await expect(briefing.getByTestId('briefing-questions')).toHaveCount(0);
+  const note = region(page, 'Timeline').getByRole('listitem').first();
+  await expect(note).toContainText('How did the move go?');
+  await expect(note).toContainText('Fine, the cellar is still full.');
+});
+
+test('recurring days: a wedding anniversary shows in the briefing and on Today', async ({
+  page,
+  request,
+}) => {
+  const wanda = await person(request, 'Wanda', 'Wedding');
+  const soon = inDays(3);
+  const years = soon.getFullYear() - 2016;
+  await page.goto(`/people/${wanda.id}`);
+  await page.getByRole('button', { name: 'Add a day' }).click();
+  const form = page.getByRole('form', { name: 'Add a day to remember' });
+  await form.getByLabel('Kind of day').selectOption('wedding');
+  await form.getByLabel('Date').fill(`${soon.getDate()}.${soon.getMonth() + 1}.2016`);
+  await form.getByRole('button', { name: 'Save' }).click();
+
+  const briefing = region(page, 'Briefing');
+  await expect(briefing.getByTestId('briefing-date')).toContainText('Wedding anniversary');
+  await expect(briefing.getByTestId('briefing-date')).toContainText(`in 3 days · ${years} years`);
+
+  // A memorial day: years since, never “turns”.
+  await page.getByRole('button', { name: 'Add a day' }).click();
+  await form.getByLabel('Kind of day').selectOption('memorial');
+  await form.getByLabel('Date').fill(`${soon.getDate()}.${soon.getMonth() + 1}.2020`);
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(briefing.getByTestId('briefing-date')).toHaveCount(2);
+  await expect(briefing.getByText(`${soon.getFullYear() - 2020} years ago`)).toBeVisible();
+
+  await page.goto('/');
+  const days = page.getByRole('region', { name: 'Birthdays and other days · 14 days' });
+  const rows = days.getByTestId('today-day').filter({ hasText: 'Wanda Wedding' });
+  await expect(rows).toHaveCount(2);
+  await expect(rows.filter({ hasText: 'Wedding anniversary' })).toContainText(`${years} years`);
+  await expect(rows.filter({ hasText: 'Anniversary of death' })).toContainText('years ago');
+  for (const row of await rows.all()) await expect(row).not.toContainText('turns');
+
+  // Reminder off: stays in the details and the briefing, leaves Today.
+  await page.goto(`/people/${wanda.id}`);
+  const bell = page.getByRole('button', { name: 'Remind of Anniversary of death' });
+  await expect(bell).toHaveAttribute('aria-pressed', 'true');
+  await bell.click();
+  await expect(bell).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('img', { name: 'no reminder' })).toBeVisible();
+  await expect(briefing.getByTestId('briefing-date')).toHaveCount(2);
+  await page.goto('/');
+  await expect(rows).toHaveCount(1);
+  await expect(rows).toContainText('Wedding anniversary');
+});
+
+test('recurring days: a day added without reminder stays off Today', async ({ page, request }) => {
+  const nora = await person(request, 'Nora', 'Nameday');
+  const soon = inDays(2);
+  await page.goto(`/people/${nora.id}`);
+  await page.getByRole('button', { name: 'Add a day' }).click();
+  const form = page.getByRole('form', { name: 'Add a day to remember' });
+  await form.getByLabel('Kind of day').selectOption('nameday');
+  await form.getByLabel('Date').fill(`${soon.getDate()}.${soon.getMonth() + 1}.`);
+  await form.getByRole('checkbox', { name: /Remind/ }).uncheck();
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('button', { name: 'Remind of Name day' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  await page.goto('/');
+  await expect(page.getByTestId('today-day').filter({ hasText: 'Nora Nameday' })).toHaveCount(0);
+});
+
 test('briefing: last contact, next birthday with and without year, overdue rhythm', async ({
   page,
   request,

@@ -1,10 +1,12 @@
 import { AiSummary } from '@/components/ai/summary';
 import { Link } from '@tanstack/react-router';
-import { Pin, Plus } from 'lucide-react';
+import { MessageCircleQuestion, Pin, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Person, Reminder } from '@app/shared';
+import { type Person, type Reminder, TODAY_BIRTHDAY_DAYS } from '@app/shared';
 import { FormMessage } from '@/components/form-field';
+import { useDayText } from '@/lib/day-text';
+import { QuestionList } from '@/components/person/questions';
 import { directionArrow } from '@/components/timeline/entry-kind';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -158,15 +160,22 @@ function AddReminder({ personId, onDone }: { personId: string; onDone: () => voi
 }
 
 /**
- * The ten-second view before a call: open follow-ups, pinned facts, last contact,
- * next birthday and the contact rhythm.
+ * The ten-second view before a call: questions for this time, open follow-ups, pinned
+ * facts, last contact, next birthday and the contact rhythm.
  */
 export function BriefingCard({ person }: { person: Person }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
   const [adding, setAdding] = useState(false);
+  const [asking, setAsking] = useState(false);
   const pinned = person.facts.filter((f) => f.pinned);
   const birthday = person.birthday ? nextBirthday(person.birthday) : null;
+  const dayText = useDayText();
+  // Other recurring days only when they are close (like on Today).
+  const days = person.dates
+    .map((day) => ({ day, next: nextBirthday(day.date) }))
+    .filter(({ next }) => next.days <= TODAY_BIRTHDAY_DAYS)
+    .sort((a, b) => a.next.days - b.next.days);
   const rhythm = rhythmStatus(
     person.contactEveryDays,
     person.lastContact?.occurredAt ?? null,
@@ -174,7 +183,14 @@ export function BriefingCard({ person }: { person: Person }) {
     person.contactRhythmSince,
   );
   const last = person.lastContact;
-  const empty = !pinned.length && !person.reminders.length && !last && !birthday && !rhythm;
+  const empty =
+    !person.questions.length &&
+    !days.length &&
+    !pinned.length &&
+    !person.reminders.length &&
+    !last &&
+    !birthday &&
+    !rhythm;
   const shortDate = (date: Date) =>
     new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit' }).format(date);
 
@@ -182,22 +198,42 @@ export function BriefingCard({ person }: { person: Person }) {
     <section aria-label={t('person.briefing')} className="mt-5 md:mt-6">
       <div className="flex items-center justify-between border-b border-border-strong pb-1">
         <h2 className="kicker">{t('person.briefing')}</h2>
-        <Button
-          size="xs"
-          variant="ghost"
-          onClick={() => setAdding(true)}
-          aria-label={t('briefing.addReminder')}
-        >
-          <Plus aria-hidden />
-          <span aria-hidden className="hidden md:inline">
-            {t('briefing.reminder')}
-          </span>
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => setAsking(true)}
+            aria-label={t('questions.add')}
+          >
+            <MessageCircleQuestion aria-hidden />
+            <span aria-hidden className="hidden md:inline">
+              {t('questions.short')}
+            </span>
+          </Button>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => setAdding(true)}
+            aria-label={t('briefing.addReminder')}
+          >
+            <Plus aria-hidden />
+            <span aria-hidden className="hidden md:inline">
+              {t('briefing.reminder')}
+            </span>
+          </Button>
+        </div>
       </div>
+
+      <QuestionList
+        personId={person.id}
+        questions={person.questions}
+        adding={asking}
+        onDoneAdding={() => setAsking(false)}
+      />
 
       <AiSummary person={person} />
 
-      {empty && !adding && (
+      {empty && !adding && !asking && (
         <p className="py-2 text-sm text-muted-foreground">{t('briefing.empty')}</p>
       )}
 
@@ -244,6 +280,24 @@ export function BriefingCard({ person }: { person: Person }) {
             </span>
           </li>
         )}
+        {days.map(({ day, next }) => {
+          const years = dayText.years(day.kind, next.turns);
+          return (
+            <li
+              key={day.id}
+              className="flex items-baseline justify-between gap-3 border-b py-2"
+              data-testid="briefing-date"
+            >
+              <span>
+                {dayText.label(day)} {shortDate(fromDateOnly(`2000-${day.date.slice(-5)}`))}
+              </span>
+              <span className="num text-meta text-muted-foreground">
+                {t('person.birthdayIn', { count: next.days })}
+                {years && ` · ${years}`}
+              </span>
+            </li>
+          );
+        })}
         {rhythm && (
           <li
             className="flex items-baseline justify-between gap-3 border-b py-2"

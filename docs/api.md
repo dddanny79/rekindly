@@ -32,13 +32,13 @@ curl -H "Authorization: Bearer rkt_…" https://people.example.com/api/v1/people
 The app is an MCP server (Streamable HTTP, stateless) at **`/mcp`**, authenticated
 with an API token. Tools:
 
-| Tool                  | What it does                                                                                                       | Token |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ----- |
-| `search_people`       | Find people by name, organization or words from notes                                                              | read  |
-| `get_person_briefing` | Everything known about a person: organizations, contact details, facts, follow-ups, relationships, recent timeline | read  |
-| `get_today`           | Due follow-ups, birthdays, people overdue to contact                                                               | read  |
-| `log_interaction`     | Add a note, call, meeting or message to a person's timeline                                                        | write |
-| `add_follow_up`       | Create a follow-up for a person                                                                                    | write |
+| Tool                  | What it does                                                                                                                                | Token |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `search_people`       | Find people by name, organization or words from notes                                                                                       | read  |
+| `get_person_briefing` | Everything known about a person: organizations, contact details, facts, questions for next time, follow-ups, relationships, recent timeline | read  |
+| `get_today`           | Due follow-ups, birthdays, people overdue to contact                                                                                        | read  |
+| `log_interaction`     | Add a note, call, meeting or message to a person's timeline                                                                                 | write |
+| `add_follow_up`       | Create a follow-up for a person                                                                                                             | write |
 
 **Only spaces with “AI allowed”** (Settings → Spaces, off by default) are visible
 through MCP: what a tool returns goes to the assistant's AI provider. People in other

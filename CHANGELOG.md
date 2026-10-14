@@ -6,6 +6,48 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-10-14
+
+### Added
+
+- **Ask next time:** collect questions for the next conversation with someone (“How
+  was the marathon?”). They sit at the top of the briefing, can be added there or with
+  `/ask …` (also `/frag …`) in the timeline input, reordered, edited and deleted (to
+  the trash). Tick one once you have asked; with an answer, a note with question and
+  answer is added to the timeline. Open questions are searchable and part of the MCP
+  briefing, exports and backups.
+- **Recurring days:** besides the birthday, a person can have wedding
+  anniversaries, anniversaries, memorial days, name days, the day you met or own
+  days (with or without year), under _Details_. Days in the next 14 days show in the
+  briefing and on Today together with birthdays, in the daily mail and, if chosen, in
+  the calendar subscription. Tactful texts: memorial days count the years since,
+  never what someone “turns”. Two-way CardDAV sync with the iPhone (anniversary and
+  labelled date fields), vCard and Monica import, trash, export, MCP.
+- **Remind per day:** each recurring day has a _Remind_ switch (bell in the details).
+  Switched off, the day stays in the details and the briefing but leaves Today, the
+  daily mail and calendar subscriptions — e.g. for a memorial day you want to know,
+  not be reminded of.
+- **Calendar subscriptions can be changed** (name, spaces, birthdays, other days)
+  without a new link.
+
+### Changed
+
+- Calendar subscriptions: birthdays are _None_, _Only indirect contacts_ or _All_.
+  With CardDAV the iPhone already shows its contacts' birthdays; _Only indirect
+  contacts_ adds the rest without showing any birthday twice. Existing subscriptions
+  keep what they had (all or none). API: `birthdays` replaces `includeBirthdays`, which
+  is still accepted and returned.
+- Export format version 3 (adds `questions` and `personDates`); files of version 1 and
+  2 still import.
+- Dates that earlier versions kept from the iPhone as unknown vCard fields become
+  recurring days on start.
+
+### Upgrading from 0.2
+
+Three database migrations run automatically on start. Make a backup first
+(`docker exec <container> node dist/cli.js backup`). 0.2 cannot import exports or
+backups made by 0.3 (format version 3); 0.3 imports all older files.
+
 ## [0.2.0] — 2026-10-13
 
 ### Added
@@ -22,6 +64,12 @@ breaking changes (always with a migration path for your data).
 - **Logo**, favicons and home screen icons.
 
 ### Changed
+
+- Calendar subscriptions: birthdays are _None_, _Only indirect contacts_ or _All_.
+  With CardDAV the iPhone already shows its contacts' birthdays; _Only indirect
+  contacts_ adds the rest without showing any birthday twice. Existing subscriptions
+  keep what they had (all or none). API: `birthdays` replaces `includeBirthdays`, which
+  is still accepted and returned.
 
 - Export format version 2: full exports and backups now include own themes. Files
   of version 1 still import; 0.1 cannot import files of version 2.
@@ -58,6 +106,7 @@ First public release:
 - API tokens, OpenAPI reference at `/api/docs`, MCP server for Claude
 - One Docker image (amd64, arm64), SQLite, no telemetry
 
-[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/dddanny79/rekindly/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dddanny79/rekindly/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dddanny79/rekindly/releases/tag/v0.1.0

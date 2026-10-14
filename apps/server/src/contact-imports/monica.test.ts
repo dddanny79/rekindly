@@ -87,7 +87,11 @@ describe('Monica export', () => {
       facts: ['Geboren um 1990'],
       reminders: [{ title: 'Buch zurückgeben', dueOn: '2026-10-12', recurrence: 'none' }],
     });
-    expect(oma).toMatchObject({ listed: false, facts: ['Verstorben am 2019-03-03'] });
+    expect(oma).toMatchObject({
+      listed: false,
+      facts: ['Verstorben am 2019-03-03'],
+      dates: [{ kind: 'memorial', label: null, date: '2019-03-03' }],
+    });
 
     expect(bundle.entries.map((e) => [e.kind, e.direction, e.title, e.people])).toEqual([
       ['note', null, null, [ERIKA]],

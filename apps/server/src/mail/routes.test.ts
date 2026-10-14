@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { MailSettings, Person } from '@app/shared';
 import { createSignedInApp } from '../test/helpers';
 import { smtpSink } from '../test/smtp';
-import { digestDue, sendDigest } from './digest';
+import { buildDigest, digestDue, sendDigest } from './digest';
 import { mailSettings } from './config';
 import { failureCode } from './send';
 
@@ -138,6 +138,32 @@ describe('mail', () => {
     expect(mail).toContain('Angebot schicken');
     expect(mail).toContain('Jana Berger');
     expect(mail).toContain(`http://localhost:3000/people/${jana.id}`);
+  });
+
+  it('daily summary: recurring days with the birthdays, memorial days without “turns”', async () => {
+    const { t } = await setup();
+    const jana = await t.json<Person>(
+      t.request('/api/v1/people', {
+        method: 'POST',
+        json: { spaceId: t.privateSpace, firstName: 'Jana', lastName: 'Berger' },
+      }),
+      201,
+    );
+    const add = (json: unknown) =>
+      t.request(`/api/v1/people/${jana.id}/dates`, { method: 'POST', json });
+    await add({ kind: 'memorial', date: '2020-03-10' });
+    await add({ kind: 'wedding', date: '2016-03-12' });
+    await add({ kind: 'nameday', date: '--03-30' });
+    await add({ kind: 'met', date: '2009-03-09', remind: false });
+    const mail = buildDigest(t.db, new URL('http://localhost:3000'), new Date(2030, 2, 8, 9))!;
+    expect(mail.text).toContain('Geburtstage und Jahrestage');
+    expect(mail.text).toContain('Jana Berger — Todestag, in 2 Tagen, seit 10 Jahren');
+    expect(mail.text).toContain('Jana Berger — Hochzeitstag, in 4 Tagen, 14 Jahre');
+    // Only the next seven days.
+    expect(mail.text).not.toContain('Namenstag');
+    // Days without reminder stay out.
+    expect(mail.text).not.toContain('Kennengelernt');
+    expect(mail.text).not.toContain('wird');
   });
 
   it('is due once a day from the set hour, and retries an hour after a failure', async () => {

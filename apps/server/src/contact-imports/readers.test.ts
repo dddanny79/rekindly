@@ -18,6 +18,8 @@ const IPHONE = [
   'ADR;type=HOME:;;Musterstraße 1;Berlin;;10115;Deutschland',
   'BDAY;X-APPLE-OMIT-YEAR=1604:1604-10-24',
   'CATEGORIES:Klettern,Familie',
+  'item2.X-ABDATE;type=pref:2014-08-16',
+  'item2.X-ABLabel:_$!<Anniversary>!$_',
   'X-ABRELATEDNAMES:Max',
   'END:VCARD',
   'BEGIN:VCARD',
@@ -45,6 +47,7 @@ describe('vCard files', () => {
       title: 'Leitung',
       birthday: '--10-24',
       tags: ['Klettern', 'Familie'],
+      dates: [{ kind: 'wedding', label: null, date: '2014-08-16' }],
     });
     expect(erika!.points).toEqual([
       { kind: 'phone', label: 'Mobil', value: '+49 171 1234567', isPrimary: true },

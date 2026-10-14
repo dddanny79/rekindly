@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { X } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Person } from '@app/shared';
 import { Combobox } from '@/components/combobox';
 import { InlineText } from '@/components/inline-edit';
+import { PersonDateRows } from '@/components/person/dates';
+import { DetailRow } from '@/components/person/detail-row';
 import { SideSection } from '@/components/side-section';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -75,14 +77,7 @@ function RhythmInput({
   );
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-center gap-x-3 border-b py-1.5">
-      <span className="text-meta text-muted-foreground">{label}</span>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
+const Row = DetailRow;
 
 function usePersonUpdate(personId: string) {
   return useWrite((patch: Record<string, unknown>) => peopleApi.update(personId, patch));
@@ -122,6 +117,7 @@ export function DetailsSection({ person }: { person: Person }) {
           onSave={(input) => update.mutateAsync({ birthday: parseBirthday(input) })}
         />
       </Row>
+      <PersonDateRows personId={person.id} dates={person.dates} />
       <Row label={t('person.name.pronouns')}>
         <InlineText
           label={t('person.name.pronouns')}

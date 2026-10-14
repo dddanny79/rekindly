@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { dateOnlySchema, idSchema, isoDateTimeSchema } from './common';
 import { personRefSchema, relatedToSchema } from './refs';
+import { personDateKindSchema } from './people';
 import { backupWarningSchema } from './backup';
 import { reminderSchema } from './timeline';
 
@@ -30,6 +31,22 @@ export const todayBirthdaySchema = z.object({
 });
 export type TodayBirthday = z.infer<typeof todayBirthdaySchema>;
 
+/** A recurring day (wedding anniversary, memorial day …) in the next days. */
+export const todayDateSchema = z.object({
+  person: personRefSchema,
+  dateId: idSchema,
+  kind: personDateKindSchema,
+  label: z.string().nullable(),
+  /** `--MM-DD` or `YYYY-MM-DD` as stored. */
+  date: z.string(),
+  on: dateOnlySchema,
+  inDays: z.number().int(),
+  /** Full years on that day, if the year is known (never for name days). */
+  years: z.number().int().nullable(),
+  relatedTo: relatedToSchema.nullable(),
+});
+export type TodayDate = z.infer<typeof todayDateSchema>;
+
 export const overdueContactSchema = z.object({
   person: personRefSchema,
   contactEveryDays: z.number().int(),
@@ -54,6 +71,8 @@ export const todayResponseSchema = z.object({
   /** Open follow-ups due today or earlier, oldest first. */
   reminders: z.array(reminderSchema),
   birthdays: z.array(todayBirthdaySchema),
+  /** Recurring days in the same window as birthdays, soonest first. */
+  dates: z.array(todayDateSchema),
   overdueContacts: z.array(overdueContactSchema),
   recent: z.array(recentPersonSchema),
   /** Automatic backup failed or is long overdue. */

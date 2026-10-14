@@ -28,9 +28,20 @@ the business space.
   _Work_, _Home_ map to iOS's types, other labels are kept as custom labels),
   messenger and social profiles, addresses, birthday (with or without year), the
   main organization (with its parents) and role, and _Who is this_ as note.
+- **Other recurring days** (with or without year), both ways:
+  - _Wedding anniversary_ is the iPhone's built-in date _Anniversary_ (shown as
+    _Jahrestag_ on a German iPhone). vCard 4 `ANNIVERSARY` is read as well.
+  - All other days are iPhone date fields with a label (`itemN.X-ABDATE` +
+    `X-ABLabel`): _Anniversary of death_ / _Todestag_, _Name day_ / _Namenstag_,
+    _Anniversary_ / _Jahrestag_, _Day we met_ / _Kennengelernt_ in the account's
+    language; an own day keeps its name. A date field added on the phone with one
+    of these names (English or German) becomes that kind of day, any other name
+    an own day.
+  - Dates that an earlier version kept as unknown fields become recurring days
+    when the app starts.
 - A link back to the person page in the app (`URL` field).
-- Fields the app has no place for (e.g. anniversaries, related names) are stored
-  as sent and written back unchanged.
+- Fields the app has no place for (e.g. related names) are stored as sent and
+  written back unchanged.
 
 ## Changes from a device
 
@@ -52,11 +63,22 @@ the device stay there until the account is removed on the device.
 ## Calendar subscription (follow-ups)
 
 **Settings → Sync → Calendar subscription** creates a secret link (shown once)
-with the open follow-ups of the chosen spaces, optionally with birthdays (also of
-indirect contacts). Overdue follow-ups appear on today. On the iPhone: Settings →
-Apps → Calendar → Calendar Accounts → Add Account → Other → Add Subscribed Calendar.
-The calendar is read-only and refreshes about every hour; deleting the
-subscription in the app makes the link stop working.
+with the open follow-ups of the chosen spaces, optionally with birthdays and with
+wedding anniversaries, memorial days and other recurring days (each a yearly event).
+Overdue follow-ups appear on today. On the iPhone: Settings → Apps → Calendar →
+Calendar Accounts → Add Account → Other → Add Subscribed Calendar. The calendar is
+read-only and refreshes about every hour; deleting the subscription in the app makes
+the link stop working. Name, spaces and contents can be changed later; the link stays
+the same.
+
+- **Birthdays: None, Only indirect contacts or All.** The iPhone shows the birthdays
+  of its contacts itself (Calendar → Calendars → _Birthdays_), so with CardDAV choose
+  _Only indirect contacts_: they are not synced to the phone, and no birthday shows
+  up twice. Without CardDAV choose _All_.
+- **Other days** come only from the subscription: the iPhone calendar does not show
+  anniversaries or other dates of contacts, only birthdays. A day whose _Remind_
+  switch (bell on the person page) is off stays out of the subscription, Today and
+  the daily mail.
 
 Endpoint: `GET /ics/<secret>.ics` (iCalendar, all-day events).
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { CreateCalendarFeedResponse, Person } from '@app/shared';
+import type { CalendarFeed, CreateCalendarFeedResponse, Person } from '@app/shared';
 import { unfold } from '../dav/vcard';
 import { createSignedInApp } from '../test/helpers';
 
@@ -22,15 +22,27 @@ const inDays = (n: number) => {
   return local(d);
 };
 
-async function feed(input: { spaceIds?: string[] | null; includeBirthdays?: boolean } = {}) {
+const fetchFeed = async (url: string) => {
+  const res = await t.app.request(new URL(url).pathname); // no cookie needed
+  return { res, lines: unfold(await res.text()) };
+};
+
+async function feed(
+  input: {
+    spaceIds?: string[] | null;
+    birthdays?: string;
+    includeBirthdays?: boolean;
+    includeDates?: boolean;
+  } = {},
+) {
   const created = await post<CreateCalendarFeedResponse>('/calendar-feeds', {
     name: 'iPhone',
     spaceIds: input.spaceIds ?? null,
-    includeBirthdays: input.includeBirthdays ?? false,
+    ...(input.birthdays === undefined ? {} : { birthdays: input.birthdays }),
+    ...(input.includeBirthdays === undefined ? {} : { includeBirthdays: input.includeBirthdays }),
+    ...(input.includeDates === undefined ? {} : { includeDates: input.includeDates }),
   });
-  const path = new URL(created.url).pathname;
-  const res = await t.app.request(path); // no cookie needed
-  return { created, res, lines: unfold(await res.text()) };
+  return { created, ...(await fetchFeed(created.url)) };
 }
 
 describe('calendar feeds', () => {
@@ -62,7 +74,7 @@ describe('calendar feeds', () => {
     expect(lines).toContain(`URL;VALUE=URI:http://localhost:3000/people/${jana.id}`);
   });
 
-  it('adds birthdays only when asked, also for indirect contacts', async () => {
+  it('adds birthdays only when asked: all, or only of indirect contacts', async () => {
     const jana = await post<Person>('/people', {
       spaceId: t.businessSpace,
       firstName: 'Jana',
@@ -76,12 +88,120 @@ describe('calendar feeds', () => {
     });
     await patch(`/people/${rel.person.id}`, { birthday: '2008-03-08' });
 
-    expect((await feed()).lines.join('\n')).not.toContain('Geburtstag');
-    const { lines } = await feed({ includeBirthdays: true });
+    const none = await feed();
+    expect(none.created.feed).toMatchObject({ birthdays: 'none', includeBirthdays: false });
+    expect(none.lines.join('\n')).not.toContain('Geburtstag');
+    const { created, lines } = await feed({ birthdays: 'all' });
+    expect(created.feed).toMatchObject({ birthdays: 'all', includeBirthdays: true });
     expect(lines).toContain('DTSTART;VALUE=DATE:20001024');
     expect(lines).toContain('SUMMARY:Geburtstag: Jana Berger');
     expect(lines).toContain('DTSTART;VALUE=DATE:20080308');
     expect(lines).toContain('SUMMARY:Geburtstag: Lea Berger (über Jana Berger)');
+    expect(lines.filter((l) => l === 'RRULE:FREQ=YEARLY')).toHaveLength(2);
+
+    // The phone shows the birthdays of synced contacts itself; indirect ones only via the feed.
+    const indirect = await feed({ birthdays: 'indirect' });
+    expect(indirect.lines).toContain('SUMMARY:Geburtstag: Lea Berger (über Jana Berger)');
+    expect(indirect.lines.join('\n')).not.toContain('Geburtstag: Jana Berger');
+
+    // Older clients still send the switch.
+    expect((await feed({ includeBirthdays: true })).created.feed.birthdays).toBe('all');
+    expect((await feed({ includeBirthdays: false })).created.feed.birthdays).toBe('none');
+    const bad = await t.request('/api/v1/calendar-feeds', {
+      method: 'POST',
+      json: { name: 'x', spaceIds: null, birthdays: 'some' },
+    });
+    expect(bad.status).toBe(400);
+  });
+
+  it('leaves out days whose reminder is off (acceptance)', async () => {
+    const jana = await post<Person>('/people', {
+      spaceId: t.businessSpace,
+      firstName: 'Jana',
+      lastName: 'Berger',
+    });
+    await post(`/people/${jana.id}/dates`, { kind: 'wedding', date: '2015-06-12' });
+    const memorial = await post<{ id: string; remind: boolean }>(`/people/${jana.id}/dates`, {
+      kind: 'memorial',
+      date: '2020-03-10',
+      remind: false,
+    });
+    expect(memorial.remind).toBe(false);
+    const { lines } = await feed({ includeDates: true });
+    expect(lines).toContain('SUMMARY:Hochzeitstag: Jana Berger');
+    expect(lines.join('\n')).not.toContain('Todestag');
+
+    await patch(`/people/${jana.id}/dates/${memorial.id}`, { remind: true });
+    expect((await feed({ includeDates: true })).lines).toContain('SUMMARY:Todestag: Jana Berger');
+  });
+
+  it('changes a subscription; the link stays the same', async () => {
+    const jana = await post<Person>('/people', {
+      spaceId: t.businessSpace,
+      firstName: 'Jana',
+      lastName: 'Berger',
+    });
+    await patch(`/people/${jana.id}`, { birthday: '--10-24' });
+    const { created } = await feed({ birthdays: 'all' });
+    const id = created.feed.id;
+    expect((await fetchFeed(created.url)).lines).toContain('SUMMARY:Geburtstag: Jana Berger');
+
+    const changed = await patch<{ feed: CalendarFeed }>(`/calendar-feeds/${id}`, {
+      name: 'Arbeit',
+      spaceIds: [t.privateSpace],
+      birthdays: 'indirect',
+      includeDates: true,
+    });
+    expect(changed.feed).toMatchObject({
+      id,
+      name: 'Arbeit',
+      spaceIds: [t.privateSpace],
+      birthdays: 'indirect',
+      includeDates: true,
+    });
+    const after = await fetchFeed(created.url);
+    expect(after.res.status).toBe(200);
+    expect(after.lines.join('\n')).not.toContain('Geburtstag');
+    expect(after.lines.join('\n')).toContain('Arbeit');
+
+    // Nothing to change, back to all spaces, unknown feed or space.
+    expect((await patch<{ feed: CalendarFeed }>(`/calendar-feeds/${id}`, {})).feed.name).toBe(
+      'Arbeit',
+    );
+    expect(
+      (await patch<{ feed: CalendarFeed }>(`/calendar-feeds/${id}`, { spaceIds: null })).feed
+        .spaceIds,
+    ).toBeNull();
+    const req = (path: string, json: unknown) =>
+      t.request(`/api/v1/calendar-feeds/${path}`, { method: 'PATCH', json });
+    expect((await req('nope', { name: 'x' })).status).toBe(404);
+    expect((await req(id, { spaceIds: ['nope'] })).status).toBe(400);
+    expect((await req(id, { name: '' })).status).toBe(400);
+  });
+
+  it('adds recurring days only when asked, as yearly events', async () => {
+    const jana = await post<Person>('/people', {
+      spaceId: t.businessSpace,
+      firstName: 'Jana',
+      lastName: 'Berger',
+    });
+    await post(`/people/${jana.id}/dates`, { kind: 'wedding', date: '2015-06-12' });
+    await post(`/people/${jana.id}/dates`, { kind: 'custom', label: 'Hauskauf', date: '--09-01' });
+    const gone = await post<{ id: string }>(`/people/${jana.id}/dates`, {
+      kind: 'nameday',
+      date: '--07-26',
+    });
+    await t.request(`/api/v1/people/${jana.id}/dates/${gone.id}`, { method: 'DELETE' });
+
+    // Older clients leave the option out: no recurring days.
+    expect((await feed({ includeBirthdays: true })).lines.join('\n')).not.toContain('Hochzeitstag');
+    const { created, lines } = await feed({ includeDates: true });
+    expect(created.feed.includeDates).toBe(true);
+    expect(lines).toContain('DTSTART;VALUE=DATE:20150612');
+    expect(lines).toContain('SUMMARY:Hochzeitstag: Jana Berger');
+    expect(lines).toContain('DTSTART;VALUE=DATE:20000901');
+    expect(lines).toContain('SUMMARY:Hauskauf: Jana Berger');
+    expect(lines.join('\n')).not.toContain('Namenstag');
     expect(lines.filter((l) => l === 'RRULE:FREQ=YEARLY')).toHaveLength(2);
   });
 

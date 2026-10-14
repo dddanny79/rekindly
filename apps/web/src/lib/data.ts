@@ -5,6 +5,10 @@ import {
   entryListResponseSchema,
   entrySchema,
   factSchema,
+  questionSchema,
+  personDateSchema,
+  type PersonDateKind,
+  askQuestionResponseSchema,
   reminderSchema,
   fieldDefinitionListResponseSchema,
   type FieldDefinition,
@@ -29,6 +33,9 @@ import {
   createAppPasswordResponseSchema,
   calendarFeedListResponseSchema,
   createCalendarFeedResponseSchema,
+  calendarFeedResponseSchema,
+  type FeedBirthdays,
+  type UpdateCalendarFeedRequest,
   type BackupConfigInput,
   backupFileListResponseSchema,
   backupSettingsSchema,
@@ -286,6 +293,39 @@ export const factsApi = {
     api(`${V1}/people/${personId}/facts/order`, z.unknown(), { method: 'PUT', json: { ids } }),
 };
 
+export const personDatesApi = {
+  create: (
+    personId: string,
+    input: { kind: PersonDateKind; label?: string | null; date: string; remind?: boolean },
+  ) => api(`${V1}/people/${personId}/dates`, personDateSchema, { json: input }),
+  update: (
+    personId: string,
+    id: string,
+    patch: { kind?: PersonDateKind; label?: string | null; date?: string; remind?: boolean },
+  ) =>
+    api(`${V1}/people/${personId}/dates/${id}`, personDateSchema, { method: 'PATCH', json: patch }),
+  remove: (personId: string, id: string) =>
+    api(`${V1}/people/${personId}/dates/${id}`, null, { method: 'DELETE' }),
+};
+
+export const questionsApi = {
+  create: (personId: string, input: { text: string }) =>
+    api(`${V1}/people/${personId}/questions`, questionSchema, { json: input }),
+  update: (personId: string, id: string, patch: { text: string }) =>
+    api(`${V1}/people/${personId}/questions/${id}`, questionSchema, {
+      method: 'PATCH',
+      json: patch,
+    }),
+  remove: (personId: string, id: string) =>
+    api(`${V1}/people/${personId}/questions/${id}`, null, { method: 'DELETE' }),
+  reorder: (personId: string, ids: string[]) =>
+    api(`${V1}/people/${personId}/questions/order`, z.unknown(), { method: 'PUT', json: { ids } }),
+  asked: (personId: string, id: string, input: { answer?: string }) =>
+    api(`${V1}/people/${personId}/questions/${id}/asked`, askQuestionResponseSchema, {
+      json: input,
+    }),
+};
+
 // Search, Today, Trash ---------------------------------------------------------------
 
 export const searchQuery = (params: SearchQuery) =>
@@ -341,8 +381,14 @@ export const calendarFeedsQuery = queryOptions({
 });
 
 export const calendarFeedsApi = {
-  create: (input: { name: string; spaceIds: string[] | null; includeBirthdays: boolean }) =>
-    api(`${V1}/calendar-feeds`, createCalendarFeedResponseSchema, { json: input }),
+  create: (input: {
+    name: string;
+    spaceIds: string[] | null;
+    birthdays: FeedBirthdays;
+    includeDates: boolean;
+  }) => api(`${V1}/calendar-feeds`, createCalendarFeedResponseSchema, { json: input }),
+  update: ({ id, ...patch }: UpdateCalendarFeedRequest & { id: string }) =>
+    api(`${V1}/calendar-feeds/${id}`, calendarFeedResponseSchema, { method: 'PATCH', json: patch }),
   remove: (id: string) => api(`${V1}/calendar-feeds/${id}`, null, { method: 'DELETE' }),
 };
 

@@ -27,18 +27,25 @@ import {
   spaces,
   tags,
   themes,
+  questions,
+  personDates,
 } from '../db/schema';
 import { TWO_FACTOR_SETTING } from '../auth/two-factor';
 import { DomainError } from '../lib/errors';
 import { MAIL_STATUS_SETTING } from '../mail/config';
 import { reindexAll } from '../search/service';
 import { APP_VERSION } from '../version';
+import { getAccountRow } from '../auth/account';
+import { adoptKeptDates } from '../dav/inbound';
 
 export const EXPORT_FORMAT = 'rekindly-export';
 /** Exports from before the app was named Rekindly. */
 const LEGACY_EXPORT_FORMATS = ['personengedaechtnis-export'] as const;
-/** 2: own themes (`themes`). Files of version 1 still import. */
-export const EXPORT_VERSION = 2;
+/**
+ * 2: own themes (`themes`); 3: questions for next time (`questions`) and recurring days
+ * (`personDates`). Older files still import.
+ */
+export const EXPORT_VERSION = 3;
 
 /**
  * Exported tables in insert order (parents first). Rows are exported as the
@@ -66,6 +73,8 @@ const TABLES = {
   settings,
   davExtras,
   themes,
+  questions,
+  personDates,
 } as const satisfies Record<string, SQLiteTable>;
 
 /**
@@ -235,6 +244,8 @@ export async function importAll(db: Db, dataDir: string, input: unknown) {
     throw new DomainError(400, 'invalid_export');
   }
 
+  // Older exports may hold dates as kept vCard lines.
+  adoptKeptDates(db, getAccountRow(db)?.locale === 'de' ? 'de' : 'en');
   reindexAll(db);
   return {
     ...Object.fromEntries(Object.entries(tableRows).map(([name, list]) => [name, list.length])),

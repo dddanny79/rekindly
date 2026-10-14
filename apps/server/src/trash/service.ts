@@ -15,6 +15,8 @@ import {
   entries,
   entryPeople,
   facts,
+  questions,
+  personDates,
   fieldDefinitions,
   fieldValues,
   organizations,
@@ -275,6 +277,14 @@ const KINDS: Record<TrashKind, Kind> = {
   },
 
   fact: personChild('fact', facts, (f: typeof facts.$inferSelect) => ({ label: named(f.text) })),
+  question: personChild('question', questions, (q: typeof questions.$inferSelect) => ({
+    label: named(q.text),
+  })),
+  personDate: personChild('personDate', personDates, (d: typeof personDates.$inferSelect) => ({
+    // Days without an own label are named by their kind (translated in the app).
+    label: named(d.label, d.label ? null : `personDates.kinds.${d.kind}`),
+    detail: d.date,
+  })),
 
   contactPoint: personChild(
     'contactPoint',

@@ -23,6 +23,8 @@ const DIRECTION_COMMANDS: Record<string, EntryDirection> = {
   aus: 'out',
 };
 const REMINDER_COMMANDS = new Set(['wv', 'remind', 'followup']);
+/** The rest of the line becomes a question for next time. */
+const QUESTION_COMMANDS = new Set(['ask', 'frag', 'frage']);
 
 export interface ParsedCommands {
   text: string;
@@ -30,6 +32,8 @@ export interface ParsedCommands {
   direction?: EntryDirection;
   /** Follow-up due date (`YYYY-MM-DD`). */
   reminderDueOn?: string;
+  /** Questions for next time (`/ask …` up to the end of the line). */
+  questions: string[];
   /** Removed character ranges `[start, end)` in the input. */
   removed: [number, number][];
 }
@@ -37,15 +41,29 @@ export interface ParsedCommands {
 /**
  * Consumes completed slash commands (known command, followed by a space) anywhere in
  * the text: "/call /in Text" → kind call, direction in; "… /wv 2w " → follow-up.
+ * "/ask How was the move?" takes the rest of the line as a question for next time.
  * Unknown or unfinished commands are left in the text.
  */
 export function parseCommands(input: string, today = new Date()): ParsedCommands {
-  const result: ParsedCommands = { text: input, removed: [] };
+  const result: ParsedCommands = { text: input, questions: [], removed: [] };
+  // End of the last question: commands inside a question are part of its text.
+  let consumed = 0;
   const pattern = /(^|[ \t\n])\/([a-zäöü]+)(?=[ \t])/gi;
   for (const match of input.matchAll(pattern)) {
     const command = match[2]!.toLowerCase();
     const start = match.index + match[1]!.length;
     let end = start + 1 + match[2]!.length;
+    if (start < consumed) continue;
+    if (QUESTION_COMMANDS.has(command)) {
+      const newline = input.indexOf('\n', end);
+      const lineEnd = newline === -1 ? input.length : newline + 1;
+      const question = input.slice(end, lineEnd).trim();
+      if (!question) continue;
+      result.questions.push(question);
+      result.removed.push([start, lineEnd]);
+      consumed = lineEnd;
+      continue;
+    }
     if (KIND_COMMANDS[command]) result.kind = KIND_COMMANDS[command];
     else if (DIRECTION_COMMANDS[command]) result.direction = DIRECTION_COMMANDS[command];
     else if (REMINDER_COMMANDS.has(command)) {

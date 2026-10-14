@@ -40,6 +40,8 @@ const base: Person = {
   tags: [],
   fields: [],
   facts: [],
+  questions: [],
+  dates: [],
   reminders: [],
   lastContact: null,
 };
@@ -105,5 +107,37 @@ describe('BriefingCard', () => {
       '↗ Call · Budget approved',
     );
     expect(screen.getByTestId('briefing-rhythm')).toHaveTextContent('overdue by 10 days');
+  });
+
+  it('puts questions for next time at the top', () => {
+    renderCard({
+      ...base,
+      questions: [{ id: 'q1', text: 'How was the marathon?', sort: 0, createdAt: base.createdAt }],
+    });
+    const list = screen.getByTestId('briefing-questions');
+    expect(list).toHaveTextContent('Ask next time');
+    expect(list).toHaveTextContent('How was the marathon?');
+    expect(
+      screen.getByRole('checkbox', { name: 'Mark “How was the marathon?” as asked' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Nothing for the briefing yet/)).not.toBeInTheDocument();
+  });
+
+  it('shows close recurring days tactfully, not the far ones', () => {
+    const soon = toDateOnly(addDays(new Date(), 3)).slice(5);
+    const later = toDateOnly(addDays(new Date(), 40)).slice(5);
+    renderCard({
+      ...base,
+      dates: [
+        { id: 'd1', kind: 'memorial', label: null, date: `2016-${soon}`, remind: true },
+        { id: 'd2', kind: 'wedding', label: null, date: `--${later}`, remind: true },
+      ],
+    });
+    const [row] = screen.getAllByTestId('briefing-date');
+    expect(screen.getAllByTestId('briefing-date')).toHaveLength(1);
+    expect(row).toHaveTextContent('Anniversary of death');
+    expect(row).toHaveTextContent('in 3 days');
+    expect(row).toHaveTextContent(/years ago$/);
+    expect(row).not.toHaveTextContent('turns');
   });
 });
