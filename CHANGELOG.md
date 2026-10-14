@@ -6,6 +6,8 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-10-14
+
 ### Added
 
 - **Ask next time:** collect questions for the next conversation with someone (“How
@@ -35,11 +37,16 @@ breaking changes (always with a migration path for your data).
   contacts_ adds the rest without showing any birthday twice. Existing subscriptions
   keep what they had (all or none). API: `birthdays` replaces `includeBirthdays`, which
   is still accepted and returned.
-
 - Export format version 3 (adds `questions` and `personDates`); files of version 1 and
   2 still import.
 - Dates that earlier versions kept from the iPhone as unknown vCard fields become
   recurring days on start.
+
+### Upgrading from 0.2
+
+Three database migrations run automatically on start. Make a backup first
+(`docker exec <container> node dist/cli.js backup`). 0.2 cannot import exports or
+backups made by 0.3 (format version 3); 0.3 imports all older files.
 
 ## [0.2.0] — 2026-10-13
 
@@ -99,6 +106,7 @@ First public release:
 - API tokens, OpenAPI reference at `/api/docs`, MCP server for Claude
 - One Docker image (amd64, arm64), SQLite, no telemetry
 
-[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/dddanny79/rekindly/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dddanny79/rekindly/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dddanny79/rekindly/releases/tag/v0.1.0
