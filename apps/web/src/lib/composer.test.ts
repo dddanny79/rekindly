@@ -17,8 +17,8 @@ describe('parseCommands', () => {
   });
 
   it('waits until a command is complete', () => {
-    expect(parseCommands('/cal', today)).toEqual({ text: '/cal', removed: [] });
-    expect(parseCommands('/call', today)).toEqual({ text: '/call', removed: [] });
+    expect(parseCommands('/cal', today)).toEqual({ text: '/cal', questions: [], removed: [] });
+    expect(parseCommands('/call', today)).toEqual({ text: '/call', questions: [], removed: [] });
   });
 
   it('parses follow-ups', () => {
@@ -30,16 +30,50 @@ describe('parseCommands', () => {
       text: 'Angebot schicken ',
       reminderDueOn: '2026-10-25',
     });
-    expect(parseCommands('/wv bald Text', today)).toEqual({ text: '/wv bald Text', removed: [] });
+    expect(parseCommands('/wv bald Text', today)).toEqual({
+      text: '/wv bald Text',
+      questions: [],
+      removed: [],
+    });
   });
 
   it('leaves unknown commands and normal text alone', () => {
-    expect(parseCommands('/foo bar ', today)).toEqual({ text: '/foo bar ', removed: [] });
-    expect(parseCommands('km/h und 3/4 ', today)).toEqual({ text: 'km/h und 3/4 ', removed: [] });
+    expect(parseCommands('/foo bar ', today)).toEqual({
+      text: '/foo bar ',
+      questions: [],
+      removed: [],
+    });
+    expect(parseCommands('km/h und 3/4 ', today)).toEqual({
+      text: 'km/h und 3/4 ',
+      questions: [],
+      removed: [],
+    });
     expect(parseCommands('Text /meeting mehr', today)).toMatchObject({
       text: 'Text mehr',
       kind: 'meeting',
     });
+  });
+
+  it('takes the rest of the line as a question for next time', () => {
+    expect(parseCommands('/frag Wie lief der Umzug? ', today)).toMatchObject({
+      text: '',
+      questions: ['Wie lief der Umzug?'],
+    });
+    expect(
+      parseCommands(
+        '/call Budget freigegeben\n/ask How was the marathon?\n/frage Neue Stelle? ',
+        today,
+      ),
+    ).toMatchObject({
+      text: 'Budget freigegeben\n',
+      kind: 'call',
+      questions: ['How was the marathon?', 'Neue Stelle?'],
+    });
+    // Commands inside a question belong to its text; an empty question is no command.
+    expect(parseCommands('/ask Did /call work? ', today)).toMatchObject({
+      questions: ['Did /call work?'],
+    });
+    expect(parseCommands('/ask  ', today).questions).toEqual([]);
   });
 });
 

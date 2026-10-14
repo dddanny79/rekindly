@@ -15,6 +15,7 @@ import {
   entries,
   entryPeople,
   facts,
+  questions,
   fieldDefinitions,
   fieldValues,
   organizations,
@@ -275,6 +276,9 @@ const KINDS: Record<TrashKind, Kind> = {
   },
 
   fact: personChild('fact', facts, (f: typeof facts.$inferSelect) => ({ label: named(f.text) })),
+  question: personChild('question', questions, (q: typeof questions.$inferSelect) => ({
+    label: named(q.text),
+  })),
 
   contactPoint: personChild(
     'contactPoint',

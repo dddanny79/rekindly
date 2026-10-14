@@ -27,6 +27,7 @@ import {
   spaces,
   tags,
   themes,
+  questions,
 } from '../db/schema';
 import { TWO_FACTOR_SETTING } from '../auth/two-factor';
 import { DomainError } from '../lib/errors';
@@ -37,8 +38,8 @@ import { APP_VERSION } from '../version';
 export const EXPORT_FORMAT = 'rekindly-export';
 /** Exports from before the app was named Rekindly. */
 const LEGACY_EXPORT_FORMATS = ['personengedaechtnis-export'] as const;
-/** 2: own themes (`themes`). Files of version 1 still import. */
-export const EXPORT_VERSION = 2;
+/** 2: own themes (`themes`); 3: questions for next time (`questions`). Older files still import. */
+export const EXPORT_VERSION = 3;
 
 /**
  * Exported tables in insert order (parents first). Rows are exported as the
@@ -66,6 +67,7 @@ const TABLES = {
   settings,
   davExtras,
   themes,
+  questions,
 } as const satisfies Record<string, SQLiteTable>;
 
 /**

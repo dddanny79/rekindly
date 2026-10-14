@@ -197,6 +197,23 @@ export const facts = sqliteTable(
   (t) => [index('facts_person_idx').on(t.personId)],
 );
 
+/** Questions for the next conversation with a person; open until asked. */
+export const questions = sqliteTable(
+  'questions',
+  {
+    id: id(),
+    personId: text('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    text: text('text').notNull(),
+    sort: integer('sort').notNull().default(0),
+    askedAt: timestamp('asked_at'),
+    deletedAt: deletedAt(),
+    ...timestamps,
+  },
+  (t) => [index('questions_person_idx').on(t.personId)],
+);
+
 export const entries = sqliteTable(
   'entries',
   {

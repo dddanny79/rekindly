@@ -5,6 +5,8 @@ import {
   entryListResponseSchema,
   entrySchema,
   factSchema,
+  questionSchema,
+  askQuestionResponseSchema,
   reminderSchema,
   fieldDefinitionListResponseSchema,
   type FieldDefinition,
@@ -284,6 +286,24 @@ export const factsApi = {
     api(`${V1}/people/${personId}/facts/${id}`, null, { method: 'DELETE' }),
   reorder: (personId: string, ids: string[]) =>
     api(`${V1}/people/${personId}/facts/order`, z.unknown(), { method: 'PUT', json: { ids } }),
+};
+
+export const questionsApi = {
+  create: (personId: string, input: { text: string }) =>
+    api(`${V1}/people/${personId}/questions`, questionSchema, { json: input }),
+  update: (personId: string, id: string, patch: { text: string }) =>
+    api(`${V1}/people/${personId}/questions/${id}`, questionSchema, {
+      method: 'PATCH',
+      json: patch,
+    }),
+  remove: (personId: string, id: string) =>
+    api(`${V1}/people/${personId}/questions/${id}`, null, { method: 'DELETE' }),
+  reorder: (personId: string, ids: string[]) =>
+    api(`${V1}/people/${personId}/questions/order`, z.unknown(), { method: 'PUT', json: { ids } }),
+  asked: (personId: string, id: string, input: { answer?: string }) =>
+    api(`${V1}/people/${personId}/questions/${id}/asked`, askQuestionResponseSchema, {
+      json: input,
+    }),
 };
 
 // Search, Today, Trash ---------------------------------------------------------------

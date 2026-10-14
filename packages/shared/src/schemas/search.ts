@@ -9,6 +9,7 @@ export const SEARCH_FIELDS = [
   'role',
   'organization',
   'fact',
+  'question',
   'summary',
   'tag',
   'contact',

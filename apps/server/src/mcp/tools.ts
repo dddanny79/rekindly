@@ -81,7 +81,7 @@ export const TOOLS: Tool[] = [
     name: 'get_person_briefing',
     title: 'Person briefing',
     description:
-      'Everything known about a person: who they are, organizations, contact details, facts, open follow-ups, relationships and recent conversations. Use before a call or meeting, or to answer “what do I know about X?”.',
+      'Everything known about a person: who they are, organizations, contact details, facts, questions to ask next time, open follow-ups, relationships and recent conversations. Use before a call or meeting, or to answer “what do I know about X?”.',
     input: personInput,
     write: false,
     run: (ctx, args: z.infer<typeof personInput>) => {

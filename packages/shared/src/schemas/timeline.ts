@@ -20,6 +20,26 @@ export const updateFactRequestSchema = z.object({
 });
 export const reorderFactsRequestSchema = z.object({ ids: z.array(idSchema).max(500) });
 
+// Questions for next time ---------------------------------------------------------------
+
+/** An open question for the next conversation with a person. */
+export const questionSchema = z.object({
+  id: idSchema,
+  text: z.string(),
+  sort: z.number().int(),
+  createdAt: isoDateTimeSchema,
+});
+export type Question = z.infer<typeof questionSchema>;
+
+const questionText = z.string().trim().min(1).max(500);
+export const createQuestionRequestSchema = z.object({ text: questionText });
+export const updateQuestionRequestSchema = z.object({ text: questionText });
+export const reorderQuestionsRequestSchema = z.object({ ids: z.array(idSchema).max(500) });
+/** Marks a question as asked; with an answer, a note with question and answer is added. */
+export const askQuestionRequestSchema = z.object({
+  answer: z.string().trim().max(5000).optional(),
+});
+
 // Timeline entries --------------------------------------------------------------------
 
 export const ENTRY_KINDS = ['note', 'call', 'meeting', 'message', 'event'] as const;
@@ -160,3 +180,6 @@ export function entryExcerpt(title: string | null, bodyMd: string, max = 140): s
   const plain = line.replace(/[*_`~]/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
   return plain.length > max ? `${plain.slice(0, max - 1).trimEnd()}…` : plain;
 }
+
+/** Answer to marking a question as asked: the note that was added, if any. */
+export const askQuestionResponseSchema = z.object({ entry: entrySchema.nullable() });

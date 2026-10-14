@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { type EntryKind, foldText, personDisplayName, type SearchField } from '@app/shared';
 import type { Db } from '../db/client';
 import {
@@ -8,6 +8,7 @@ import {
   entries,
   entryPeople,
   facts,
+  questions,
   fieldDefinitions,
   fieldValues,
   organizations,
@@ -46,6 +47,7 @@ const COLUMN: Record<SearchField, 'name' | 'details' | 'notes'> = {
   role: 'details',
   organization: 'details',
   fact: 'details',
+  question: 'details',
   summary: 'details',
   tag: 'details',
   contact: 'details',
@@ -209,6 +211,16 @@ export function buildPersonDocuments(db: Db, ctx: Context, ids: string[]): Searc
         .all(),
       (r) => r.personId,
     );
+    const questionRows = groupBy(
+      db
+        .select()
+        .from(questions)
+        .where(
+          and(inArray(questions.personId, live), notDeleted(questions), isNull(questions.askedAt)),
+        )
+        .all(),
+      (r) => r.personId,
+    );
     const tagRows = groupBy(
       db
         .select({ personId: personTags.personId, name: tags.name })
@@ -245,6 +257,7 @@ export function buildPersonDocuments(db: Db, ctx: Context, ids: string[]): Searc
         if (affiliation.role) stored.push({ f: 'role', t: affiliation.role });
       }
       for (const fact of factRows.get(person.id) ?? []) stored.push({ f: 'fact', t: fact.text });
+      for (const q of questionRows.get(person.id) ?? []) stored.push({ f: 'question', t: q.text });
       for (const tag of tagRows.get(person.id) ?? []) stored.push({ f: 'tag', t: `#${tag.name}` });
       for (const point of points.get(person.id) ?? []) {
         stored.push({ f: 'contact', t: point.value, ...(point.label ? { l: point.label } : {}) });

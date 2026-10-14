@@ -15,7 +15,14 @@ import { FormMessage } from '@/components/form-field';
 import { directionArrow } from '@/components/timeline/entry-kind';
 import { Select } from '@/components/ui/select';
 import { mentionAt, parseCommands } from '@/lib/composer';
-import { entriesApi, peopleQuery, spacesQuery, TIMELINE_KEYS, useWrite } from '@/lib/data';
+import {
+  entriesApi,
+  peopleQuery,
+  questionsApi,
+  spacesQuery,
+  TIMELINE_KEYS,
+  useWrite,
+} from '@/lib/data';
 import { addDays, fromDateOnly, toDateOnly, toDateTimeLocal } from '@/lib/dates';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -31,7 +38,8 @@ interface ComposerProps {
 
 /**
  * One field for notes, calls, meetings: slash commands set the kind, `@Name` links
- * more people, Enter saves (Shift+Enter: new line).
+ * more people, `/ask …` keeps a question for next time, Enter saves (Shift+Enter: new
+ * line).
  */
 export function TimelineComposer({ person, initialKind }: ComposerProps) {
   const { t, i18n } = useTranslation();
@@ -67,6 +75,12 @@ export function TimelineComposer({ person, initialKind }: ComposerProps) {
   }, [mention, people, person.id, others]);
 
   const create = useWrite(entriesApi.create, { invalidate: TIMELINE_KEYS });
+  const ask = useWrite(
+    async (texts: string[]) => {
+      for (const text of texts) await questionsApi.create(person.id, { text });
+    },
+    { invalidate: [['people'], ['search']] },
+  );
 
   function reset() {
     setText('');
@@ -89,7 +103,10 @@ export function TimelineComposer({ person, initialKind }: ComposerProps) {
     if (commands.kind) setKind(commands.kind);
     if (commands.direction) setDirection(commands.direction);
     if (commands.reminderDueOn) setReminder(commands.reminderDueOn);
-    if (commands.removed.length) setText(commands.text.replace(/ $/, ''));
+    // Questions stay in the text until saving, so they never vanish while typing.
+    if (commands.removed.length && !commands.questions.length) {
+      setText(commands.text.replace(/ $/, ''));
+    }
   }
 
   function onChange(value: string, caret: number) {
@@ -121,10 +138,15 @@ export function TimelineComposer({ person, initialKind }: ComposerProps) {
   function submit() {
     // "… Thomas Albers ." → "… Thomas Albers." (mentions insert a trailing space).
     const body = commands.text.replace(/ +([.,;:!?])/g, '$1').trim();
-    if (!body) return;
+    const questions = commands.questions;
+    if (!body && !questions.length) return;
     const draft = { text, kind, direction, when, others, reminder };
     // Clear right away so the next note can be typed; restore the draft on error.
     reset();
+    if (questions.length) {
+      ask.mutate(questions, { onError: () => setText((current) => current || draft.text) });
+    }
+    if (!body) return;
     create.mutate(
       {
         kind: effectiveKind,
@@ -308,6 +330,14 @@ export function TimelineComposer({ person, initialKind }: ComposerProps) {
               <option value={reminder}>{t('timeline.reminderOn', { date: reminderLabel })}</option>
             )}
         </Select>
+        {commands.questions.length > 0 && (
+          <span
+            className="flex h-7 items-center rounded-sm border px-2"
+            data-testid="composer-questions"
+          >
+            {t('questions.title')} · {commands.questions.length}
+          </span>
+        )}
         {others.map((o) => (
           <span key={o.id} className="flex h-7 items-center gap-1 rounded-sm border px-2">
             {t('timeline.with')} {o.displayName}
@@ -325,7 +355,7 @@ export function TimelineComposer({ person, initialKind }: ComposerProps) {
         <button
           type="button"
           onClick={submit}
-          disabled={!commands.text.trim()}
+          disabled={!commands.text.trim() && !commands.questions.length}
           className="flex h-7 cursor-pointer items-center gap-1.5 rounded-sm px-2 font-semibold text-foreground-2 hover:bg-muted disabled:cursor-default disabled:opacity-50"
         >
           <span className="kbd">↵</span>
@@ -333,7 +363,10 @@ export function TimelineComposer({ person, initialKind }: ComposerProps) {
         </button>
       </div>
       <div className="px-3 pb-2 empty:hidden">
-        <FormMessage tone="error">{create.isError && errorMessage(t, create.error)}</FormMessage>
+        <FormMessage tone="error">
+          {(create.isError && errorMessage(t, create.error)) ||
+            (ask.isError && errorMessage(t, ask.error))}
+        </FormMessage>
       </div>
     </div>
   );
