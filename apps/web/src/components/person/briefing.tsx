@@ -3,8 +3,9 @@ import { Link } from '@tanstack/react-router';
 import { MessageCircleQuestion, Pin, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Person, Reminder } from '@app/shared';
+import { type Person, type Reminder, TODAY_BIRTHDAY_DAYS } from '@app/shared';
 import { FormMessage } from '@/components/form-field';
+import { useDayText } from '@/lib/day-text';
 import { QuestionList } from '@/components/person/questions';
 import { directionArrow } from '@/components/timeline/entry-kind';
 import { Button } from '@/components/ui/button';
@@ -169,6 +170,12 @@ export function BriefingCard({ person }: { person: Person }) {
   const [asking, setAsking] = useState(false);
   const pinned = person.facts.filter((f) => f.pinned);
   const birthday = person.birthday ? nextBirthday(person.birthday) : null;
+  const dayText = useDayText();
+  // Other recurring days only when they are close (like on Today).
+  const days = person.dates
+    .map((day) => ({ day, next: nextBirthday(day.date) }))
+    .filter(({ next }) => next.days <= TODAY_BIRTHDAY_DAYS)
+    .sort((a, b) => a.next.days - b.next.days);
   const rhythm = rhythmStatus(
     person.contactEveryDays,
     person.lastContact?.occurredAt ?? null,
@@ -178,6 +185,7 @@ export function BriefingCard({ person }: { person: Person }) {
   const last = person.lastContact;
   const empty =
     !person.questions.length &&
+    !days.length &&
     !pinned.length &&
     !person.reminders.length &&
     !last &&
@@ -272,6 +280,24 @@ export function BriefingCard({ person }: { person: Person }) {
             </span>
           </li>
         )}
+        {days.map(({ day, next }) => {
+          const years = dayText.years(day.kind, next.turns);
+          return (
+            <li
+              key={day.id}
+              className="flex items-baseline justify-between gap-3 border-b py-2"
+              data-testid="briefing-date"
+            >
+              <span>
+                {dayText.label(day)} {shortDate(fromDateOnly(`2000-${day.date.slice(-5)}`))}
+              </span>
+              <span className="num text-meta text-muted-foreground">
+                {t('person.birthdayIn', { count: next.days })}
+                {years && ` · ${years}`}
+              </span>
+            </li>
+          );
+        })}
         {rhythm && (
           <li
             className="flex items-baseline justify-between gap-3 border-b py-2"

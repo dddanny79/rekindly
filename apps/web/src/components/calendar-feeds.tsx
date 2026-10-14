@@ -51,7 +51,7 @@ function Created({ created, onDone }: { created: CreateCalendarFeedResponse; onD
   );
 }
 
-/** Settings › Sync: read-only calendar subscriptions with follow-ups (and birthdays). */
+/** Settings › Sync: read-only calendar subscriptions with follow-ups (and birthdays, other days). */
 export function CalendarFeedsSection() {
   const { t, i18n } = useTranslation();
   const { data: feeds = [] } = useQuery(calendarFeedsQuery);
@@ -60,6 +60,7 @@ export function CalendarFeedsSection() {
   const [allSpaces, setAllSpaces] = useState(true);
   const [chosen, setChosen] = useState<string[]>([]);
   const [birthdays, setBirthdays] = useState(false);
+  const [days, setDays] = useState(false);
   const [created, setCreated] = useState<CreateCalendarFeedResponse | null>(null);
   const create = useWrite(calendarFeedsApi.create, { invalidate: KEYS, onSuccess: setCreated });
   const remove = useWrite(calendarFeedsApi.remove, { invalidate: KEYS });
@@ -80,6 +81,7 @@ export function CalendarFeedsSection() {
       name: name.trim(),
       spaceIds: allSpaces ? null : chosen,
       includeBirthdays: birthdays,
+      includeDates: days,
     });
   }
 
@@ -92,7 +94,8 @@ export function CalendarFeedsSection() {
               <div className="font-semibold">{f.name}</div>
               <div className="num text-meta text-muted-foreground">
                 {spacesOf(f.spaceIds)}
-                {f.includeBirthdays && ` · ${t('calendar.withBirthdays')}`} ·{' '}
+                {f.includeBirthdays && ` · ${t('calendar.withBirthdays')}`}
+                {f.includeDates && ` · ${t('calendar.withDates')}`} ·{' '}
                 {f.lastUsedAt
                   ? t('calendar.lastFetched', { date: date.format(new Date(f.lastUsedAt)) })
                   : t('sync.neverUsed')}
@@ -150,6 +153,10 @@ export function CalendarFeedsSection() {
               onChange={(e) => setBirthdays(e.target.checked)}
             />
             {t('calendar.includeBirthdays')}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={days} onChange={(e) => setDays(e.target.checked)} />
+            {t('calendar.includeDates')}
           </label>
           <FormMessage tone="error">{create.isError && errorMessage(t, create.error)}</FormMessage>
           <Button

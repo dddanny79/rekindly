@@ -14,10 +14,20 @@ breaking changes (always with a migration path for your data).
   the trash). Tick one once you have asked; with an answer, a note with question and
   answer is added to the timeline. Open questions are searchable and part of the MCP
   briefing, exports and backups.
+- **Recurring days:** besides the birthday, a person can have wedding
+  anniversaries, anniversaries, memorial days, name days, the day you met or own
+  days (with or without year), under _Details_. Days in the next 14 days show in the
+  briefing and on Today together with birthdays, in the daily mail and, if chosen, in
+  the calendar subscription. Tactful texts: memorial days count the years since,
+  never what someone “turns”. Two-way CardDAV sync with the iPhone (anniversary and
+  labelled date fields), vCard and Monica import, trash, export, MCP.
 
 ### Changed
 
-- Export format version 3 (adds `questions`); files of version 1 and 2 still import.
+- Export format version 3 (adds `questions` and `personDates`); files of version 1 and
+  2 still import.
+- Dates that earlier versions kept from the iPhone as unknown vCard fields become
+  recurring days on start.
 
 ## [0.2.0] — 2026-10-13
 

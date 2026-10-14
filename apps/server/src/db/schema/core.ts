@@ -214,6 +214,26 @@ export const questions = sqliteTable(
   (t) => [index('questions_person_idx').on(t.personId)],
 );
 
+/** Recurring days of a person besides the birthday (see PERSON_DATE_KINDS). */
+export const personDates = sqliteTable(
+  'person_dates',
+  {
+    id: id(),
+    personId: text('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    kind: text('kind', {
+      enum: ['wedding', 'anniversary', 'memorial', 'nameday', 'met', 'custom'],
+    }).notNull(),
+    label: text('label'),
+    /** `--MM-DD` or `YYYY-MM-DD`. */
+    date: text('date').notNull(),
+    deletedAt: deletedAt(),
+    ...timestamps,
+  },
+  (t) => [index('person_dates_person_idx').on(t.personId)],
+);
+
 export const entries = sqliteTable(
   'entries',
   {

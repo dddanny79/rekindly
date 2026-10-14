@@ -511,6 +511,10 @@ export function monicaBundle(data: MonicaData, locale: Locale, now = new Date())
       lastName: m.lastName,
       nickname: m.nickname,
       birthday: birthday(m.birthdate),
+      // The day someone died comes back every year; the same rules as birthdays.
+      dates: birthday(m.deceasedDate)
+        ? [{ kind: 'memorial', label: null, date: birthday(m.deceasedDate)! }]
+        : [],
       organization: m.company ? [m.company] : [],
       title: m.job,
       note: m.description,

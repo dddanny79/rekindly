@@ -28,12 +28,16 @@ server: no telemetry, no external calls except the services you configure.
 - **People and organizations** — names, contact details, addresses, photo, birthday,
   how you met, tags, custom fields; organizations with departments and sites.
 - **Briefing** — questions for next time, open follow-ups, pinned facts, the last
-  conversation, birthday and your keep-in-touch rhythm at a glance.
+  conversation, birthday and other days coming up, and your keep-in-touch rhythm at
+  a glance.
 - **Timeline** — notes, calls, meetings and messages in Markdown, linked to everyone
   involved; quick entry with `/call`, `@name`, follow-ups like `/wv 2w` and questions
   for next time with `/ask`.
-- **Today** — due follow-ups, upcoming birthdays and people you have not talked to
-  for too long.
+- **Days to remember** — wedding anniversaries, memorial days, name days, the day
+  you met or your own days, besides the birthday; on Today, in the daily mail, the
+  calendar subscription and the iPhone address book.
+- **Today** — due follow-ups, upcoming birthdays and other days, and people you have
+  not talked to for too long.
 - **Search everything** — names, companies, roles, facts, notes, contact details;
   `Müller` = `Mueller` = `Muller`; command palette with `⌘K` / `Ctrl+K`.
 - **Spaces** — keep private and business apart (or add your own).

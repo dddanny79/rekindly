@@ -22,6 +22,8 @@ import {
   createQuestionRequestSchema,
   reorderQuestionsRequestSchema,
   updateQuestionRequestSchema,
+  createPersonDateRequestSchema,
+  updatePersonDateRequestSchema,
 } from '@app/shared';
 import { setFieldValue } from '../catalog/fields';
 import { addFact, deleteFact, reorderFacts, updateFact } from '../facts/service';
@@ -33,6 +35,7 @@ import {
   updateQuestion,
 } from '../questions/service';
 import { addReminder } from '../reminders/service';
+import { addPersonDate, deletePersonDate, updatePersonDate } from '../person-dates/service';
 import { recordView } from '../today/service';
 import type { AppEnv, Deps } from '../env';
 import { MAX_UPLOAD_BYTES, removeFile, storePhoto } from '../files/service';
@@ -192,6 +195,18 @@ export function peopleRoutes({ db, config }: Deps) {
       )
       .delete('/:id/tags/:tagId', (c) => {
         removePersonTag(db, c.req.param('id'), c.req.param('tagId'));
+        return noContent();
+      })
+
+      // Recurring days
+      .post('/:id/dates', validate('json', createPersonDateRequestSchema), (c) =>
+        c.json(addPersonDate(db, c.req.param('id'), c.req.valid('json')), 201),
+      )
+      .patch('/:id/dates/:itemId', validate('json', updatePersonDateRequestSchema), (c) =>
+        c.json(updatePersonDate(db, c.req.param('id'), c.req.param('itemId'), c.req.valid('json'))),
+      )
+      .delete('/:id/dates/:itemId', (c) => {
+        deletePersonDate(db, c.req.param('id'), c.req.param('itemId'));
         return noContent();
       })
 

@@ -41,6 +41,7 @@ const base: Person = {
   fields: [],
   facts: [],
   questions: [],
+  dates: [],
   reminders: [],
   lastContact: null,
 };
@@ -120,5 +121,23 @@ describe('BriefingCard', () => {
       screen.getByRole('checkbox', { name: 'Mark “How was the marathon?” as asked' }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Nothing for the briefing yet/)).not.toBeInTheDocument();
+  });
+
+  it('shows close recurring days tactfully, not the far ones', () => {
+    const soon = toDateOnly(addDays(new Date(), 3)).slice(5);
+    const later = toDateOnly(addDays(new Date(), 40)).slice(5);
+    renderCard({
+      ...base,
+      dates: [
+        { id: 'd1', kind: 'memorial', label: null, date: `2016-${soon}` },
+        { id: 'd2', kind: 'wedding', label: null, date: `--${later}` },
+      ],
+    });
+    const [row] = screen.getAllByTestId('briefing-date');
+    expect(screen.getAllByTestId('briefing-date')).toHaveLength(1);
+    expect(row).toHaveTextContent('Anniversary of death');
+    expect(row).toHaveTextContent('in 3 days');
+    expect(row).toHaveTextContent(/years ago$/);
+    expect(row).not.toHaveTextContent('turns');
   });
 });

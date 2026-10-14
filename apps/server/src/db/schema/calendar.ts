@@ -12,6 +12,7 @@ export const calendarFeeds = sqliteTable(
     /** JSON array of space ids; null = all spaces. */
     spaceIds: text('space_ids', { mode: 'json' }).$type<string[] | null>(),
     includeBirthdays: bool('include_birthdays').notNull().default(false),
+    includeDates: bool('include_dates').notNull().default(false),
     lastUsedAt: timestamp('last_used_at'),
     createdAt: timestamps.createdAt,
   },

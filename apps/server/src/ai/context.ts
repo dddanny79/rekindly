@@ -8,7 +8,7 @@ import { spaces } from '../db/schema';
 import { listEntries } from '../entries/service';
 import { notDeleted } from '../lib/sql';
 import { getPerson } from '../people/service';
-import type { Person } from '@app/shared';
+import { type Person, personDateLabel } from '@app/shared';
 
 type Locale = 'en' | 'de';
 
@@ -98,6 +98,10 @@ export function personBriefing(ctx: ContextOptions, person: Person, spaceName: s
           .join('; '),
       ),
       line('Birthday', person.birthday),
+      line(
+        'Days to remember',
+        person.dates.map((d) => `${personDateLabel(d, 'en')} ${d.date}`).join('; '),
+      ),
       line('Pronouns', person.pronouns),
       line(
         'Met',

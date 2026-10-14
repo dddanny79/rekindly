@@ -1,4 +1,5 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
+import { personDateLabel } from '@app/shared';
 import type { Db } from '../db/client';
 import {
   addresses,
@@ -8,6 +9,7 @@ import {
   files,
   organizations,
   people,
+  personDates,
 } from '../db/schema';
 import { createEntry } from '../entries/service';
 import { removeFile, storePhoto } from '../files/service';
@@ -15,7 +17,13 @@ import { notDeleted, nowIso } from '../lib/sql';
 import { OrgIndex } from '../organizations';
 import { mainAffiliation } from '../people/service';
 import { touchPerson } from '../people/refs';
-import type { CardAddress, CardPoint, ParsedCard } from './vcard';
+import {
+  type CardAddress,
+  type CardDate,
+  type CardPoint,
+  type ParsedCard,
+  parseVcard,
+} from './vcard';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -75,6 +83,8 @@ export const addressKey = (a: Omit<CardAddress, 'label'>) =>
   [a.street, a.zip, a.city, a.region, a.country]
     .map((p) => (p ?? '').trim().toLowerCase())
     .join('|');
+
+export const dateKey = (d: CardDate) => `${d.kind}|${(d.label ?? '').toLowerCase()}|${d.date}`;
 
 const addressText = (a: Omit<CardAddress, 'label'>) =>
   [a.street, [a.zip, a.city].filter(Boolean).join(' '), a.region, a.country]
@@ -278,6 +288,32 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
         if (!isNew) changes.push(fill(t.added!, { what: t.address!, value: addressText(place) }));
       }
 
+      // Recurring days, the same way.
+      const liveDays = db
+        .select()
+        .from(personDates)
+        .where(and(eq(personDates.personId, personId), notDeleted(personDates)))
+        .all();
+      const incomingDays = new Map(card.dates.map((d) => [dateKey(d), d]));
+      for (const day of liveDays) {
+        if (!incomingDays.has(dateKey(day))) {
+          db.update(personDates)
+            .set({ deletedAt: nowIso() })
+            .where(eq(personDates.id, day.id))
+            .run();
+          if (!isNew)
+            changes.push(fill(t.removed!, { what: personDateLabel(day, locale), value: day.date }));
+        }
+        incomingDays.delete(dateKey(day));
+      }
+      for (const day of incomingDays.values()) {
+        db.insert(personDates)
+          .values({ personId, ...day })
+          .run();
+        if (!isNew)
+          changes.push(fill(t.added!, { what: personDateLabel(day, locale), value: day.date }));
+      }
+
       // Organization and role of the main affiliation.
       const orgs = OrgIndex.load(db);
       const links = db
@@ -354,4 +390,46 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
   }
   if (newPhoto && before?.photoFileId) await removeFile(db, options.dataDir, before.photoFileId);
   return id;
+}
+
+/**
+ * Dates that address book clients sent before the app knew recurring days were kept
+ * as unknown vCard lines. This turns them into recurring days of the person (once;
+ * afterwards nothing is left to adopt). Returns the number of days added.
+ */
+export function adoptKeptDates(db: Db, locale: Locale): number {
+  let added = 0;
+  const rows = db
+    .select()
+    .from(davExtras)
+    .where(sql`${davExtras.lines} like '%X-ABDATE%' or ${davExtras.lines} like '%ANNIVERSARY%'`)
+    .all();
+  for (const row of rows) {
+    const parsed = parseVcard(`BEGIN:VCARD\n${row.lines}\nEND:VCARD`, { locale });
+    if (!parsed.dates.length) continue;
+    db.transaction(() => {
+      const known = new Set(
+        db
+          .select()
+          .from(personDates)
+          .where(and(eq(personDates.personId, row.personId), notDeleted(personDates)))
+          .all()
+          .map(dateKey),
+      );
+      for (const day of parsed.dates) {
+        if (known.has(dateKey(day))) continue;
+        db.insert(personDates)
+          .values({ personId: row.personId, ...day })
+          .run();
+        added++;
+      }
+      if (parsed.extraLines.length) {
+        db.update(davExtras)
+          .set({ lines: parsed.extraLines.join('\n'), updatedAt: nowIso() })
+          .where(eq(davExtras.personId, row.personId))
+          .run();
+      } else db.delete(davExtras).where(eq(davExtras.personId, row.personId)).run();
+    });
+  }
+  return added;
 }

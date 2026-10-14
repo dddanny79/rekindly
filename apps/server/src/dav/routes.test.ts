@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { CreateAppPasswordResponse, Entry, Person, TrashItem } from '@app/shared';
 import { createSignedInApp, OWNER } from '../test/helpers';
 import { unfold } from './vcard';
+import { adoptKeptDates } from './inbound';
+import { davExtras } from '../db/schema';
 
 let t: Awaited<ReturnType<typeof createSignedInApp>>;
 beforeEach(async () => {
@@ -282,6 +284,11 @@ describe('CardDAV', () => {
     expect(found.results).toEqual([]);
     expect(entries[0]!.bodyMd).toContain('Telefon hinzugefügt: +49 170 2');
     expect(entries[0]!.bodyMd).toContain('Telefon in den Papierkorb: +49 170 1');
+    // The iPhone's anniversary is the wedding anniversary.
+    expect(after.dates).toEqual([
+      expect.objectContaining({ kind: 'wedding', label: null, date: '2019-05-01' }),
+    ]);
+    expect(entries[0]!.bodyMd).toContain('Hochzeitstag hinzugefügt: 2019-05-01');
 
     // iOS sends a yearless birthday back without X-APPLE-OMIT-YEAR: still yearless.
     const current = await dav('GET', url);
@@ -294,10 +301,73 @@ describe('CardDAV', () => {
     ).toBe(204);
     expect((await t.json<Person>(t.request(`/api/v1/people/${jana.id}`))).birthday).toBe('--10-24');
 
-    // The unknown anniversary line survives the round trip.
+    // And goes back to the phone as Apple's anniversary.
     const back = unfold(await (await dav('GET', url)).text());
-    expect(back).toContain('extra1.X-ABDATE:2019-05-01');
-    expect(back).toContain('extra1.X-ABLabel:_$!<Anniversary>!$_');
+    const group = back.find((l) => l.endsWith('.X-ABDATE:2019-05-01'))!.split('.')[0];
+    expect(back).toContain(`${group}.X-ABLabel:_$!<Anniversary>!$_`);
+  });
+
+  it('recurring days go both ways: own labels, without year, removed on the phone', async () => {
+    const jana = await person('Jana', 'Berger');
+    await post(`/people/${jana.id}/dates`, { kind: 'memorial', date: '--03-10' });
+    await post(`/people/${jana.id}/dates`, {
+      kind: 'custom',
+      label: 'Hauskauf',
+      date: '2019-09-01',
+    });
+    const dav = await davClient();
+    const url = `/dav/addressbooks/contacts/${jana.id}.vcf`;
+    const get = await dav('GET', url);
+    const text = await get.text();
+    const lines = unfold(text);
+    expect(lines).toContain('item1.X-ABDATE;X-APPLE-OMIT-YEAR=1604:1604-03-10');
+    expect(lines).toContain('item1.X-ABLabel:Todestag');
+    expect(lines).toContain('item2.X-ABDATE:2019-09-01');
+    expect(lines).toContain('item2.X-ABLabel:Hauskauf');
+
+    // On the phone: the custom day removed, a name day added.
+    const edited = text
+      .replace('item2.X-ABDATE:2019-09-01\r\nitem2.X-ABLabel:Hauskauf\r\n', '')
+      .replace(
+        'N:Berger;Jana;;;',
+        'N:Berger;Jana;;;\r\nitem9.X-ABDATE;X-APPLE-OMIT-YEAR=1604:1604-07-26\r\nitem9.X-ABLabel:Namenstag',
+      );
+    const put = await dav('PUT', url, edited, { 'if-match': get.headers.get('etag')! });
+    expect(put.status).toBe(204);
+    const after = await t.json<Person>(t.request(`/api/v1/people/${jana.id}`));
+    expect(after.dates.map((d) => [d.kind, d.label, d.date])).toEqual([
+      ['memorial', null, '--03-10'],
+      ['nameday', null, '--07-26'],
+    ]);
+    const trash = await t.json<{ items: TrashItem[] }>(t.request('/api/v1/trash'));
+    expect(trash.items).toEqual([
+      expect.objectContaining({ kind: 'personDate', label: { name: 'Hauskauf', nameKey: null } }),
+    ]);
+  });
+
+  it('turns dates that older versions kept as unknown lines into recurring days', async () => {
+    const jana = await person('Jana', 'Berger');
+    t.db
+      .insert(davExtras)
+      .values({
+        personId: jana.id,
+        lines: [
+          'extra1.X-ABDATE:2019-05-01',
+          'extra1.X-ABLabel:_$!<Anniversary>!$_',
+          'X-ABRELATEDNAMES:Anna',
+        ].join('\n'),
+      })
+      .run();
+    expect(adoptKeptDates(t.db, 'de')).toBe(1);
+    expect(adoptKeptDates(t.db, 'de')).toBe(0);
+    const after = await t.json<Person>(t.request(`/api/v1/people/${jana.id}`));
+    expect(after.dates.map((d) => [d.kind, d.date])).toEqual([['wedding', '2019-05-01']]);
+    const dav = await davClient();
+    const lines = unfold(
+      await (await dav('GET', `/dav/addressbooks/contacts/${jana.id}.vcf`)).text(),
+    );
+    expect(lines.filter((l) => l.includes('X-ABDATE'))).toEqual(['item1.X-ABDATE:2019-05-01']);
+    expect(lines).toContain('X-ABRELATEDNAMES:Anna');
   });
 
   it('answers a PUT with the new ETag, so the next change from the phone fits', async () => {

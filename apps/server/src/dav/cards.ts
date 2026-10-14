@@ -1,7 +1,17 @@
 import { createHash } from 'node:crypto';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../db/client';
-import { addresses, affiliations, contactPoints, davCards, davExtras, people } from '../db/schema';
+import { getAccountRow } from '../auth/account';
+import {
+  addresses,
+  affiliations,
+  contactPoints,
+  davCards,
+  davExtras,
+  people,
+  personDates,
+} from '../db/schema';
+import { byCalendar } from '../person-dates/service';
 import { notDeleted } from '../lib/sql';
 import type { OrgIndex } from '../organizations';
 import { mainAffiliation } from '../people/service';
@@ -49,6 +59,15 @@ export function cardData(db: Db, orgs: OrgIndex, rows: PersonRow[]): Map<string,
       .all(),
     (r) => r.personId!,
   );
+  const days = group(
+    db
+      .select()
+      .from(personDates)
+      .where(and(inArray(personDates.personId, ids), notDeleted(personDates)))
+      .all()
+      .sort(byCalendar),
+    (r) => r.personId,
+  );
   const links = group(
     db
       .select()
@@ -86,6 +105,7 @@ export function cardData(db: Db, orgs: OrgIndex, rows: PersonRow[]): Map<string,
         region: a.region,
         country: a.country,
       })),
+      dates: (days.get(p.id) ?? []).map((d) => ({ kind: d.kind, label: d.label, date: d.date })),
     });
   }
   return result;
@@ -101,6 +121,7 @@ export const extraLinesOf = (text: string | undefined) =>
  */
 export function rebuildCards(db: Db, orgs: OrgIndex, personIds: string[]) {
   if (!personIds.length) return;
+  const locale = getAccountRow(db)?.locale === 'de' ? 'de' : 'en';
   let seq =
     db
       .select({ max: sql<number | null>`max(${davCards.seq})` })
@@ -149,7 +170,7 @@ export function rebuildCards(db: Db, orgs: OrgIndex, personIds: string[]) {
       const uid = card?.uid ?? id;
       const vcard = buildVcard(
         { ...data.get(id)!, uid },
-        { extraLines: extraLinesOf(extras.get(id)) },
+        { extraLines: extraLinesOf(extras.get(id)), locale },
       );
       const etag = createHash('sha1')
         .update(vcard)

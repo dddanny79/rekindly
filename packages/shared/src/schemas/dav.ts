@@ -41,6 +41,8 @@ export const calendarFeedSchema = z.object({
   /** Spaces whose follow-ups and birthdays are included; null = all. */
   spaceIds: z.array(idSchema).nullable(),
   includeBirthdays: z.boolean(),
+  /** Wedding anniversaries, memorial days and other recurring days. */
+  includeDates: z.boolean(),
   createdAt: isoDateTimeSchema,
   lastUsedAt: isoDateTimeSchema.nullable(),
 });
@@ -52,6 +54,7 @@ export const createCalendarFeedRequestSchema = z.object({
   name: z.string().trim().min(1).max(60),
   spaceIds: z.array(idSchema).min(1).max(50).nullable(),
   includeBirthdays: z.boolean(),
+  includeDates: z.boolean().default(false),
 });
 
 export const createCalendarFeedResponseSchema = z.object({

@@ -122,6 +122,19 @@ describe('Today page', () => {
           relatedTo: null,
         },
       ],
+      dates: [
+        {
+          person: ref,
+          dateId: 'd1',
+          kind: 'wedding',
+          label: null,
+          date: '2016-10-14',
+          on: '2026-10-14',
+          inDays: 2,
+          years: 10,
+          relatedTo: null,
+        },
+      ],
       overdueContacts: [
         {
           person: ref,
@@ -149,8 +162,12 @@ describe('Today page', () => {
     expect(
       within(due).getByRole('checkbox', { name: 'Mark “Send the offer” as done' }),
     ).toBeVisible();
-    const birthdays = screen.getByRole('region', { name: 'Birthdays · 14 days' });
+    const birthdays = screen.getByRole('region', { name: 'Birthdays and other days · 14 days' });
     expect(within(birthdays).getByText(/today · turns 41/)).toBeInTheDocument();
+    const [first, second] = within(birthdays).getAllByTestId('today-day');
+    expect(first).toHaveTextContent('Birthday');
+    expect(second).toHaveTextContent('Wedding anniversary');
+    expect(second).toHaveTextContent('in 2 days · 10 years');
     const overdue = screen.getByRole('region', { name: 'Long time no talk' });
     expect(within(overdue).getByText('overdue by 42 days')).toBeInTheDocument();
     const recent = screen.getByRole('region', { name: 'Recently viewed' });

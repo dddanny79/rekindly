@@ -154,6 +154,41 @@ test('questions for next time: /ask in the composer, in the briefing, asked with
   await expect(note).toContainText('Fine, the cellar is still full.');
 });
 
+test('recurring days: a wedding anniversary shows in the briefing and on Today', async ({
+  page,
+  request,
+}) => {
+  const wanda = await person(request, 'Wanda', 'Wedding');
+  const soon = inDays(3);
+  const years = soon.getFullYear() - 2016;
+  await page.goto(`/people/${wanda.id}`);
+  await page.getByRole('button', { name: 'Add a day' }).click();
+  const form = page.getByRole('form', { name: 'Add a day to remember' });
+  await form.getByLabel('Kind of day').selectOption('wedding');
+  await form.getByLabel('Date').fill(`${soon.getDate()}.${soon.getMonth() + 1}.2016`);
+  await form.getByRole('button', { name: 'Save' }).click();
+
+  const briefing = region(page, 'Briefing');
+  await expect(briefing.getByTestId('briefing-date')).toContainText('Wedding anniversary');
+  await expect(briefing.getByTestId('briefing-date')).toContainText(`in 3 days · ${years} years`);
+
+  // A memorial day: years since, never “turns”.
+  await page.getByRole('button', { name: 'Add a day' }).click();
+  await form.getByLabel('Kind of day').selectOption('memorial');
+  await form.getByLabel('Date').fill(`${soon.getDate()}.${soon.getMonth() + 1}.2020`);
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(briefing.getByTestId('briefing-date')).toHaveCount(2);
+  await expect(briefing.getByText(`${soon.getFullYear() - 2020} years ago`)).toBeVisible();
+
+  await page.goto('/');
+  const days = page.getByRole('region', { name: 'Birthdays and other days · 14 days' });
+  const rows = days.getByTestId('today-day').filter({ hasText: 'Wanda Wedding' });
+  await expect(rows).toHaveCount(2);
+  await expect(rows.filter({ hasText: 'Wedding anniversary' })).toContainText(`${years} years`);
+  await expect(rows.filter({ hasText: 'Anniversary of death' })).toContainText('years ago');
+  for (const row of await rows.all()) await expect(row).not.toContainText('turns');
+});
+
 test('briefing: last contact, next birthday with and without year, overdue rhythm', async ({
   page,
   request,

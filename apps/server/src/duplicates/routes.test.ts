@@ -75,6 +75,9 @@ describe('duplicates', () => {
     await post(t, `/people/${other.id}/facts`, { text: 'Trinkt Tee' });
     await post(t, `/people/${other.id}/facts`, { text: 'Hat zwei Kinder' });
     await post(t, `/people/${other.id}/questions`, { text: 'Wie geht es den Kindern?' });
+    await post(t, `/people/${keep.id}/dates`, { kind: 'wedding', date: '2015-06-12' });
+    await post(t, `/people/${other.id}/dates`, { kind: 'wedding', date: '2015-06-12' });
+    await post(t, `/people/${other.id}/dates`, { kind: 'nameday', date: '--07-26' });
     await post(t, `/people/${other.id}/reminders`, {
       title: 'Angebot schicken',
       dueOn: '2030-01-01',
@@ -138,6 +141,7 @@ describe('duplicates', () => {
     expect(merged.tags.map((tag) => tag.name).sort()).toEqual(['Kunde', 'Messe']);
     expect(merged.facts.map((f) => f.text)).toEqual(['Trinkt Tee', 'Hat zwei Kinder']);
     expect(merged.questions.map((q) => q.text)).toEqual(['Wie geht es den Kindern?']);
+    expect(merged.dates.map((d) => d.kind)).toEqual(['wedding', 'nameday']);
     expect(merged.reminders.map((r) => r.title)).toEqual(['Angebot schicken']);
     expect(merged.fields.find((f) => f.definitionId === field.id)?.value).toBe('Mate');
     expect(merged.relationships.map((r) => r.person.displayName).sort()).toEqual([
