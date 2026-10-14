@@ -11,7 +11,11 @@ export const calendarFeeds = sqliteTable(
     tokenHash: text('token_hash').notNull(),
     /** JSON array of space ids; null = all spaces. */
     spaceIds: text('space_ids', { mode: 'json' }).$type<string[] | null>(),
-    includeBirthdays: bool('include_birthdays').notNull().default(false),
+    /** Birthdays in the feed: none, only indirect contacts (not on the phone via CardDAV) or all. */
+    birthdays: text('birthdays', { enum: ['none', 'indirect', 'all'] })
+      .notNull()
+      .default('none'),
+    /** Recurring days marked for reminders (wedding anniversaries …). */
     includeDates: bool('include_dates').notNull().default(false),
     lastUsedAt: timestamp('last_used_at'),
     createdAt: timestamps.createdAt,

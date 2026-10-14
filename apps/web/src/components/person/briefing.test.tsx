@@ -129,8 +129,8 @@ describe('BriefingCard', () => {
     renderCard({
       ...base,
       dates: [
-        { id: 'd1', kind: 'memorial', label: null, date: `2016-${soon}` },
-        { id: 'd2', kind: 'wedding', label: null, date: `--${later}` },
+        { id: 'd1', kind: 'memorial', label: null, date: `2016-${soon}`, remind: true },
+        { id: 'd2', kind: 'wedding', label: null, date: `--${later}`, remind: true },
       ],
     });
     const [row] = screen.getAllByTestId('briefing-date');

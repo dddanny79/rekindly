@@ -91,4 +91,35 @@ describe('recurring days', () => {
     );
     expect(business.dates.map((d) => d.kind)).toEqual(['nameday', 'wedding']);
   });
+
+  it('days without reminder stay in the details, not on Today (acceptance)', async () => {
+    const jana = await person('Jana', 'Berger');
+    const wedding = await add(jana.id, { kind: 'wedding', date: '2016-03-12' });
+    expect(wedding.remind).toBe(true);
+    const memorial = await add(jana.id, { kind: 'memorial', date: '2020-03-10', remind: false });
+    expect((await getPerson(jana.id)).dates.map((d) => [d.kind, d.remind])).toEqual([
+      ['memorial', false],
+      ['wedding', true],
+    ]);
+    expect((await today('2030-03-08')).dates.map((d) => d.kind)).toEqual(['wedding']);
+
+    const base = `/api/v1/people/${jana.id}/dates`;
+    const off = await t.json<PersonDate>(
+      t.request(`${base}/${wedding.id}`, { method: 'PATCH', json: { remind: false } }),
+    );
+    expect(off).toMatchObject({ remind: false, date: '2016-03-12' });
+    // Changing the date keeps the switch.
+    const moved = await t.json<PersonDate>(
+      t.request(`${base}/${wedding.id}`, { method: 'PATCH', json: { date: '2016-03-13' } }),
+    );
+    expect(moved.remind).toBe(false);
+    expect((await today('2030-03-08')).dates).toEqual([]);
+    await t.request(`${base}/${memorial.id}`, { method: 'PATCH', json: { remind: true } });
+    expect((await today('2030-03-08')).dates.map((d) => d.kind)).toEqual(['memorial']);
+    const bad = await t.request(`${base}/${memorial.id}`, {
+      method: 'PATCH',
+      json: { remind: 'yes' },
+    });
+    expect(bad.status).toBe(400);
+  });
 });

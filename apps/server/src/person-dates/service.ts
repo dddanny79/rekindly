@@ -13,6 +13,7 @@ export const toPersonDate = (row: Row): PersonDate => ({
   kind: row.kind,
   label: row.label,
   date: row.date,
+  remind: row.remind,
 });
 
 /** Calendar order (month and day), then oldest first. */
@@ -34,6 +35,7 @@ export interface PersonDateInput {
   kind: PersonDateKind;
   label?: string | null;
   date: string;
+  remind?: boolean;
 }
 
 /** Only custom days have an own label; the others are named by their kind. */
@@ -44,7 +46,13 @@ export function addPersonDate(db: Db, personId: string, input: PersonDateInput):
   getLivePerson(db, personId);
   const row = db
     .insert(personDates)
-    .values({ personId, kind: input.kind, label: ownLabel(input), date: input.date })
+    .values({
+      personId,
+      kind: input.kind,
+      label: ownLabel(input),
+      date: input.date,
+      remind: input.remind ?? true,
+    })
     .returning()
     .get();
   touchPerson(db, personId);
@@ -66,6 +74,7 @@ export function updatePersonDate(
     kind: input.kind ?? current.kind,
     label: input.label === undefined ? current.label : input.label,
     date: input.date ?? current.date,
+    remind: input.remind ?? current.remind,
   };
   if (next.kind === 'custom' && !next.label) throw new DomainError(400, 'validation_failed');
   const row = db

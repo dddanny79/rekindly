@@ -497,6 +497,10 @@ export const OPERATIONS: Operation[] = [
     response: s.createCalendarFeedResponseSchema,
     status: 201,
   }),
+  op('patch', '/calendar-feeds/:id', 'Sync', 'Change a calendar subscription (same link)', {
+    body: s.updateCalendarFeedRequestSchema,
+    response: s.calendarFeedResponseSchema,
+  }),
   op('delete', '/calendar-feeds/:id', 'Sync', 'Revoke a calendar subscription link', {
     response: 'empty',
     status: 204,

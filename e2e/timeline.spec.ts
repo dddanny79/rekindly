@@ -187,6 +187,36 @@ test('recurring days: a wedding anniversary shows in the briefing and on Today',
   await expect(rows.filter({ hasText: 'Wedding anniversary' })).toContainText(`${years} years`);
   await expect(rows.filter({ hasText: 'Anniversary of death' })).toContainText('years ago');
   for (const row of await rows.all()) await expect(row).not.toContainText('turns');
+
+  // Reminder off: stays in the details and the briefing, leaves Today.
+  await page.goto(`/people/${wanda.id}`);
+  const bell = page.getByRole('button', { name: 'Remind of Anniversary of death' });
+  await expect(bell).toHaveAttribute('aria-pressed', 'true');
+  await bell.click();
+  await expect(bell).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('img', { name: 'no reminder' })).toBeVisible();
+  await expect(briefing.getByTestId('briefing-date')).toHaveCount(2);
+  await page.goto('/');
+  await expect(rows).toHaveCount(1);
+  await expect(rows).toContainText('Wedding anniversary');
+});
+
+test('recurring days: a day added without reminder stays off Today', async ({ page, request }) => {
+  const nora = await person(request, 'Nora', 'Nameday');
+  const soon = inDays(2);
+  await page.goto(`/people/${nora.id}`);
+  await page.getByRole('button', { name: 'Add a day' }).click();
+  const form = page.getByRole('form', { name: 'Add a day to remember' });
+  await form.getByLabel('Kind of day').selectOption('nameday');
+  await form.getByLabel('Date').fill(`${soon.getDate()}.${soon.getMonth() + 1}.`);
+  await form.getByRole('checkbox', { name: /Remind/ }).uncheck();
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('button', { name: 'Remind of Name day' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  await page.goto('/');
+  await expect(page.getByTestId('today-day').filter({ hasText: 'Nora Nameday' })).toHaveCount(0);
 });
 
 test('briefing: last contact, next birthday with and without year, overdue rhythm', async ({

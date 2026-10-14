@@ -345,6 +345,25 @@ describe('CardDAV', () => {
     ]);
   });
 
+  it('a day whose date changed on the phone keeps its reminder switch', async () => {
+    const jana = await person('Jana', 'Berger');
+    await post(`/people/${jana.id}/dates`, { kind: 'memorial', date: '2020-03-10', remind: false });
+    await post(`/people/${jana.id}/dates`, { kind: 'wedding', date: '2016-03-12' });
+    const dav = await davClient();
+    const url = `/dav/addressbooks/contacts/${jana.id}.vcf`;
+    const get = await dav('GET', url);
+    const text = await get.text();
+    expect(text).toContain('X-ABDATE:2020-03-10');
+    const edited = text.replace('X-ABDATE:2020-03-10', 'X-ABDATE:2020-03-11');
+    const put = await dav('PUT', url, edited, { 'if-match': get.headers.get('etag')! });
+    expect(put.status).toBe(204);
+    const after = await t.json<Person>(t.request(`/api/v1/people/${jana.id}`));
+    expect(after.dates.map((d) => [d.kind, d.date, d.remind])).toEqual([
+      ['memorial', '2020-03-11', false],
+      ['wedding', '2016-03-12', true],
+    ]);
+  });
+
   it('turns dates that older versions kept as unknown lines into recurring days', async () => {
     const jana = await person('Jana', 'Berger');
     t.db
