@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Bell, BellOff, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PERSON_DATE_KINDS, type PersonDate, type PersonDateKind } from '@app/shared';
@@ -29,9 +29,28 @@ function DateRow({ personId, day }: { personId: string; day: PersonDate }) {
   const remove = useWrite(() => personDatesApi.remove(personId, day.id), {
     invalidate: DATE_KEYS,
   });
+  const remind = useWrite(
+    (on: boolean) => personDatesApi.update(personId, day.id, { remind: on }),
+    { invalidate: DATE_KEYS },
+  );
 
   return (
-    <DetailRow label={label}>
+    <DetailRow
+      label={
+        <span className="inline-flex items-center gap-1">
+          {label}
+          {!day.remind && (
+            <BellOff
+              role="img"
+              aria-label={t('personDates.noReminder')}
+              className="size-3.5 shrink-0"
+            >
+              <title>{t('personDates.noReminder')}</title>
+            </BellOff>
+          )}
+        </span>
+      }
+    >
       <div className="group flex items-center gap-1">
         <div className="min-w-0 flex-1">
           <InlineText
@@ -51,7 +70,19 @@ function DateRow({ personId, day }: { personId: string; day: PersonDate }) {
             onSave={(input) => update.mutateAsync(parseBirthday(input)!)}
           />
         </div>
-        <div className="md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+        <div className="flex flex-col md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="md:size-7"
+            aria-pressed={day.remind}
+            aria-label={t('personDates.remindNamed', { name: label })}
+            title={t(day.remind ? 'personDates.remindOn' : 'personDates.remindOff')}
+            disabled={remind.isPending}
+            onClick={() => remind.mutate(!day.remind)}
+          >
+            {day.remind ? <Bell aria-hidden /> : <BellOff aria-hidden />}
+          </Button>
           <RemoveButton
             label={t('common.removeNamed', { name: label })}
             title={t('personDates.removeTitle')}
@@ -69,9 +100,10 @@ function AddDate({ personId, onDone }: { personId: string; onDone: () => void })
   const [kind, setKind] = useState<PersonDateKind>('wedding');
   const [label, setLabel] = useState('');
   const [date, setDate] = useState('');
+  const [remind, setRemind] = useState(true);
   const [invalid, setInvalid] = useState(false);
   const add = useWrite(
-    (input: { kind: PersonDateKind; label: string | null; date: string }) =>
+    (input: { kind: PersonDateKind; label: string | null; date: string; remind: boolean }) =>
       personDatesApi.create(personId, input),
     { invalidate: DATE_KEYS, onSuccess: onDone },
   );
@@ -81,7 +113,7 @@ function AddDate({ personId, onDone }: { personId: string; onDone: () => void })
     const parsed = parseBirthday(date);
     setInvalid(!parsed);
     if (!parsed || (kind === 'custom' && !label.trim())) return;
-    add.mutate({ kind, label: kind === 'custom' ? label.trim() : null, date: parsed });
+    add.mutate({ kind, label: kind === 'custom' ? label.trim() : null, date: parsed, remind });
   }
 
   return (
@@ -120,6 +152,20 @@ function AddDate({ personId, onDone }: { personId: string; onDone: () => void })
         autoFocus
         required
       />
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="mt-1"
+          checked={remind}
+          onChange={(e) => setRemind(e.target.checked)}
+        />
+        <span>
+          {t('personDates.remind')}
+          <span className="block text-meta text-muted-foreground">
+            {t('personDates.remindHint')}
+          </span>
+        </span>
+      </label>
       <FormMessage tone="error">
         {(invalid && t('person.birthdayInvalid')) || (add.isError && errorMessage(t, add.error))}
       </FormMessage>

@@ -228,6 +228,8 @@ export const personDates = sqliteTable(
     label: text('label'),
     /** `--MM-DD` or `YYYY-MM-DD`. */
     date: text('date').notNull(),
+    /** Shown on Today, in the daily mail and in calendar feeds; always in the details. */
+    remind: bool('remind').notNull().default(true),
     deletedAt: deletedAt(),
     ...timestamps,
   },

@@ -33,6 +33,9 @@ import {
   createAppPasswordResponseSchema,
   calendarFeedListResponseSchema,
   createCalendarFeedResponseSchema,
+  calendarFeedResponseSchema,
+  type FeedBirthdays,
+  type UpdateCalendarFeedRequest,
   type BackupConfigInput,
   backupFileListResponseSchema,
   backupSettingsSchema,
@@ -293,12 +296,12 @@ export const factsApi = {
 export const personDatesApi = {
   create: (
     personId: string,
-    input: { kind: PersonDateKind; label?: string | null; date: string },
+    input: { kind: PersonDateKind; label?: string | null; date: string; remind?: boolean },
   ) => api(`${V1}/people/${personId}/dates`, personDateSchema, { json: input }),
   update: (
     personId: string,
     id: string,
-    patch: { kind?: PersonDateKind; label?: string | null; date?: string },
+    patch: { kind?: PersonDateKind; label?: string | null; date?: string; remind?: boolean },
   ) =>
     api(`${V1}/people/${personId}/dates/${id}`, personDateSchema, { method: 'PATCH', json: patch }),
   remove: (personId: string, id: string) =>
@@ -381,9 +384,11 @@ export const calendarFeedsApi = {
   create: (input: {
     name: string;
     spaceIds: string[] | null;
-    includeBirthdays: boolean;
+    birthdays: FeedBirthdays;
     includeDates: boolean;
   }) => api(`${V1}/calendar-feeds`, createCalendarFeedResponseSchema, { json: input }),
+  update: ({ id, ...patch }: UpdateCalendarFeedRequest & { id: string }) =>
+    api(`${V1}/calendar-feeds/${id}`, calendarFeedResponseSchema, { method: 'PATCH', json: patch }),
   remove: (id: string) => api(`${V1}/calendar-feeds/${id}`, null, { method: 'DELETE' }),
 };
 

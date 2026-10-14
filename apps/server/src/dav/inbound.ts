@@ -295,8 +295,12 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
         .where(and(eq(personDates.personId, personId), notDeleted(personDates)))
         .all();
       const incomingDays = new Map(card.dates.map((d) => [dateKey(d), d]));
+      // A day whose date changed on the phone is replaced; it keeps its reminder switch.
+      const kindKey = (d: CardDate) => `${d.kind}|${(d.label ?? '').toLowerCase()}`;
+      const removedRemind = new Map<string, boolean>();
       for (const day of liveDays) {
         if (!incomingDays.has(dateKey(day))) {
+          removedRemind.set(kindKey(day), day.remind);
           db.update(personDates)
             .set({ deletedAt: nowIso() })
             .where(eq(personDates.id, day.id))
@@ -308,7 +312,7 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
       }
       for (const day of incomingDays.values()) {
         db.insert(personDates)
-          .values({ personId, ...day })
+          .values({ personId, ...day, remind: removedRemind.get(kindKey(day)) ?? true })
           .run();
         if (!isNew)
           changes.push(fill(t.added!, { what: personDateLabel(day, locale), value: day.date }));

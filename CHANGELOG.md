@@ -21,8 +21,20 @@ breaking changes (always with a migration path for your data).
   the calendar subscription. Tactful texts: memorial days count the years since,
   never what someone “turns”. Two-way CardDAV sync with the iPhone (anniversary and
   labelled date fields), vCard and Monica import, trash, export, MCP.
+- **Remind per day:** each recurring day has a _Remind_ switch (bell in the details).
+  Switched off, the day stays in the details and the briefing but leaves Today, the
+  daily mail and calendar subscriptions — e.g. for a memorial day you want to know,
+  not be reminded of.
+- **Calendar subscriptions can be changed** (name, spaces, birthdays, other days)
+  without a new link.
 
 ### Changed
+
+- Calendar subscriptions: birthdays are _None_, _Only indirect contacts_ or _All_.
+  With CardDAV the iPhone already shows its contacts' birthdays; _Only indirect
+  contacts_ adds the rest without showing any birthday twice. Existing subscriptions
+  keep what they had (all or none). API: `birthdays` replaces `includeBirthdays`, which
+  is still accepted and returned.
 
 - Export format version 3 (adds `questions` and `personDates`); files of version 1 and
   2 still import.
@@ -45,6 +57,12 @@ breaking changes (always with a migration path for your data).
 - **Logo**, favicons and home screen icons.
 
 ### Changed
+
+- Calendar subscriptions: birthdays are _None_, _Only indirect contacts_ or _All_.
+  With CardDAV the iPhone already shows its contacts' birthdays; _Only indirect
+  contacts_ adds the rest without showing any birthday twice. Existing subscriptions
+  keep what they had (all or none). API: `birthdays` replaces `includeBirthdays`, which
+  is still accepted and returned.
 
 - Export format version 2: full exports and backups now include own themes. Files
   of version 1 still import; 0.1 cannot import files of version 2.

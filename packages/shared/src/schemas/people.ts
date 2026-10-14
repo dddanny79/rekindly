@@ -37,12 +37,20 @@ export const personDateSchema = z.object({
   label: z.string().nullable(),
   /** `--MM-DD` or `YYYY-MM-DD` (year optional, like birthdays). */
   date: z.string(),
+  /** Shown on Today, in the daily mail and in calendar feeds (always in the details). */
+  remind: z.boolean(),
 });
 export type PersonDate = z.infer<typeof personDateSchema>;
 
 const personDateLabel = optionalText(60).optional();
 export const createPersonDateRequestSchema = z
-  .object({ kind: personDateKindSchema, label: personDateLabel, date: birthdaySchema })
+  .object({
+    kind: personDateKindSchema,
+    label: personDateLabel,
+    date: birthdaySchema,
+    /** Default true. */
+    remind: z.boolean().optional(),
+  })
   .refine((v) => v.kind !== 'custom' || !!v.label, {
     message: 'A custom day needs a label',
     path: ['label'],
@@ -51,6 +59,7 @@ export const updatePersonDateRequestSchema = z.object({
   kind: personDateKindSchema.optional(),
   label: personDateLabel,
   date: birthdaySchema.optional(),
+  remind: z.boolean().optional(),
 });
 
 export const CONTACT_POINT_KINDS = ['phone', 'email', 'url', 'messenger', 'social'] as const;

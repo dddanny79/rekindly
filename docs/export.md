@@ -68,7 +68,8 @@ API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
 - `themes`: themes made or imported on this instance (the built-in ones are part of the app).
 - `questions`: questions for next time, open ones and asked ones (`askedAt`).
 - `personDates`: recurring days besides the birthday (`kind`, own `label` for custom
-  days, `date` as `YYYY-MM-DD` or `--MM-DD`).
+  days, `date` as `YYYY-MM-DD` or `--MM-DD`, `remind`: shown on Today, in the daily
+  mail and calendar subscriptions; missing in older files = on).
 - **Not included:** the account (name, email, password), passkeys, sessions, app
   passwords, API tokens and calendar links (credentials stay with the instance), the
   settings that belong to the instance (backup target, the sign-in-code switch, mail

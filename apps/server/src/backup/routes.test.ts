@@ -72,7 +72,11 @@ async function filled() {
   await post(t, `/people/${jana.id}/facts`, { text: 'Tochter Lea', pinned: true });
   await post(t, `/people/${jana.id}/tags`, { name: 'kunde' });
   await post(t, `/people/${jana.id}/questions`, { text: 'Wie war der Urlaub?' });
-  await post(t, `/people/${jana.id}/dates`, { kind: 'wedding', date: '2015-06-12' });
+  await post(t, `/people/${jana.id}/dates`, {
+    kind: 'wedding',
+    date: '2015-06-12',
+    remind: false,
+  });
   await post(t, `/people/${jana.id}/relationships`, {
     personId: tom.id,
     typeId: t.typeId('friend'),
@@ -145,7 +149,7 @@ describe('export and import', () => {
     const person = await target.json<Person>(target.request(`/api/v1/people/${jana.id}`));
     expect(person).toMatchObject({ displayName: 'Jana (Jani) Müller', birthday: '--10-24' });
     expect(person.questions.map((q) => q.text)).toEqual(['Wie war der Urlaub?']);
-    expect(person.dates.map((d) => d.kind)).toEqual(['wedding']);
+    expect(person.dates.map((d) => [d.kind, d.remind])).toEqual([['wedding', false]]);
     expect((await target.request(person.photoUrl!)).status).toBe(200);
     const found = await target.json<SearchResponse>(target.request('/api/v1/search?q=angebot'));
     expect(found.results.map((r) => r.id).sort()).toEqual(
@@ -284,6 +288,24 @@ describe('export and import', () => {
       });
       expect(res.status).toBe(200);
     }
+  });
+
+  it('days from files before the reminder switch remind', async () => {
+    const { t, jana } = await filled();
+    const exported = await exportOf(t);
+    const personDates = exported.data.personDates.map((row) => {
+      const copy = { ...row };
+      delete copy.remind;
+      return copy;
+    });
+    const target = await app();
+    const res = await target.request('/api/v1/import', {
+      method: 'POST',
+      json: { ...exported, data: { ...exported.data, personDates } },
+    });
+    expect(res.status).toBe(200);
+    const person = await target.json<Person>(target.request(`/api/v1/people/${jana.id}`));
+    expect(person.dates.map((d) => d.remind)).toEqual([true]);
   });
 
   it('exports contacts as vCards, all or one space, without indirect contacts', async () => {

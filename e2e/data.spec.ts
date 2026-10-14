@@ -45,7 +45,7 @@ test('calendar subscription link shows follow-ups', async ({ page, request }) =>
   await page.goto('/settings/sync');
   const calendar = page.getByRole('region', { name: 'Calendar subscription' });
   await calendar.getByRole('textbox', { name: 'Name' }).fill('Test-Kalender');
-  await calendar.getByRole('checkbox', { name: /Include birthdays/ }).check();
+  await calendar.getByRole('radio', { name: 'Only indirect contacts' }).check();
   await calendar.getByRole('button', { name: 'Create subscription link' }).click();
   const shown = page
     .getByRole('status')
@@ -62,5 +62,18 @@ test('calendar subscription link shows follow-ups', async ({ page, request }) =>
 
   await shown.getByRole('button', { name: 'Done' }).click();
   const row = page.getByRole('listitem').filter({ hasText: 'Test-Kalender' });
-  await expect(row).toContainText('with birthdays');
+  await expect(row).toContainText('with birthdays of indirect contacts');
+
+  // Changed later: same link, now with all birthdays and a new name.
+  await row.getByRole('button', { name: 'Edit subscription Test-Kalender' }).click();
+  const edit = calendar.getByRole('listitem', { name: 'Edit subscription Test-Kalender' });
+  await edit.getByRole('group', { name: 'Birthdays' }).getByRole('radio', { name: 'All' }).check();
+  await edit.getByRole('textbox', { name: 'Name' }).fill('Mein Kalender');
+  await edit.getByRole('button', { name: 'Save' }).click();
+  const changed = calendar.getByRole('listitem').filter({ hasText: 'Mein Kalender' });
+  await expect(changed).toContainText('with birthdays ·');
+  await expect(changed).not.toContainText('indirect');
+  const again = await request.get(url, { headers: { cookie: '' } });
+  expect(again.status()).toBe(200);
+  expect(await again.text()).toContain('Mein Kalender');
 });

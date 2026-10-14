@@ -80,7 +80,7 @@ function birthdays(db: Db, today: string, spaceId?: string): TodayBirthday[] {
 
 /**
  * Recurring days (wedding anniversaries, memorial days …) in the birthday window,
- * of the same people whose birthdays are shown.
+ * of the same people whose birthdays are shown; only days marked for reminders.
  */
 export function upcomingDates(
   db: Db,
@@ -94,6 +94,7 @@ export function upcomingDates(
     .where(
       and(
         notDeleted(personDates),
+        eq(personDates.remind, true),
         activePeople(options.spaceId),
         options.personId ? eq(people.id, options.personId) : undefined,
       ),
