@@ -71,7 +71,7 @@ Two ways; both use the same settings from step 3 on.
   Directory `/`, Dockerfile Location `/Dockerfile`. With Auto Deploy, Coolify rebuilds
   on every push to the branch.
 - **From the image:** `+ New` → _Docker Image_, `ghcr.io/dddanny79/rekindly:latest`
-  (latest release), or a version such as `:0.2` to stay on one minor version.
+  (latest release), or a version such as `:0.3` to stay on one minor version.
 
 Then:
 
