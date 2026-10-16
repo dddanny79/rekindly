@@ -90,16 +90,16 @@ Details: [docs/import.md](docs/import.md#monica).
 
 ## Documentation
 
-| Topic                                                        |                                                       |
-| ------------------------------------------------------------ | ----------------------------------------------------- |
-| Installation, Docker, Coolify, reverse proxy, server backups | [deployment.md](docs/deployment.md)                   |
-| iPhone / CardDAV sync, calendar subscription                 | [carddav.md](docs/carddav.md)                         |
-| Import (vCard, CSV, Monica) and duplicates                   | [import.md](docs/import.md)                           |
-| Export, restore, automatic backups                           | [export.md](docs/export.md)                           |
-| Mail: daily summary, sign-in codes (2FA)                     | [mail.md](docs/mail.md)                               |
-| AI features                                                  | [ai.md](docs/ai.md)                                   |
-| API, tokens, MCP for Claude                                  | [api.md](docs/api.md) — live reference at `/api/docs` |
-| Themes, layouts, the theme file format                       | [themes.md](docs/themes.md)                           |
+| Topic                                                          |                                                       |
+| -------------------------------------------------------------- | ----------------------------------------------------- |
+| Installation, Docker, Coolify, reverse proxy, updates, backups | [deployment.md](docs/deployment.md)                   |
+| iPhone / CardDAV sync, calendar subscription                   | [carddav.md](docs/carddav.md)                         |
+| Import (vCard, CSV, Monica) and duplicates                     | [import.md](docs/import.md)                           |
+| Export, restore, automatic backups                             | [export.md](docs/export.md)                           |
+| Mail: daily summary, sign-in codes (2FA)                       | [mail.md](docs/mail.md)                               |
+| AI features                                                    | [ai.md](docs/ai.md)                                   |
+| API, tokens, MCP for Claude                                    | [api.md](docs/api.md) — live reference at `/api/docs` |
+| Themes, layouts, the theme file format                         | [themes.md](docs/themes.md)                           |
 
 ## Configuration
 

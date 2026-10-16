@@ -7,7 +7,7 @@ import { getAccountRow, setPassword } from './auth/account';
 import { deleteAllSessions } from './auth/sessions';
 import { setTwoFactor } from './auth/two-factor';
 import { loadConfig } from './config';
-import { createDb, runMigrations } from './db/client';
+import { backupsDir, createDb, MigrationError, runMigrations } from './db/client';
 import { reindexAll } from './search/service';
 
 const USAGE = `Usage: node dist/cli.js <command>
@@ -56,7 +56,7 @@ async function resetPassword() {
   const config = loadConfig();
   const { db, sqlite } = createDb(config.dataDir);
   try {
-    runMigrations(db, config.migrationsDir);
+    runMigrations(db, config.migrationsDir, { backupDir: backupsDir(config.dataDir) });
     const owner = getAccountRow(db);
     if (!owner) {
       console.error('No account exists yet. Open the app in a browser to run the setup.');
@@ -86,7 +86,7 @@ function disableTwoFactor() {
   const config = loadConfig();
   const { db, sqlite } = createDb(config.dataDir);
   try {
-    runMigrations(db, config.migrationsDir);
+    runMigrations(db, config.migrationsDir, { backupDir: backupsDir(config.dataDir) });
     setTwoFactor(db, false);
     console.log('Sign-in codes by email are switched off; trusted devices were forgotten.');
     return 0;
@@ -99,7 +99,7 @@ function reindex() {
   const config = loadConfig();
   const { db, sqlite } = createDb(config.dataDir);
   try {
-    runMigrations(db, config.migrationsDir);
+    runMigrations(db, config.migrationsDir, { backupDir: backupsDir(config.dataDir) });
     const started = performance.now();
     const counts = reindexAll(db);
     const seconds = ((performance.now() - started) / 1000).toFixed(1);
@@ -115,7 +115,7 @@ function reindex() {
 async function backup(target?: string) {
   const config = loadConfig();
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
-  const file = resolve(target ?? join(config.dataDir, 'backups', `app-${stamp}.sqlite`));
+  const file = resolve(target ?? join(backupsDir(config.dataDir), `app-${stamp}.sqlite`));
   if (existsSync(file)) {
     console.error(`${file} already exists; choose another file name.`);
     return 1;
@@ -147,4 +147,10 @@ async function main(args: string[]) {
   }
 }
 
-process.exitCode = await main(process.argv.slice(2));
+try {
+  process.exitCode = await main(process.argv.slice(2));
+} catch (error) {
+  if (!(error instanceof MigrationError)) throw error;
+  console.error(error.message);
+  process.exitCode = 1;
+}
