@@ -6,6 +6,15 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+### Changed
+
+- **Safe updates:** before an update changes the database, the app saves a copy of it
+  to `/data/backups/pre-update-….sqlite` (the newest 3 are kept). Without a copy, it
+  does not update. The update itself runs with foreign keys switched off, so rebuilding
+  a table can never take dependent rows (entries, facts, links, …) with it; afterwards
+  every reference is checked, and the app stops with a clear message instead of running
+  on a damaged database. See [deployment](docs/deployment.md#updating).
+
 ## [0.3.0] — 2026-10-14
 
 ### Added
