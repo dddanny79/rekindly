@@ -6,6 +6,8 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-10-16
+
 ### Changed
 
 - **Safe updates:** before an update changes the database, the app saves a copy of it
@@ -14,6 +16,11 @@ breaking changes (always with a migration path for your data).
   a table can never take dependent rows (entries, facts, links, …) with it; afterwards
   every reference is checked, and the app stops with a clear message instead of running
   on a damaged database. See [deployment](docs/deployment.md#updating).
+
+### Upgrading from 0.3.0
+
+Nothing to do: 0.3.1 has no database migrations. From the next update that changes
+the database on, the copy is saved first.
 
 ## [0.3.0] — 2026-10-14
 
@@ -115,7 +122,8 @@ First public release:
 - API tokens, OpenAPI reference at `/api/docs`, MCP server for Claude
 - One Docker image (amd64, arm64), SQLite, no telemetry
 
-[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/dddanny79/rekindly/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/dddanny79/rekindly/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dddanny79/rekindly/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dddanny79/rekindly/releases/tag/v0.1.0
