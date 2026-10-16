@@ -208,7 +208,7 @@ A daily cron job on the host is enough, e.g.:
 
 ```sh
 0 3 * * * docker exec rekindly node dist/cli.js backup && \
-  find /var/lib/docker/volumes/rekindly-data/_data/backups -name '*.sqlite' -mtime +14 -delete
+  find /var/lib/docker/volumes/rekindly-data/_data/backups -name 'app-*.sqlite' -mtime +14 -delete
 ```
 
 Alternatively stop the container and copy the whole volume. A full export from the app
@@ -227,6 +227,25 @@ docker start rekindly
 
 Afterwards rebuild the search index if in doubt:
 `docker exec rekindly node dist/cli.js reindex`.
+
+## Updating
+
+Pull the new image and restart the container (Coolify: redeploy). On start the app
+brings the database up to date by itself. Before it changes anything, it saves a copy
+of the database as it was:
+
+```
+/data/backups/pre-update-20261016-094910267-0.3.1.sqlite
+```
+
+(time in UTC, then the version that did the update). The newest 3 copies are kept;
+the app removes older ones itself. If no copy can be written (disk full, `/data/backups`
+not writable), the app does not update and does not start — the log says why.
+
+After the update, the app checks that every reference in the database still points to
+an existing row. If not, it stops with a message naming the copy. Then go back to the
+previous image version, restore that copy as described under **Restore** above, and
+please report it as a bug.
 
 ## Other commands
 

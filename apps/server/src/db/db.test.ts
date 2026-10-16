@@ -1,14 +1,12 @@
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDb, runMigrations } from './client';
 import { calendarFeeds, people, relationshipTypes, spaces } from './schema';
 import { seed } from './seed';
-
-const MIGRATIONS_DIR = fileURLToPath(new URL('../../drizzle', import.meta.url));
+import { MIGRATIONS_DIR, migrationsBefore } from '../test/migrations';
 
 let dir: string;
 beforeEach(() => {
@@ -103,14 +101,7 @@ describe('database', () => {
 
   it('0019 keeps the birthday choice of existing calendar feeds', () => {
     // The migrations up to 0018, as an instance before this change had them.
-    const old = join(dir, 'migrations-0018');
-    cpSync(MIGRATIONS_DIR, old, { recursive: true });
-    const journalPath = join(old, 'meta', '_journal.json');
-    const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
-      entries: { tag: string }[];
-    };
-    journal.entries = journal.entries.filter((e) => e.tag < '0019');
-    writeFileSync(journalPath, JSON.stringify(journal));
+    const old = migrationsBefore(join(dir, 'migrations-0018'), '0019');
     const before = createDb(dir);
     runMigrations(before.db, old);
     before.sqlite.exec(`

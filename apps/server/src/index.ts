@@ -4,7 +4,7 @@ import { APP_NAME } from '@app/shared';
 import { createApp } from './app';
 import { deleteExpiredSessions } from './auth/sessions';
 import { ConfigError, loadConfig, type ServerConfig } from './config';
-import { createDb, runMigrations } from './db/client';
+import { backupsDir, createDb, MigrationError, runMigrations } from './db/client';
 import { seed } from './db/seed';
 import { getAccountRow } from './auth/account';
 import { adoptKeptDates } from './dav/inbound';
@@ -45,7 +45,19 @@ try {
   throw error;
 }
 const { db, sqlite } = handle;
-runMigrations(db, config.migrationsDir);
+try {
+  const migrated = runMigrations(db, config.migrationsDir, {
+    backupDir: backupsDir(config.dataDir),
+  });
+  if (migrated.backup) {
+    log.info(
+      `Database updated (${migrated.applied} migration${migrated.applied === 1 ? '' : 's'}); copy from before: ${migrated.backup}`,
+    );
+  }
+} catch (error) {
+  if (error instanceof MigrationError) fail(error.message);
+  throw error;
+}
 seed(db);
 // Dates that address books sent before 0.3 become recurring days (once).
 adoptKeptDates(db, getAccountRow(db)?.locale === 'de' ? 'de' : 'en');
