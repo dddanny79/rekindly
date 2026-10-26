@@ -149,6 +149,10 @@ export function createApp({ deps, webDistDir }: AppOptions) {
     const root = relative(process.cwd(), webDistDir) || '.';
     app.use('*', webCacheHeaders);
     app.use('*', serveStatic({ root }));
+    // A missing build file is a 404, never the app page: served as a script (and
+    // cached by a CDN) the page would stay blank. Happens with an old index.html, or
+    // while an update rolls out and an old container still answers.
+    app.get('/assets/*', (c) => c.text('Not found', 404, { 'cache-control': 'no-store' }));
     // SPA fallback: client-side routes get index.html.
     const indexHtml = readFileSync(join(webDistDir, 'index.html'), 'utf8');
     app.get('*', (c) => c.html(indexHtml));
