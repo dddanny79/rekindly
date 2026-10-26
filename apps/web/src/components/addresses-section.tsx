@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useWrite } from '@/lib/data';
 import { errorMessage } from '@/lib/errors';
 import { formatAddress } from '@/lib/format';
+import { mapLinks } from '@/lib/maps';
 
 type AddressInput = Omit<Address, 'id'>;
 const EMPTY: AddressInput = {
@@ -76,6 +77,36 @@ function AddressForm({
   );
 }
 
+/** “Map” and “Directions” for an address, opened in the device's maps app. */
+function MapLinksRow({ address }: { address: Address }) {
+  const { t } = useTranslation();
+  const links = mapLinks(address);
+  if (!links) return null;
+  const text = formatAddress(address).join(', ');
+  const external = (href: string) =>
+    href.startsWith('https:') ? { target: '_blank', rel: 'noreferrer' } : {};
+  return (
+    <div className="mt-0.5 flex gap-3 text-meta">
+      <a
+        href={links.map}
+        {...external(links.map)}
+        aria-label={t('address.mapFor', { address: text })}
+        className="text-foreground-2 underline"
+      >
+        {t('address.map')}
+      </a>
+      <a
+        href={links.route}
+        {...external(links.route)}
+        aria-label={t('address.routeFor', { address: text })}
+        className="text-foreground-2 underline"
+      >
+        {t('address.route')}
+      </a>
+    </div>
+  );
+}
+
 /** Addresses of a person or an organization. */
 export function AddressesSection({
   addresses,
@@ -139,6 +170,7 @@ export function AddressesSection({
                 <div key={line}>{line}</div>
               ))}
             </address>
+            <MapLinksRow address={address} />
           </SideRow>
         ),
       )}

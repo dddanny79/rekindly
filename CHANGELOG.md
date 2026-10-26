@@ -6,6 +6,29 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-10-26
+
+### Changed
+
+- **No more zoom on the iPhone:** on touch screens, form fields use at least 16px text,
+  so Safari no longer zooms in when you tap a field and no longer stays zoomed in after
+  a dialog closes. Zooming with two fingers works as before.
+- **Websites are links:** an organization's website and custom fields of type URL open
+  in a new tab when tapped. Editing them now has its own pencil button, like contact
+  details.
+
+### Added
+
+- **Map and directions for addresses:** every address of a person or organization has
+  “Map” and “Directions” links. They open Apple Maps on iPhone, iPad and Mac and
+  OpenStreetMap on other computers. On Android, “Map” opens your maps app and
+  “Directions” opens Google Maps. These are only links: Rekindly looks nothing up, and
+  an address goes to a maps service only when you tap one of them.
+
+### Upgrading from 0.3.1
+
+Nothing to do: 0.3.2 has no database migrations.
+
 ## [0.3.1] — 2026-10-16
 
 ### Changed
@@ -122,7 +145,8 @@ First public release:
 - API tokens, OpenAPI reference at `/api/docs`, MCP server for Claude
 - One Docker image (amd64, arm64), SQLite, no telemetry
 
-[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/dddanny79/rekindly/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/dddanny79/rekindly/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/dddanny79/rekindly/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dddanny79/rekindly/compare/v0.1.0...v0.2.0

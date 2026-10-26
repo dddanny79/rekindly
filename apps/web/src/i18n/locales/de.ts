@@ -174,6 +174,10 @@ export const de: Translations = {
     city: 'Ort',
     region: 'Region',
     country: 'Land',
+    map: 'Karte',
+    route: 'Route',
+    mapFor: '{{address}} auf der Karte zeigen',
+    routeFor: 'Route zu {{address}}',
   },
   affiliation: {
     title: 'Organisationen',

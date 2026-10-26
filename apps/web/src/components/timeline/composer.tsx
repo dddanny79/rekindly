@@ -227,7 +227,7 @@ export function TimelineComposer({ person, initialKind }: ComposerProps) {
         aria-activedescendant={
           mention && suggestions.length ? `mention-${suggestions[active]?.id}` : undefined
         }
-        className="block w-full resize-none bg-transparent px-3.5 pt-3 pb-1 font-serif text-[1.0625rem] outline-none placeholder:text-muted-foreground placeholder:italic"
+        className="block w-full resize-none bg-transparent px-3.5 pt-3 pb-1 font-serif text-read outline-none placeholder:text-muted-foreground placeholder:italic"
       />
 
       {mention && suggestions.length > 0 && (
