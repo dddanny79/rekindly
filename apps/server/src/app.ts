@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { Hono } from 'hono';
+import { Hono, type MiddlewareHandler } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
@@ -147,6 +147,7 @@ export function createApp({ deps, webDistDir }: AppOptions) {
   if (webDistDir && existsSync(join(webDistDir, 'index.html'))) {
     // serveStatic resolves `root` against the working directory.
     const root = relative(process.cwd(), webDistDir) || '.';
+    app.use('*', webCacheHeaders);
     app.use('*', serveStatic({ root }));
     // SPA fallback: client-side routes get index.html.
     const indexHtml = readFileSync(join(webDistDir, 'index.html'), 'utf8');
@@ -155,3 +156,18 @@ export function createApp({ deps, webDistDir }: AppOptions) {
 
   return app;
 }
+
+/**
+ * Files under /assets carry a content hash in their name and never change. Everything
+ * else (index.html, icons, manifest) is checked on every load: a browser or home screen
+ * app that keeps an old index.html after an update would ask for assets that no longer
+ * exist and stay blank.
+ */
+const webCacheHeaders: MiddlewareHandler = async (c, next) => {
+  await next();
+  if (c.res.status >= 400) return;
+  c.res.headers.set(
+    'cache-control',
+    c.req.path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+  );
+};
