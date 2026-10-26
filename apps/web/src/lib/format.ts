@@ -19,10 +19,20 @@ export function contactHref(point: Pick<ContactPoint, 'kind' | 'value'>): string
       return `mailto:${point.value}`;
     case 'url':
     case 'social':
-      return /^https?:\/\//i.test(point.value) ? point.value : `https://${point.value}`;
+      return webHref(point.value);
     default:
       return null;
   }
+}
+
+/** Link for a web address typed with or without scheme (“example.com” → https://example.com). */
+export function webHref(value: string): string {
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+}
+
+/** Web address without scheme and trailing slash, for display. */
+export function webDisplay(value: string): string {
+  return value.replace(/^https?:\/\//i, '').replace(/\/$/, '');
 }
 
 /** Address as display lines: street / zip city / region, country. */

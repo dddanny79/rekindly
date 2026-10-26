@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { organizationQuery, organizationsApi, organizationsQuery, useWrite } from '@/lib/data';
 import { formatPartialDate } from '@/lib/dates';
-import { ORGANIZATION_KINDS } from '@/lib/format';
+import { ORGANIZATION_KINDS, webDisplay, webHref } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { spaceColor, spaceName } from '@/lib/labels';
 import { useSelectedSpace } from '@/lib/space-selection';
@@ -157,12 +157,12 @@ function OrganizationView({ organizationId }: { organizationId: string }) {
         </h1>
         {org.website && (
           <a
-            href={org.website.startsWith('http') ? org.website : `https://${org.website}`}
+            href={webHref(org.website)}
             target="_blank"
             rel="noreferrer"
             className="text-foreground-2 underline"
           >
-            {org.website.replace(/^https?:\/\//, '')}
+            {webDisplay(org.website)}
           </a>
         )}
       </header>
@@ -243,6 +243,8 @@ function OrganizationView({ organizationId }: { organizationId: string }) {
               <InlineText
                 label={t('organizations.website')}
                 value={org.website}
+                display={org.website ? webDisplay(org.website) : undefined}
+                href={org.website ? webHref(org.website) : undefined}
                 onSave={(website) => update.mutateAsync({ website })}
               />
             </div>

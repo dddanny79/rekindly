@@ -194,6 +194,18 @@
   }
 }
 
+/*
+ * iOS Safari zooms into a form field whose text is smaller than 16px and does not zoom
+ * back out when a dialog closes. On touch devices fields therefore get at least 16px
+ * (unlayered, so it wins over the size utilities). Larger field text stays as it is.
+ * Zooming itself stays allowed (no `maximum-scale`).
+ */
+@media (pointer: coarse) {
+  :is(input, select, textarea):not(.text-read, .text-lg, .text-lead, .text-title) {
+    font-size: max(16px, 1rem);
+  }
+}
+
 @layer components {
   /* Section label: “Briefing”, “Verlauf”, “Wiedervorlagen”. */
   .kicker {

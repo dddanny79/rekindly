@@ -64,6 +64,26 @@ describe('InlineText', () => {
     expect(screen.getByText('Invalid date')).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  it('shows a web address as a link with its own edit button', async () => {
+    const onSave = vi.fn(async () => {});
+    render(
+      <InlineText
+        label="Website"
+        value="https://example.com/"
+        display="example.com"
+        href="https://example.com/"
+        onSave={onSave}
+      />,
+    );
+    const link = screen.getByRole('link', { name: 'example.com' });
+    expect(link).toHaveAttribute('href', 'https://example.com/');
+    expect(link).toHaveAttribute('target', '_blank');
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Website' }));
+    await userEvent.clear(screen.getByRole('textbox', { name: 'Website' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Website' }), 'example.org{Enter}');
+    expect(onSave).toHaveBeenCalledWith('example.org');
+  });
 });
 
 describe('format', () => {

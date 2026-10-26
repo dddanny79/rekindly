@@ -6,6 +6,7 @@ import { InlineText } from '@/components/inline-edit';
 import { EmptyRow, SideSection } from '@/components/side-section';
 import { Select } from '@/components/ui/select';
 import { fieldDefinitionsQuery, useWrite } from '@/lib/data';
+import { webDisplay, webHref } from '@/lib/format';
 
 function FieldInput({
   definition,
@@ -47,13 +48,14 @@ function FieldInput({
           timeZone: 'UTC',
         }).format(new Date(`${value}T00:00:00Z`))
       : value && definition.type === 'url'
-        ? value.replace(/^https?:\/\//, '').replace(/\/$/, '')
+        ? webDisplay(value)
         : undefined;
   return (
     <InlineText
       label={definition.label}
       value={value}
       display={display}
+      href={value && definition.type === 'url' ? webHref(value) : undefined}
       placeholder={definition.type === 'date' ? 'JJJJ-MM-TT' : undefined}
       validate={(input) =>
         input.trim() === '' || normalizeFieldValue(definition, input) !== null

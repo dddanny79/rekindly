@@ -1,6 +1,7 @@
 import { Pencil } from 'lucide-react';
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +18,8 @@ interface InlineTextProps {
   validate?: (input: string) => string | null;
   onSave: (input: string) => Promise<unknown>;
   multiline?: boolean;
+  /** Shows a filled value as a link (opens in a new tab) with its own edit button. */
+  href?: string;
   className?: string;
   inputClassName?: string;
 }
@@ -34,6 +37,7 @@ export function InlineText({
   validate,
   onSave,
   multiline = false,
+  href,
   className,
   inputClassName,
 }: InlineTextProps) {
@@ -111,6 +115,27 @@ export function InlineText({
   }
 
   const empty = !value;
+  if (href && !empty) {
+    // A link cannot also start editing on tap, so editing gets its own button
+    // (always visible on touch screens, on hover/focus with a mouse).
+    return (
+      <div className={cn('group flex max-w-full min-w-0 items-center gap-1', className)}>
+        <a href={href} target="_blank" rel="noreferrer" className="min-w-0 break-all underline">
+          {display ?? value}
+        </a>
+        <Button
+          ref={button}
+          size="icon-sm"
+          variant="ghost"
+          onClick={start}
+          aria-label={t('common.editNamed', { name: label })}
+          className="shrink-0 md:size-7 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+        >
+          <Pencil aria-hidden />
+        </Button>
+      </div>
+    );
+  }
   return (
     <button
       ref={button}
