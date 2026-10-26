@@ -25,9 +25,21 @@ breaking changes (always with a migration path for your data).
   “Directions” opens Google Maps. These are only links: Rekindly looks nothing up, and
   an address goes to a maps service only when you tap one of them.
 
+### Fixed
+
+- **Blank app after an update:** the start page was sent without a cache rule, so
+  browsers and iPhone home screen apps could keep the old one for hours. After an
+  update it pointed to files that no longer exist, and the app stayed empty (black in
+  dark mode). Browsers now check the start page on every load. The files it loads have
+  their content in their name and are kept for a year. (Re-released as 0.3.2 on the
+  same day.)
+
 ### Upgrading from 0.3.1
 
 Nothing to do: 0.3.2 has no database migrations.
+
+If the app stays blank once after the update, reload it without the cache
+(`Ctrl+Shift+R`), or on the iPhone swipe the home screen app away and open it again.
 
 ## [0.3.1] — 2026-10-16
 
