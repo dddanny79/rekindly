@@ -67,6 +67,13 @@ describe('createApp', () => {
       expect(asset.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
     });
 
+    it('answers a missing asset with 404 instead of the app page', async () => {
+      const res = await web.request('/assets/index-old.js');
+      expect(res.status).toBe(404);
+      expect(res.headers.get('content-type')).not.toContain('text/html');
+      expect(res.headers.get('cache-control')).toBe('no-store');
+    });
+
     it('keeps API 404s as JSON', async () => {
       const res = await web.request('/api/nope');
       expect(res.status).toBe(404);

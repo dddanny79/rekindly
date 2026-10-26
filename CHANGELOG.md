@@ -31,8 +31,10 @@ breaking changes (always with a migration path for your data).
   browsers and iPhone home screen apps could keep the old one for hours. After an
   update it pointed to files that no longer exist, and the app stayed empty (black in
   dark mode). Browsers now check the start page on every load. The files it loads have
-  their content in their name and are kept for a year. (Re-released as 0.3.2 on the
-  same day.)
+  their content in their name and are kept for a year. A file that does not exist is
+  now a plain “not found” instead of the start page: while an update rolled out, a
+  CDN like Cloudflare could store the start page in place of a script, and the app
+  stayed blank until its cache was cleared. (Re-released as 0.3.2 on the same day.)
 
 ### Upgrading from 0.3.1
 
