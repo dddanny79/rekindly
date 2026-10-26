@@ -57,6 +57,16 @@ describe('createApp', () => {
       expect(await res.text()).toContain('<title>shell</title>');
     });
 
+    it('makes browsers check index.html on every load, but keeps hashed assets', async () => {
+      // An old index.html after an update points to assets that are gone: blank app.
+      for (const path of ['/', '/index.html', '/people/123']) {
+        const res = await web.request(path);
+        expect(res.headers.get('cache-control'), path).toBe('no-cache');
+      }
+      const asset = await web.request('/assets/app.js');
+      expect(asset.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+    });
+
     it('keeps API 404s as JSON', async () => {
       const res = await web.request('/api/nope');
       expect(res.status).toBe(404);
