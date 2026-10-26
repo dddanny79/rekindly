@@ -25,8 +25,9 @@ server: no telemetry, no external calls except the services you configure.
 
 ## Features
 
-- **People and organizations** — names, contact details, addresses, photo, birthday,
-  how you met, tags, custom fields; organizations with departments and sites.
+- **People and organizations** — names, contact details, addresses with map and
+  directions links, photo, birthday, how you met, tags, custom fields; organizations
+  with departments and sites.
 - **Briefing** — questions for next time, open follow-ups, pinned facts, the last
   conversation, birthday and other days coming up, and your keep-in-touch rhythm at
   a glance.

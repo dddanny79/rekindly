@@ -21,6 +21,7 @@ import {
   createPerson,
   updatePerson,
 } from '../people/service';
+import { addAddress } from '../people/addresses';
 import { addReminder } from '../reminders/service';
 
 const day = 86_400_000;
@@ -53,6 +54,17 @@ export function insertShowcase(db: Db) {
   const northwind = org('Northwind Labs', 'https://northwind.example.com');
   const bluepeak = org('Bluepeak Insurance', 'https://bluepeak.example.com');
   const studio = org('Lumen Design Studio');
+  addAddress(
+    db,
+    { organizationId: northwind },
+    {
+      label: 'Office',
+      street: '250 Harbor Lane',
+      zip: '94107',
+      city: 'San Francisco',
+      region: 'CA',
+    },
+  );
 
   const person = (
     spaceId: string,
