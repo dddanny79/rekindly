@@ -172,6 +172,10 @@ export const en = {
     city: 'City',
     region: 'Region',
     country: 'Country',
+    map: 'Map',
+    route: 'Directions',
+    mapFor: 'Show {{address}} on a map',
+    routeFor: 'Directions to {{address}}',
   },
   affiliation: {
     title: 'Organizations',
