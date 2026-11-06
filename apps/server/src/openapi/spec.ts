@@ -448,6 +448,16 @@ export const OPERATIONS: Operation[] = [
     query: s.todayQuerySchema,
     response: s.todayResponseSchema,
   }),
+  op(
+    'post',
+    '/today/sync-deletions/dismiss',
+    'Search',
+    'Hide the notice about people deleted by sync',
+    {
+      response: 'empty',
+      status: 204,
+    },
+  ),
   op('get', '/files/:id', 'Search', 'A stored file (profile photo)', { response: 'binary' }),
 
   // Duplicates

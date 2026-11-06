@@ -378,6 +378,8 @@ export function buildVcard(
 export interface ParsedCard extends Omit<CardData, 'uid'> {
   uid: string | null;
   photo: Buffer | null;
+  /** A birthday the app cannot read (e.g. `BDAY;VALUE=text`); `birthday` is null then. */
+  unreadableBirthday: string | null;
   /** Lines without a field in the app, to be written back unchanged. */
   extraLines: string[];
 }
@@ -487,6 +489,7 @@ export function parseVcard(
     addresses: [],
     dates: [],
     photo: null,
+    unreadableBirthday: null,
     extraLines: [],
   };
   const addDate = (day: CardDate) => {
@@ -522,6 +525,7 @@ export function parseVcard(
         break;
       case 'BDAY':
         card.birthday = parseBirthday(line);
+        card.unreadableBirthday = card.birthday ? null : nullable(unescapeText(value));
         break;
       case 'ANNIVERSARY':
       case 'X-ANNIVERSARY': {
@@ -661,6 +665,8 @@ export function sameContent(
     JSON.stringify({
       names: [c.prefix, c.firstName, c.middleName, c.lastName, c.suffix, c.nickname],
       birthday: c.birthday,
+      // An unreadable birthday is not stored; the client has to fetch the card again.
+      unreadableBirthday: c.unreadableBirthday,
       organization: c.organization,
       title: c.title,
       note: c.note,

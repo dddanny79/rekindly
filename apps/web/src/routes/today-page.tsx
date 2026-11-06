@@ -1,5 +1,5 @@
 import { useState, type ReactElement, type ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { PersonRef, SpaceColor } from '@app/shared';
@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { ReminderRow } from '@/components/person/briefing';
 import { useDayText } from '@/lib/day-text';
 import { Button } from '@/components/ui/button';
-import { todayQuery } from '@/lib/data';
+import { dismissSyncDeletions, todayQuery } from '@/lib/data';
 import { fromDateOnly, toDateOnly } from '@/lib/dates';
 import { relatedToText } from '@/lib/labels';
 import { useSelectedSpace } from '@/lib/space-selection';
@@ -99,6 +99,11 @@ export function TodayPage(): ReactElement {
   const { spaceId, spaces } = useSelectedSpace();
   const date = toDateOnly(new Date());
   const { data } = useQuery(todayQuery({ date, spaceId }));
+  const queryClient = useQueryClient();
+  const dismiss = useMutation({
+    mutationFn: dismissSyncDeletions,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['today'] }),
+  });
   const colorOf = (id: string) => spaces.find((s) => s.id === id)?.color;
   const shortDate = (value: Date) =>
     new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit' }).format(value);
@@ -154,6 +159,33 @@ export function TodayPage(): ReactElement {
             {t('backup.warningLink')}
           </Link>
         </p>
+      )}
+
+      {data?.syncDeletions && (
+        <div
+          className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-l-2 border-border-strong pl-3 text-sm"
+          role="status"
+        >
+          <span>
+            {t('today.syncDeleted', {
+              count: data.syncDeletions.count,
+              date: new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
+                new Date(data.syncDeletions.purgeAt),
+              ),
+            })}
+          </span>
+          <Link to="/trash" className="underline">
+            {t('today.syncDeletedOpen')}
+          </Link>
+          <button
+            type="button"
+            className="text-muted-foreground underline hover:text-foreground"
+            disabled={dismiss.isPending}
+            onClick={() => dismiss.mutate()}
+          >
+            {t('today.syncDeletedDismiss')}
+          </button>
+        </div>
       )}
 
       {!data ? (

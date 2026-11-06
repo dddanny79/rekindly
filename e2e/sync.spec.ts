@@ -87,3 +87,38 @@ test('changes from a device are logged in the timeline, hidden by default', asyn
   await timeline.getByRole('button', { name: 'Hide changes from sync' }).click();
   await expect(timeline).not.toContainText('Changed via sync');
 });
+
+test('a contact deleted on a device shows up under Today until dismissed', async ({
+  page,
+  request,
+  baseURL,
+}) => {
+  const { spaces } = await (await request.get('/api/v1/spaces')).json();
+  const person = await (
+    await request.post('/api/v1/people', {
+      data: { spaceId: spaces[0].id, firstName: 'Doro', lastName: 'Deleted' },
+    })
+  ).json();
+  const created = await (
+    await request.post('/api/v1/app-passwords', { data: { name: 'E2E delete', spaceIds: null } })
+  ).json();
+  const auth = `Basic ${Buffer.from(`${created.username}:${created.password}`).toString('base64')}`;
+  const removed = await request.fetch(`${baseURL}/dav/addressbooks/contacts/${person.id}.vcf`, {
+    method: 'DELETE',
+    headers: { authorization: auth, cookie: '' },
+  });
+  expect(removed.status()).toBe(204);
+
+  await page.goto('/');
+  const notice = page.getByRole('status').filter({ hasText: 'deleted via sync' });
+  await expect(notice).toContainText(/\d+ (person|people) deleted via sync – in the trash until/);
+  await notice.getByRole('link', { name: 'Open trash' }).click();
+  await expect(page.getByText('Doro Deleted')).toBeVisible();
+
+  await page.goto('/');
+  await notice.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(notice).toBeHidden();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
+  await expect(notice).toBeHidden();
+});

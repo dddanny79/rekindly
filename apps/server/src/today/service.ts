@@ -1,10 +1,11 @@
-import { and, desc, eq, inArray, isNotNull, isNull, max } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNotNull, isNull, max, min, sql } from 'drizzle-orm';
 import {
   CONTACT_KINDS,
   type OverdueContact,
   type RecentPerson,
   TODAY_BIRTHDAY_DAYS,
   TODAY_RECENT_LIMIT,
+  TRASH_RETENTION_DAYS,
   type TodayBirthday,
   type TodayDate,
   personDateYears,
@@ -12,7 +13,7 @@ import {
 } from '@app/shared';
 import { backupWarning } from '../backup/backups';
 import type { Db } from '../db/client';
-import { entries, entryPeople, people, personDates, personViews } from '../db/schema';
+import { entries, entryPeople, people, personDates, personViews, settings } from '../db/schema';
 import { notDeleted, nowIso } from '../lib/sql';
 import { getLivePerson, toPersonRef } from '../people/refs';
 import { relatedToFor } from '../people/related';
@@ -196,6 +197,43 @@ function recent(db: Db, spaceId?: string): RecentPerson[] {
   }));
 }
 
+const SYNC_DELETIONS_SEEN_KEY = 'today.syncDeletionsSeenAt';
+
+/**
+ * People an address book client moved to the trash since the notice was last
+ * dismissed: how many, and when the first of them is deleted for good.
+ */
+export function syncDeletions(db: Db, spaceId?: string): TodayResponse['syncDeletions'] {
+  const seenAt = db.select().from(settings).where(eq(settings.key, SYNC_DELETIONS_SEEN_KEY)).get()
+    ?.value as string | undefined;
+  const row = db
+    .select({ count: sql<number>`count(*)`, first: min(people.deletedAt) })
+    .from(people)
+    .where(
+      and(
+        isNotNull(people.deletedAt),
+        eq(people.deletedVia, 'sync'),
+        seenAt ? gt(people.deletedAt, seenAt) : undefined,
+        spaceId ? eq(people.spaceId, spaceId) : undefined,
+      ),
+    )
+    .get();
+  if (!row?.count || !row.first) return null;
+  return {
+    count: row.count,
+    purgeAt: new Date(Date.parse(row.first) + TRASH_RETENTION_DAYS * DAY).toISOString(),
+  };
+}
+
+/** Hides the notice until the next deletion by sync. */
+export function dismissSyncDeletions(db: Db) {
+  const value = nowIso();
+  db.insert(settings)
+    .values({ key: SYNC_DELETIONS_SEEN_KEY, value })
+    .onConflictDoUpdate({ target: settings.key, set: { value } })
+    .run();
+}
+
 export function getToday(db: Db, query: { date?: string; spaceId?: string }): TodayResponse {
   // Without a date from the client: today in the server's time zone (TZ).
   const now = new Date();
@@ -213,6 +251,7 @@ export function getToday(db: Db, query: { date?: string; spaceId?: string }): To
     overdueContacts: overdueContacts(db, date, query.spaceId),
     recent: recent(db, query.spaceId),
     backup: backupWarning(db),
+    syncDeletions: syncDeletions(db, query.spaceId),
   };
 }
 

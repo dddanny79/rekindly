@@ -524,4 +524,107 @@ describe('CardDAV', () => {
     await t.request(`/api/v1/trash/person/${jana.id}/restore`, { method: 'POST' });
     expect((await dav('GET', url)).status).toBe(200);
   });
+
+  it('keeps the old values of name, nickname, birthday, summary and role in the log', async () => {
+    const jana = await person('Jana', 'Berger', {
+      nickname: 'Jani',
+      birthday: '1980-03-12',
+      summary: 'Einkauf bei Northwind',
+    });
+    const company = await post<{ id: string }>('/organizations', {
+      spaceId: t.businessSpace,
+      name: 'Northwind',
+    });
+    await post(`/people/${jana.id}/affiliations`, {
+      organizationId: company.id,
+      role: 'Einkauf',
+      isPrimary: true,
+    });
+    const dav = await davClient();
+    const url = `/dav/addressbooks/contacts/${jana.id}.vcf`;
+    const get = await dav('GET', url);
+    const edited = unfold(await get.text())
+      .filter((l) => !/^(NICKNAME|BDAY)/.test(l))
+      .map((l) =>
+        l
+          .replace(/^N:Berger;/, 'N:Bergmann;')
+          .replace(/^FN:.*/, 'FN:Jana Bergmann')
+          .replace(/^NOTE:.*/, 'NOTE:Leitet den Einkauf')
+          .replace(/^TITLE:.*/, 'TITLE:Leitung Einkauf'),
+      )
+      .join('\r\n');
+    expect((await dav('PUT', url, edited, { 'if-match': get.headers.get('etag')! })).status).toBe(
+      204,
+    );
+    const { entries } = await t.json<{ entries: Entry[] }>(
+      t.request(`/api/v1/entries?personId=${jana.id}`),
+    );
+    const log = entries[0]!.bodyMd.split('\n');
+    expect(log).toEqual(
+      expect.arrayContaining([
+        '- Name geändert: Jana Berger → Jana Bergmann',
+        '- Spitzname geändert: Jani → —',
+        '- Geburtstag geändert: 12.03.1980 → —',
+        '- „Wer ist das“ geändert: Einkauf bei Northwind → Leitet den Einkauf',
+        '- Rolle geändert: Einkauf → Leitung Einkauf',
+      ]),
+    );
+  });
+
+  it('never loses a birthday to one it cannot read', async () => {
+    const jana = await person('Jana', 'Berger', { birthday: '--03-12' });
+    const dav = await davClient();
+    const url = `/dav/addressbooks/contacts/${jana.id}.vcf`;
+    const get = await dav('GET', url);
+    const edited = unfold(await get.text())
+      .map((l) => (l.startsWith('BDAY') ? 'BDAY;VALUE=text:circa 1980' : l))
+      .join('\r\n');
+    const put = await dav('PUT', url, edited, { 'if-match': get.headers.get('etag')! });
+    expect(put.status).toBe(204);
+    // The phone has to fetch the card again, with the birthday the app kept.
+    expect(put.headers.get('etag')).toBeNull();
+    expect((await t.json<Person>(t.request(`/api/v1/people/${jana.id}`))).birthday).toBe('--03-12');
+    const { entries } = await t.json<{ entries: Entry[] }>(
+      t.request(`/api/v1/entries?personId=${jana.id}`),
+    );
+    expect(entries[0]!.bodyMd).toBe(
+      '- Geburtstag vom Gerät nicht lesbar („circa 1980“), hier behalten: 12.03.',
+    );
+  });
+
+  it('tells the Today page about contacts deleted on the phone until dismissed', async () => {
+    const jana = await person('Jana', 'Berger');
+    const tom = await person('Tom', 'Weiß');
+    const lea = await person('Lea', 'Sommer', {}, t.privateSpace);
+    const today = (query = '') =>
+      t.json<{ syncDeletions: { count: number; purgeAt: string } | null }>(
+        t.request(`/api/v1/today${query}`),
+      );
+    const dav = await davClient();
+    const remove = (id: string) => dav('DELETE', `/dav/addressbooks/contacts/${id}.vcf`);
+
+    // Deleting in the app is no news.
+    await t.request(`/api/v1/people/${tom.id}`, { method: 'DELETE' });
+    expect((await today()).syncDeletions).toBeNull();
+
+    expect((await remove(jana.id)).status).toBe(204);
+    expect((await remove(lea.id)).status).toBe(204);
+    const notice = (await today()).syncDeletions!;
+    expect(notice.count).toBe(2);
+    const [trashed] = (await t.json<{ items: TrashItem[] }>(t.request('/api/v1/trash'))).items
+      .filter((i) => i.kind === 'person' && i.id !== tom.id)
+      .sort((a, b) => a.purgeAt.localeCompare(b.purgeAt));
+    expect(notice.purgeAt).toBe(trashed!.purgeAt);
+    expect((await today(`?spaceId=${t.privateSpace}`)).syncDeletions?.count).toBe(1);
+
+    // Restored people do not count; a dismissed notice stays away until the next one.
+    await t.request(`/api/v1/trash/person/${lea.id}/restore`, { method: 'POST' });
+    expect((await today()).syncDeletions?.count).toBe(1);
+    const dismissed = await t.request('/api/v1/today/sync-deletions/dismiss', { method: 'POST' });
+    expect(dismissed.status).toBe(204);
+    expect((await today()).syncDeletions).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect((await remove(lea.id)).status).toBe(204);
+    expect((await today()).syncDeletions?.count).toBe(1);
+  });
 });
