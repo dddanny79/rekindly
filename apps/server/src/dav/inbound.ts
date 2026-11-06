@@ -1,5 +1,5 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import { personDateLabel } from '@app/shared';
+import { personDateLabel, personDisplayName } from '@app/shared';
 import type { Db } from '../db/client';
 import {
   addresses,
@@ -47,9 +47,12 @@ const TEXT: Record<Locale, Record<string, string>> = {
     address: 'Address',
     added: '{{what}} added: {{value}}',
     removed: '{{what}} moved to the trash: {{value}}',
+    fromTo: '{{what}}: {{from}} → {{to}}',
     organization: 'Organization: {{value}}',
-    role: 'Role: {{value}}',
+    role: 'Role changed',
     orgKept: 'Organization removed on the device; kept here: {{value}}',
+    birthdayKept: 'Birthday from the device not readable (“{{value}}”); kept here: {{kept}}',
+    birthdayUnreadable: 'Birthday from the device not readable: {{value}}',
   },
   de: {
     created: 'Über Sync angelegt',
@@ -67,14 +70,36 @@ const TEXT: Record<Locale, Record<string, string>> = {
     address: 'Adresse',
     added: '{{what}} hinzugefügt: {{value}}',
     removed: '{{what}} in den Papierkorb: {{value}}',
+    fromTo: '{{what}}: {{from}} → {{to}}',
     organization: 'Organisation: {{value}}',
-    role: 'Rolle: {{value}}',
+    role: 'Rolle geändert',
     orgKept: 'Organisation am Gerät entfernt, hier behalten: {{value}}',
+    birthdayKept: 'Geburtstag vom Gerät nicht lesbar („{{value}}“), hier behalten: {{kept}}',
+    birthdayUnreadable: 'Geburtstag vom Gerät nicht lesbar: {{value}}',
   },
 };
 
 const fill = (template: string, values: Record<string, string>) =>
   template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => values[key] ?? '');
+
+const EMPTY = '—';
+
+/** `--03-12` / `1980-03-12` as people read it: „12.03.1980“, “March 12, 1980”. */
+export function birthdayText(value: string | null | undefined, locale: Locale): string {
+  if (!value) return EMPTY;
+  const yearless = value.startsWith('--');
+  const date = new Date(`${yearless ? '2000' : value.slice(0, 4)}-${value.slice(-5)}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
+    timeZone: 'UTC',
+    ...(locale === 'de' ? { day: '2-digit', month: '2-digit' } : { day: 'numeric', month: 'long' }),
+    ...(yearless ? {} : { year: 'numeric' }),
+  }).format(date);
+}
+
+/** “Changed: old → new”, so a value overwritten by a sync can be found again. */
+const fromTo = (t: Record<string, string>, what: string, from: string | null, to: string | null) =>
+  fill(t.fromTo!, { what, from: from?.trim() || EMPTY, to: to?.trim() || EMPTY });
 
 export const pointKey = (p: { kind: string; value: string }) =>
   `${p.kind}|${p.kind === 'phone' ? p.value.replace(/[^\d+]/g, '') : p.value.trim().toLowerCase()}`;
@@ -178,18 +203,29 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
   if (!names.firstName && !names.lastName && !card.nickname) {
     names.firstName = card.organization.at(-1) ?? '?';
   }
-  const fields = {
-    ...names,
-    nickname: card.nickname,
-    birthday: card.birthday,
-    summary: card.note,
-  };
-
   // The photo is stored first (it is async); everything else is one transaction,
   // so a failure never leaves a half-applied card behind.
   const before = options.personId
     ? db.select().from(people).where(eq(people.id, options.personId)).get()
     : undefined;
+  // A birthday the app cannot read never removes the one it has.
+  const birthday = card.unreadableBirthday ? (before?.birthday ?? null) : card.birthday;
+  if (card.unreadableBirthday) {
+    changes.push(
+      before?.birthday
+        ? fill(t.birthdayKept!, {
+            value: card.unreadableBirthday,
+            kept: birthdayText(before.birthday, locale),
+          })
+        : fill(t.birthdayUnreadable!, { value: card.unreadableBirthday }),
+    );
+  }
+  const fields = {
+    ...names,
+    nickname: card.nickname,
+    birthday,
+    summary: card.note,
+  };
   let newPhoto: { id: string } | null = null;
   if (
     card.photo &&
@@ -219,11 +255,25 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
         const nameChanged = (Object.keys(names) as (keyof typeof names)[]).some(
           (k) => (current[k] ?? null) !== (names[k] ?? null),
         );
-        if (nameChanged) changes.push(t.name!);
-        if ((current.nickname ?? null) !== (card.nickname ?? null)) changes.push(t.nickname!);
-        if ((current.birthday ?? null) !== (card.birthday ?? null)) changes.push(t.birthday!);
-        if ((current.summary ?? null) !== (card.note ?? null)) changes.push(t.summary!);
-        if (changes.length) {
+        // The old value stays in the timeline entry, so it can be restored by hand.
+        const noted = changes.length;
+        const fullName = (n: Parameters<typeof personDisplayName>[0]) =>
+          personDisplayName({ ...n, nickname: null });
+        if (nameChanged) changes.push(fromTo(t, t.name!, fullName(current), fullName(names)));
+        if ((current.nickname ?? null) !== (card.nickname ?? null))
+          changes.push(fromTo(t, t.nickname!, current.nickname, card.nickname));
+        if ((current.birthday ?? null) !== (birthday ?? null))
+          changes.push(
+            fromTo(
+              t,
+              t.birthday!,
+              birthdayText(current.birthday, locale),
+              birthdayText(birthday, locale),
+            ),
+          );
+        if ((current.summary ?? null) !== (card.note ?? null))
+          changes.push(fromTo(t, t.summary!, current.summary, card.note));
+        if (changes.length > noted) {
           db.update(people)
             .set({ ...fields, updatedAt: nowIso() })
             .where(eq(people.id, personId))
@@ -351,7 +401,7 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
         if (!isNew) changes.push(fill(t.organization!, { value: card.organization.join(' › ') }));
       } else if (main && samePath && (main.role ?? null) !== (card.title ?? null)) {
         db.update(affiliations).set({ role: card.title }).where(eq(affiliations.id, main.id)).run();
-        changes.push(fill(t.role!, { value: card.title ?? '–' }));
+        changes.push(fromTo(t, t.role!, main.role, card.title));
       } else if (!card.organization.length && main && !isNew) {
         // Never delete an affiliation from a sync; the card shows it again.
         changes.push(fill(t.orgKept!, { value: currentPath.join(' › ') }));

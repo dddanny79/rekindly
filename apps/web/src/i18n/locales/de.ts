@@ -953,6 +953,10 @@ export const de: Translations = {
     recentEmpty: 'Personen, die du öffnest, erscheinen hier.',
     showAll: 'Alle {{count}} anzeigen',
     showLess: 'Weniger anzeigen',
+    syncDeleted_one: '{{count}} Person per Sync gelöscht – im Papierkorb bis {{date}}.',
+    syncDeleted_other: '{{count}} Personen per Sync gelöscht – im Papierkorb bis {{date}}.',
+    syncDeletedOpen: 'Papierkorb öffnen',
+    syncDeletedDismiss: 'Ausblenden',
   },
   trash: {
     lead: 'Gelöschtes bleibt 30 Tage hier und wird dann endgültig entfernt.',

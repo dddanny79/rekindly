@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { birthdayText } from './inbound';
 import { buildVcard, type CardData, foldLine, parseVcard, unfold } from './vcard';
 
 const jana: CardData = {
@@ -194,5 +195,25 @@ describe('vCard', () => {
     // iOS sometimes drops X-APPLE-OMIT-YEAR when it sends a card back.
     expect(bday('BDAY;VALUE=date:1604-10-24')).toBe('--10-24');
     expect(bday('BDAY:16041024')).toBe('--10-24');
+  });
+
+  it('keeps a birthday it cannot read apart, instead of reading it as none', () => {
+    const card = parseVcard(
+      'BEGIN:VCARD\nN:Berger;Jana;;;\nBDAY;VALUE=text:circa 1980\nEND:VCARD',
+      {
+        locale: 'en',
+      },
+    );
+    expect(card.birthday).toBeNull();
+    expect(card.unreadableBirthday).toBe('circa 1980');
+    expect(card.extraLines).toEqual([]);
+  });
+
+  it('writes birthdays in the log as people read them', () => {
+    expect(birthdayText('1980-03-12', 'de')).toBe('12.03.1980');
+    expect(birthdayText('--03-12', 'de')).toBe('12.03.');
+    expect(birthdayText('1980-03-12', 'en')).toBe('March 12, 1980');
+    expect(birthdayText('--03-12', 'en')).toBe('March 12');
+    expect(birthdayText(null, 'en')).toBe('—');
   });
 });

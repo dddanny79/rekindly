@@ -144,6 +144,7 @@ describe('Today page', () => {
         },
       ],
       backup: null,
+      syncDeletions: null,
       recent: [
         {
           person: ref,

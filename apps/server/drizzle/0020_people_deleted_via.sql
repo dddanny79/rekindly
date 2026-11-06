@@ -1,0 +1,1 @@
+ALTER TABLE `people` ADD `deleted_via` text;

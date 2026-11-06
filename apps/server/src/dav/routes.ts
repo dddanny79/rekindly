@@ -491,7 +491,7 @@ export function davRoutes({ db, config }: Deps) {
     if (!card) return c.text('Not Found', 404);
     if (!etagMatches(c.req.header('if-match'), card.etag)) return c.text('Changed', 412);
     // Defensive: a delete on a phone moves the person to the trash (30 days).
-    deletePerson(db, card.personId);
+    deletePerson(db, card.personId, 'sync');
     flushSearchQueue(db);
     log.info(`CardDAV: DELETE ${name} moved person ${card.personId} to the trash`);
     return c.body(null, 204);

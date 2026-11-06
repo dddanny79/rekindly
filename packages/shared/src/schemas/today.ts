@@ -77,5 +77,10 @@ export const todayResponseSchema = z.object({
   recent: z.array(recentPersonSchema),
   /** Automatic backup failed or is long overdue. */
   backup: backupWarningSchema,
+  /**
+   * People an address book client deleted (they are in the trash) since the
+   * notice was last dismissed; `purgeAt` is when the first of them is gone for good.
+   */
+  syncDeletions: z.object({ count: z.number().int(), purgeAt: isoDateTimeSchema }).nullable(),
 });
 export type TodayResponse = z.infer<typeof todayResponseSchema>;

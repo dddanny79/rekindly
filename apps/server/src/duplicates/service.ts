@@ -462,7 +462,7 @@ export function mergePeople(db: Db, keepId: string, mergeId: string, take: Merge
       .run();
 
     // The merged person goes to the trash; a hidden note keeps the trace.
-    db.update(people).set({ deletedAt: now }).where(eq(people.id, mergeId)).run();
+    db.update(people).set({ deletedAt: now, deletedVia: null }).where(eq(people.id, mergeId)).run();
     const t = TEXT[getAccountRow(db)?.locale === 'de' ? 'de' : 'en'];
     createEntry(
       db,

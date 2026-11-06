@@ -357,6 +357,10 @@ export const trashApi = {
   empty: () => api(`${V1}/trash`, emptyTrashResponseSchema, { method: 'DELETE' }),
 };
 
+/** Hides the Today notice about people deleted by sync, until the next one. */
+export const dismissSyncDeletions = () =>
+  api(`${V1}/today/sync-deletions/dismiss`, null, { method: 'POST' });
+
 /** “Recently viewed” on the Today page; failures do not matter. */
 export const recordPersonView = (id: string) =>
   api(`${V1}/people/${id}/viewed`, null, { method: 'POST' }).catch(() => undefined);

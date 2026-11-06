@@ -179,7 +179,10 @@ const KINDS: Record<TrashKind, Kind> = {
             spaceId: p.spaceId,
           }),
         ),
-    beforeRestore: (db, row) => reviveSpace(db, row.spaceId as string),
+    beforeRestore: (db, row) => {
+      reviveSpace(db, row.spaceId as string);
+      db.update(people).set({ deletedVia: null }).where(eq(people.id, row.id)).run();
+    },
     purge: (db, row) => {
       db.delete(fieldValues).where(eq(fieldValues.targetId, row.id)).run();
       db.delete(people).where(eq(people.id, row.id)).run();
