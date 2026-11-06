@@ -6,6 +6,36 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-11-06
+
+### Changed
+
+- **Sync keeps the old value:** when a phone or another address book changes a
+  person's name, nickname, birthday, “who is this” or role, the timeline entry now
+  shows the old value next to the new one (“Birthday changed: March 12, 1980 → —”).
+  If a change from a device was not what you wanted, you can put the old value back
+  by hand.
+
+### Added
+
+- **Notice on Today for contacts deleted on a device:** deleting a contact on the
+  phone still moves the person to the trash for 30 days. Today now says so, with the
+  number of people and the date until they stay in the trash, a link to the trash and
+  a button to dismiss the notice. It comes back with the next deletion from a device.
+
+### Fixed
+
+- **A birthday the app cannot read no longer removes the stored one:** some address
+  books send a birthday as free text (`BDAY;VALUE=text`). Rekindly keeps the birthday
+  it has, notes the text in the timeline, and the device gets the kept birthday back.
+
+### Upgrading from 0.3.2
+
+One database migration runs automatically (a column that marks people deleted by
+sync); the copy from before the update is kept in `/data/backups`. Contacts deleted
+on a device before the update are in the trash as before, but not counted in the
+notice.
+
 ## [0.3.2] — 2026-10-26
 
 ### Changed
@@ -159,7 +189,8 @@ First public release:
 - API tokens, OpenAPI reference at `/api/docs`, MCP server for Claude
 - One Docker image (amd64, arm64), SQLite, no telemetry
 
-[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/dddanny79/rekindly/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/dddanny79/rekindly/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/dddanny79/rekindly/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/dddanny79/rekindly/compare/v0.2.0...v0.3.0

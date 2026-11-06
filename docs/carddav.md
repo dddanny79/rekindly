@@ -46,10 +46,16 @@ the business space.
 ## Changes from a device
 
 - Every change made on a device is logged in the person's timeline
-  (_Changed via sync_, _Added via sync_).
+  (_Changed via sync_, _Added via sync_). Changes to name, nickname, birthday,
+  “who is this” and role show the old value next to the new one, so you can put it
+  back by hand.
 - Contact details removed on a device go to the **trash** (30 days), not away.
-- **Deleting a contact on the phone moves the person to the trash.** Restoring it
-  in the app puts it back in the address book.
+- A birthday the app cannot read (e.g. sent as free text) does not remove the one
+  the app has; the timeline notes the text.
+- **Deleting a contact on the phone moves the person to the trash.** _Today_ shows
+  how many people were deleted this way and until when they stay in the trash, until
+  you dismiss the notice. Restoring a person in the app puts it back in the address
+  book.
 - An organization removed on the phone is kept in the app (the timeline says so);
   a missing photo does not delete the photo in the app.
 - Conflicts: changes are only accepted for the latest version (`If-Match`); a
