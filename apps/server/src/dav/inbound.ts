@@ -84,7 +84,7 @@ const fill = (template: string, values: Record<string, string>) =>
 
 const EMPTY = '—';
 
-/** `--03-12` / `1980-03-12` as people read it: „12.03.1980“, “March 12, 1980”. */
+/** `--03-12` / `1980-03-12` as people read it in the locale, e.g. “March 12, 1980”. */
 export function birthdayText(value: string | null | undefined, locale: Locale): string {
   if (!value) return EMPTY;
   const yearless = value.startsWith('--');
