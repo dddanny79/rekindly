@@ -945,6 +945,10 @@ export const en = {
     recentEmpty: 'People you open show up here.',
     showAll: 'Show all {{count}}',
     showLess: 'Show fewer',
+    syncDeleted_one: '{{count}} person deleted via sync – in the trash until {{date}}.',
+    syncDeleted_other: '{{count}} people deleted via sync – in the trash until {{date}}.',
+    syncDeletedOpen: 'Open trash',
+    syncDeletedDismiss: 'Dismiss',
   },
   trash: {
     lead: 'Deleted items stay here for 30 days, then they are removed for good.',

@@ -418,9 +418,10 @@ export function updatePerson(
 }
 
 /** Moves the person to the trash (restorable for 30 days). */
-export function deletePerson(db: Db, id: string) {
+/** Moves the person to the trash; `via: 'sync'` when an address book client deleted it. */
+export function deletePerson(db: Db, id: string, via: 'sync' | null = null) {
   getLivePerson(db, id);
-  db.update(people).set({ deletedAt: nowIso() }).where(eq(people.id, id)).run();
+  db.update(people).set({ deletedAt: nowIso(), deletedVia: via }).where(eq(people.id, id)).run();
 }
 
 export function setPhoto(db: Db, id: string, fileId: string | null): PersonRow {

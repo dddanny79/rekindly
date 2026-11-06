@@ -74,6 +74,8 @@ export const people = sqliteTable(
     contactRhythmSince: timestamp('contact_rhythm_since'),
     archivedAt: timestamp('archived_at'),
     deletedAt: deletedAt(),
+    /** `sync`: moved to the trash by an address book client (shown on the Today page). */
+    deletedVia: text('deleted_via', { enum: ['sync'] }),
     ...timestamps,
   },
   (t) => [
