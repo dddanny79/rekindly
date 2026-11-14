@@ -1,4 +1,5 @@
 import { and, asc, count, eq, isNull, sql } from 'drizzle-orm';
+import { personSortName } from '@app/shared';
 import type { z } from 'zod';
 import type {
   createOrganizationRequestSchema,
@@ -85,14 +86,19 @@ export function getOrganization(db: Db, id: string): Organization {
     .where(and(eq(affiliations.organizationId, id), notDeleted(affiliations), notDeleted(people)))
     .orderBy(asc(affiliations.createdAt))
     .all()
+    .sort((a, b) =>
+      collator.compare(
+        personSortName(a.person, names.sortOrder),
+        personSortName(b.person, names.sortOrder),
+      ),
+    )
     .map(({ affiliation, person }): OrganizationMember => ({
       affiliationId: affiliation.id,
       role: affiliation.role,
       startedOn: affiliation.startedOn,
       endedOn: affiliation.endedOn,
       person: toPersonRef(person, names),
-    }))
-    .sort((a, b) => collator.compare(a.person.displayName, b.person.displayName));
+    }));
 
   return {
     id: org.id,

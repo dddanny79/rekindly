@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { Person, PersonListItem } from '@app/shared';
+import { PEOPLE_LIST_INCLUDES, type Person, type PersonListItem } from '@app/shared';
 import { createSignedInApp } from '../test/helpers';
 
 let t: Awaited<ReturnType<typeof createSignedInApp>>;
@@ -333,5 +333,78 @@ describe('photos', () => {
       t.request(`/api/v1/people/${person.id}/photo`, { method: 'DELETE' }),
     );
     expect(removed.photoUrl).toBeNull();
+  });
+});
+
+describe('people list columns', () => {
+  it('returns extra values only when asked for (include=)', async () => {
+    const jana = await createPerson('Jana Berger');
+    const tom = await createPerson('Tom Albers');
+    const base = `/api/v1/people/${jana.id}`;
+    for (const json of [
+      { kind: 'phone', value: '+49 171 555 88 31' },
+      { kind: 'phone', value: '+49 221 555 01 42', isPrimary: true },
+      { kind: 'email', value: 'j.berger@example.com' },
+    ]) {
+      await t.json(t.request(`${base}/contact-points`, { method: 'POST', json }), 201);
+    }
+    for (const city of [null, 'Köln']) {
+      await t.json(
+        t.request(`${base}/addresses`, { method: 'POST', json: { street: 'Musterweg 1', city } }),
+        201,
+      );
+    }
+    const field = await t.json<{ id: string }>(
+      t.request('/api/v1/field-definitions', {
+        method: 'POST',
+        json: { target: 'person', label: 'Lieblingsgetränk', type: 'text' },
+      }),
+      201,
+    );
+    await t.json(
+      t.request(`${base}/fields/${field.id}`, { method: 'PUT', json: { value: 'Grüner Tee' } }),
+    );
+    await t.json(
+      t.request(base, {
+        method: 'PATCH',
+        json: {
+          nickname: 'Jani',
+          pronouns: 'sie/ihr',
+          birthday: '--03-12',
+          metWhere: 'Messe Köln',
+          metWhen: '2019-05',
+          metThroughPersonId: tom.id,
+          contactEveryDays: 30,
+        },
+      }),
+    );
+
+    // Without include the list stays lean.
+    const [plain] = await list('?q=jana');
+    expect(plain).not.toHaveProperty('birthday');
+    expect(plain).not.toHaveProperty('fields');
+
+    const [full] = await list(`?q=jana&include=${PEOPLE_LIST_INCLUDES.join(',')}`);
+    expect(full).toMatchObject({
+      nickname: 'Jani',
+      pronouns: 'sie/ihr',
+      birthday: '--03-12',
+      email: 'j.berger@example.com',
+      phone: '+49 221 555 01 42',
+      city: 'Köln',
+      metWhere: 'Messe Köln',
+      metWhen: '2019-05',
+      metThrough: 'Tom Albers',
+      contactEveryDays: 30,
+      fields: { [field.id]: 'Grüner Tee' },
+    });
+    expect(full!.createdAt).toBeTruthy();
+
+    // Only what was asked for; empty values are null.
+    const [birthdayOnly] = await list('?q=tom&include=birthday,email');
+    expect(birthdayOnly).toMatchObject({ birthday: null, email: null });
+    expect(birthdayOnly).not.toHaveProperty('phone');
+
+    expect((await t.request('/api/v1/people?include=salary')).status).toBe(400);
   });
 });

@@ -46,6 +46,7 @@ import { OrgIndex } from '../organizations';
 import { listReminders } from '../reminders/service';
 import { getLiveSpace } from '../spaces/service';
 import { listAddresses } from './addresses';
+import { listExtras } from './list-extras';
 import { relatedToFor } from './related';
 import { getLivePerson, livePeopleByIds, type PersonRow, toPersonRef, touchPerson } from './refs';
 import { getNameFormat } from '../settings/service';
@@ -175,6 +176,12 @@ export function listPeople(db: Db, query: In<typeof peopleQuerySchema>): PersonL
     affiliationsByPerson.set(a.personId, [...(affiliationsByPerson.get(a.personId) ?? []), a]);
   }
 
+  const extras = listExtras(
+    db,
+    rows.map((r) => r.person),
+    query.include ?? [],
+    names,
+  );
   const items = rows.map(({ person, lastContactAt }) => {
     const main = mainAffiliation(affiliationsByPerson.get(person.id) ?? []);
     const org = main ? orgIndex.byId.get(main.organizationId) : undefined;
@@ -195,6 +202,7 @@ export function listPeople(db: Db, query: In<typeof peopleQuerySchema>): PersonL
         tags: tagsByPerson.get(person.id) ?? [],
         lastContactAt: (lastContactAt as string | null) ?? null,
         updatedAt: person.updatedAt,
+        ...extras.get(person.id),
       } satisfies PersonListItem,
     };
   });

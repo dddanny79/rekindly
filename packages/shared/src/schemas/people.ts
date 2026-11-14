@@ -250,8 +250,46 @@ export const personListItemSchema = z.object({
   tags: z.array(tagRefSchema),
   lastContactAt: isoDateTimeSchema.nullable(),
   updatedAt: isoDateTimeSchema,
+  // Only with `include=` (columns of the people list), so the list stays lean.
+  /** include=nickname */
+  nickname: z.string().nullable().optional(),
+  /** include=pronouns */
+  pronouns: z.string().nullable().optional(),
+  /** include=birthday: `--MM-DD` or `YYYY-MM-DD`. */
+  birthday: z.string().nullable().optional(),
+  /** include=email: the preferred, else the first email address. */
+  email: z.string().nullable().optional(),
+  /** include=phone: the preferred, else the first phone number. */
+  phone: z.string().nullable().optional(),
+  /** include=city: the city of the first address that has one. */
+  city: z.string().nullable().optional(),
+  /** include=met: where, when (`YYYY`, `YYYY-MM` or `YYYY-MM-DD`) and through whom. */
+  metWhere: z.string().nullable().optional(),
+  metWhen: z.string().nullable().optional(),
+  metThrough: z.string().nullable().optional(),
+  /** include=contactRhythm */
+  contactEveryDays: z.number().int().nullable().optional(),
+  /** include=createdAt */
+  createdAt: isoDateTimeSchema.optional(),
+  /** include=fields: custom field values by field definition id. */
+  fields: z.record(z.string(), z.string()).optional(),
 });
 export type PersonListItem = z.infer<typeof personListItemSchema>;
+
+/** Extra values the people list can ask for (`include=birthday,email`). */
+export const PEOPLE_LIST_INCLUDES = [
+  'nickname',
+  'pronouns',
+  'birthday',
+  'email',
+  'phone',
+  'city',
+  'met',
+  'contactRhythm',
+  'createdAt',
+  'fields',
+] as const;
+export type PeopleListInclude = (typeof PEOPLE_LIST_INCLUDES)[number];
 
 export const PEOPLE_SORTS = ['name', 'updated', 'lastContact'] as const;
 
@@ -269,6 +307,18 @@ export const peopleQuerySchema = z.object({
   listed: z.enum(['contacts', 'indirect', 'all']).optional(),
   sort: z.enum(PEOPLE_SORTS).optional(),
   order: z.enum(['asc', 'desc']).optional(),
+  /** Comma-separated extra values, see `PEOPLE_LIST_INCLUDES`. */
+  include: z
+    .string()
+    .max(300)
+    .transform((value) =>
+      value
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.enum(PEOPLE_LIST_INCLUDES)))
+    .optional(),
 });
 export type PeopleQuery = z.input<typeof peopleQuerySchema>;
 
