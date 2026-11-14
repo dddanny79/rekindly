@@ -104,6 +104,15 @@ describe('calendar feeds', () => {
     expect(indirect.lines).toContain('SUMMARY:Geburtstag: Lea Berger (über Jana Berger)');
     expect(indirect.lines.join('\n')).not.toContain('Geburtstag: Jana Berger');
 
+    // Names follow the name setting; the comma is escaped for iCalendar.
+    await t.request('/api/v1/settings', {
+      method: 'PATCH',
+      json: { nameDisplayOrder: 'lastFirst' },
+    });
+    expect((await feed({ birthdays: 'all' })).lines).toContain(
+      'SUMMARY:Geburtstag: Berger\\, Lea (über Berger\\, Jana)',
+    );
+
     // Older clients still send the switch.
     expect((await feed({ includeBirthdays: true })).created.feed.birthdays).toBe('all');
     expect((await feed({ includeBirthdays: false })).created.feed.birthdays).toBe('none');

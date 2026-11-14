@@ -67,6 +67,11 @@ function ChosenRow({
           aria-label={t('people.columns.show', { column: def.label })}
         />
         <span className="truncate">{def.label}</span>
+        {def.id === 'space' && (
+          <span className="truncate text-meta text-muted-foreground">
+            {t('people.columns.onlyAllSpaces')}
+          </span>
+        )}
       </label>
       <Button
         variant="ghost"
