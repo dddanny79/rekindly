@@ -27,7 +27,8 @@ server: no telemetry, no external calls except the services you configure.
 
 - **People and organizations** — names, contact details, addresses with map and
   directions links, photo, birthday, how you met, tags, custom fields; organizations
-  with departments and sites.
+  with departments and sites. Names as “First Last” or “Last, First”, and a people
+  list with the columns you choose.
 - **Briefing** — questions for next time, open follow-ups, pinned facts, the last
   conversation, birthday and other days coming up, and your keep-in-touch rhythm at
   a glance.
@@ -62,6 +63,8 @@ server: no telemetry, no external calls except the services you configure.
 | Today                                | Search                                 | Phone                                                             |
 | ------------------------------------ | -------------------------------------- | ----------------------------------------------------------------- |
 | ![Today](docs/screenshots/today.png) | ![Search](docs/screenshots/search.png) | ![Person page on a phone, dark mode](docs/screenshots/mobile.png) |
+
+![People list with chosen columns: role and organization, tags, birthday, keep-in-touch rhythm, last contact](docs/screenshots/people.png)
 
 ![Settings › Appearance: built-in themes and person-page layouts with live previews](docs/screenshots/appearance.png)
 
