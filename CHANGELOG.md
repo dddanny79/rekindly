@@ -6,6 +6,39 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+## [0.3.4] — 2026-11-14
+
+### Added
+
+- **Names the way you read them:** Settings › General › Names lets you show names
+  as “First Last” or “Last, First” and sort by last or first name, like on the
+  iPhone. It applies wherever Rekindly writes a name: lists, person page, Today,
+  search, relationships, organization members, the daily mail, the calendar
+  subscription and the AI/MCP context. A nickname stays with the first name
+  (“Berger, Jana (Jani)”). The default stays as before; CardDAV and vCard `FN` are
+  unchanged, the phone has its own setting for this.
+- **Choose the columns of the people list:** the new “Columns” button picks which
+  columns the list shows and in which order (drag, or keyboard and up/down
+  buttons), with a reset. Besides role · organization, tags and last contact you
+  can add birthday, email, phone, city, nickname, pronouns, “who is this”, how you
+  met, keep-in-touch rhythm, space, added, last changed and your custom fields. The
+  choice is saved per device. On the phone, the line under the name shows the first
+  two chosen columns.
+- **API:** `GET /api/v1/people` returns extra values only when asked for with
+  `include=` (for example `include=birthday,email,city`).
+
+### Changed
+
+- Pickers and @-mentions match word by word, so “jana berger” also finds
+  “Berger, Jana”.
+- Organization members follow the sort order setting.
+- “Last changed” is its own column; the “last contact” column no longer switches
+  to it when sorting by last change.
+
+### Upgrading from 0.3.3
+
+No database migration. Nothing to do.
+
 ## [0.3.3] — 2026-11-06
 
 ### Changed
@@ -189,7 +222,8 @@ First public release:
 - API tokens, OpenAPI reference at `/api/docs`, MCP server for Claude
 - One Docker image (amd64, arm64), SQLite, no telemetry
 
-[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/dddanny79/rekindly/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/dddanny79/rekindly/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/dddanny79/rekindly/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/dddanny79/rekindly/compare/v0.3.0...v0.3.1
