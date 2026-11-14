@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { foldText } from '@app/shared';
+import { containsWords, sameWords } from '@app/shared';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -46,17 +46,16 @@ export function Combobox({
   const input = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
-    const q = foldText(query.trim());
+    const q = query.trim();
+    // Word by word, so "jana berger" also finds "Berger, Jana".
     const hits = q
-      ? options.filter((o) => foldText(`${o.label} ${o.hint ?? ''}`).includes(q))
+      ? options.filter((o) => containsWords(`${o.label} ${o.hint ?? ''}`, q))
       : options;
     return hits.slice(0, 50);
   }, [options, query]);
 
   const canCreate =
-    creators.length > 0 &&
-    query.trim() !== '' &&
-    !options.some((o) => foldText(o.label) === foldText(query.trim()));
+    creators.length > 0 && query.trim() !== '' && !options.some((o) => sameWords(o.label, query));
   const total = filtered.length + (canCreate ? creators.length : 0);
 
   function choose(index: number) {

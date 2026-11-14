@@ -28,6 +28,8 @@ the business space.
   _Work_, _Home_ map to iOS's types, other labels are kept as custom labels),
   messenger and social profiles, addresses, birthday (with or without year), the
   main organization (with its parents) and role, and _Who is this_ as note.
+  The name order setting in the app (“Last, First”) does not change what is
+  synced; the phone has its own setting for display and sort order.
 - **Other recurring days** (with or without year), both ways:
   - _Wedding anniversary_ is the iPhone's built-in date _Anniversary_ (shown as
     _Jahrestag_ on a German iPhone). vCard 4 `ANNIVERSARY` is read as well.

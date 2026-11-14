@@ -5,11 +5,13 @@ import { people, reminders } from '../db/schema';
 import { notFound } from '../lib/errors';
 import { notDeleted, nowIso } from '../lib/sql';
 import { getLivePerson, toPersonRef, touchPerson } from '../people/refs';
+import { getNameFormat } from '../settings/service';
 
 export function listReminders(
   db: Db,
   query: { personId?: string; status?: 'open' | 'done' | 'all' },
 ): Reminder[] {
+  const names = getNameFormat(db);
   const conditions = [notDeleted(reminders)];
   if (query.personId) conditions.push(eq(reminders.personId, query.personId));
   const status = query.status ?? 'open';
@@ -31,7 +33,7 @@ export function listReminders(
         dueOn: reminder.dueAt.slice(0, 10),
         doneAt: reminder.doneAt,
         entryId: reminder.entryId,
-        person: person ? toPersonRef(person) : null,
+        person: person ? toPersonRef(person, names) : null,
       }))
   );
 }

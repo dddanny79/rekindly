@@ -3,6 +3,7 @@ import { LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ApiStatus } from '@/components/api-status';
 import { LanguageRadioGroup } from '@/components/language-controls';
+import { NameSettings } from '@/components/name-settings';
 import { PasskeySettings } from '@/components/passkey-list';
 import { PasswordForm } from '@/components/password-form';
 import { SettingsSection } from '@/components/settings-section';
@@ -51,6 +52,10 @@ export function SettingsPage() {
 
         <SettingsSection title={t('twoFactor.title')} lead={t('twoFactor.lead')}>
           <TwoFactorSettings />
+        </SettingsSection>
+
+        <SettingsSection title={t('names.title')} lead={t('names.lead')}>
+          <NameSettings />
         </SettingsSection>
 
         <SettingsSection title={t('theme.label')} lead={t('appearance.generalLead')}>

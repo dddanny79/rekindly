@@ -1,4 +1,5 @@
 import { and, asc, count, eq, isNull, sql } from 'drizzle-orm';
+import { personSortName } from '@app/shared';
 import type { z } from 'zod';
 import type {
   createOrganizationRequestSchema,
@@ -17,6 +18,7 @@ import { listAddresses } from '../people/addresses';
 import { toPersonRef } from '../people/refs';
 import { getLiveSpace } from '../spaces/service';
 import { OrgIndex } from '.';
+import { getNameFormat } from '../settings/service';
 
 type In<T extends z.ZodType> = z.output<T>;
 
@@ -68,6 +70,7 @@ export function listOrganizations(
 }
 
 export function getOrganization(db: Db, id: string): Organization {
+  const names = getNameFormat(db);
   const org = getLiveOrganization(db, id);
   const index = OrgIndex.load(db);
 
@@ -83,14 +86,19 @@ export function getOrganization(db: Db, id: string): Organization {
     .where(and(eq(affiliations.organizationId, id), notDeleted(affiliations), notDeleted(people)))
     .orderBy(asc(affiliations.createdAt))
     .all()
+    .sort((a, b) =>
+      collator.compare(
+        personSortName(a.person, names.sortOrder),
+        personSortName(b.person, names.sortOrder),
+      ),
+    )
     .map(({ affiliation, person }): OrganizationMember => ({
       affiliationId: affiliation.id,
       role: affiliation.role,
       startedOn: affiliation.startedOn,
       endedOn: affiliation.endedOn,
-      person: toPersonRef(person),
-    }))
-    .sort((a, b) => collator.compare(a.person.displayName, b.person.displayName));
+      person: toPersonRef(person, names),
+    }));
 
   return {
     id: org.id,

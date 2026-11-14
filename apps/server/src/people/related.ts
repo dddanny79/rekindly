@@ -4,6 +4,7 @@ import type { Db } from '../db/client';
 import { relationships, relationshipTypes } from '../db/schema';
 import { notDeleted } from '../lib/sql';
 import { livePeopleByIds, toPersonRef } from './refs';
+import { getNameFormat } from '../settings/service';
 
 /**
  * For indirect contacts: the contact they are known through, with the relationship
@@ -11,6 +12,7 @@ import { livePeopleByIds, toPersonRef } from './refs';
  * contact wins. People without one are missing from the map.
  */
 export function relatedToFor(db: Db, personIds: string[]): Map<string, RelatedTo> {
+  const names = getNameFormat(db);
   const result = new Map<string, RelatedTo>();
   if (!personIds.length) return result;
   const rows = db
@@ -65,7 +67,7 @@ export function relatedToFor(db: Db, personIds: string[]): Map<string, RelatedTo
       if (!other || !other.listed) continue;
       result.set(side.self, {
         label: { name: side.name, nameKey: side.key },
-        person: toPersonRef(other),
+        person: toPersonRef(other, names),
       });
     }
   }
