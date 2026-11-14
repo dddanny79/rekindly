@@ -41,6 +41,7 @@ import { DomainError } from '../lib/errors';
 import { notDeleted, nowIso } from '../lib/sql';
 import { getPerson, mainAffiliation } from '../people/service';
 import { getLivePerson, touchPerson } from '../people/refs';
+import { getNameFormat } from '../settings/service';
 
 const ORDER: MatchReason[] = ['email', 'phone', 'name'];
 /** A key shared by more people than this (e.g. an office switchboard) is no hint. */
@@ -108,12 +109,13 @@ export function findDuplicates(db: Db): DuplicatePair[] {
 
   const ids = [...new Set([...pairs.keys()].flatMap((k) => k.split('|')))];
   const details = personDetails(db, ids);
+  const { displayOrder } = getNameFormat(db);
   const side = (id: string): DuplicatePerson => {
     const p = byId.get(id)!;
     return {
       id: p.id,
       spaceId: p.spaceId,
-      displayName: personDisplayName(p),
+      displayName: personDisplayName(p, displayOrder),
       initials: personInitials(p),
       photoUrl: fileUrl(p.photoFileId),
       summary: p.summary,
@@ -469,7 +471,10 @@ export function mergePeople(db: Db, keepId: string, mergeId: string, take: Merge
       {
         kind: 'note',
         title: t.title,
-        bodyMd: t.body.replace('{{name}}', personDisplayName(other) || '?'),
+        bodyMd: t.body.replace(
+          '{{name}}',
+          personDisplayName(other, getNameFormat(db).displayOrder) || '?',
+        ),
         personIds: [keepId],
       },
       'sync',

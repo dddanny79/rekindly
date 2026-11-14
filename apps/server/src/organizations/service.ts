@@ -17,6 +17,7 @@ import { listAddresses } from '../people/addresses';
 import { toPersonRef } from '../people/refs';
 import { getLiveSpace } from '../spaces/service';
 import { OrgIndex } from '.';
+import { getNameFormat } from '../settings/service';
 
 type In<T extends z.ZodType> = z.output<T>;
 
@@ -68,6 +69,7 @@ export function listOrganizations(
 }
 
 export function getOrganization(db: Db, id: string): Organization {
+  const names = getNameFormat(db);
   const org = getLiveOrganization(db, id);
   const index = OrgIndex.load(db);
 
@@ -88,7 +90,7 @@ export function getOrganization(db: Db, id: string): Organization {
       role: affiliation.role,
       startedOn: affiliation.startedOn,
       endedOn: affiliation.endedOn,
-      person: toPersonRef(person),
+      person: toPersonRef(person, names),
     }))
     .sort((a, b) => collator.compare(a.person.displayName, b.person.displayName));
 

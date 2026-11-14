@@ -32,6 +32,7 @@ import { DomainError, notFound } from '../lib/errors';
 import { log } from '../lib/log';
 import { touchPerson } from '../people/refs';
 import { purgeDeletedThemes } from '../themes/service';
+import { getNameFormat } from '../settings/service';
 
 const DAY = 86_400_000;
 const purgeAt = (deletedAt: string) =>
@@ -43,6 +44,7 @@ type Owner = TrashItem['owner'];
 
 /** Names of all people and organizations (live or not) for owner labels. */
 function owners(db: Db) {
+  const { displayOrder } = getNameFormat(db);
   const personRows = db.select().from(people).all();
   const orgRows = db.select().from(organizations).all();
   const person = new Map(personRows.map((p) => [p.id, p]));
@@ -54,7 +56,7 @@ function owners(db: Db) {
     livePerson(id: string | null): Owner | undefined {
       const p = id ? person.get(id) : undefined;
       return p && !p.deletedAt
-        ? { type: 'person', id: p.id, name: personDisplayName(p) }
+        ? { type: 'person', id: p.id, name: personDisplayName(p, displayOrder) }
         : undefined;
     },
     liveOrg(id: string | null): Owner | undefined {
@@ -166,19 +168,21 @@ function personChild(
 const KINDS: Record<TrashKind, Kind> = {
   person: {
     table: people,
-    list: (db) =>
-      db
+    list: (db) => {
+      const { displayOrder } = getNameFormat(db);
+      return db
         .select()
         .from(people)
         .where(trashed(people))
         .all()
         .map((p) =>
           item('person', p, {
-            label: named(personDisplayName(p)),
+            label: named(personDisplayName(p, displayOrder)),
             detail: p.summary,
             spaceId: p.spaceId,
           }),
-        ),
+        );
+    },
     beforeRestore: (db, row) => {
       reviveSpace(db, row.spaceId as string);
       db.update(people).set({ deletedVia: null }).where(eq(people.id, row.id)).run();

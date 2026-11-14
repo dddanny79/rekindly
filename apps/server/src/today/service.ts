@@ -9,6 +9,7 @@ import {
   type TodayBirthday,
   type TodayDate,
   personDateYears,
+  personSortName,
   type TodayResponse,
 } from '@app/shared';
 import { backupWarning } from '../backup/backups';
@@ -19,6 +20,7 @@ import { getLivePerson, toPersonRef } from '../people/refs';
 import { relatedToFor } from '../people/related';
 import { personSubtitles } from '../people/service';
 import { listReminders } from '../reminders/service';
+import { getNameFormat } from '../settings/service';
 
 const DAY = 86_400_000;
 
@@ -53,6 +55,7 @@ function activePeople(spaceId: string | undefined) {
 }
 
 function birthdays(db: Db, today: string, spaceId?: string): TodayBirthday[] {
+  const names = getNameFormat(db);
   // Indirect contacts included: a birthday is a reason to call the person they belong to.
   const list = db
     .select()
@@ -64,7 +67,9 @@ function birthdays(db: Db, today: string, spaceId?: string): TodayBirthday[] {
     .sort(
       (a, b) =>
         a.next.inDays - b.next.inDays ||
-        toPersonRef(a.person).displayName.localeCompare(toPersonRef(b.person).displayName),
+        personSortName(a.person, names.sortOrder).localeCompare(
+          personSortName(b.person, names.sortOrder),
+        ),
     )
     .map(({ person, next }) => ({ person, next }));
   const related = relatedToFor(
@@ -72,7 +77,7 @@ function birthdays(db: Db, today: string, spaceId?: string): TodayBirthday[] {
     list.filter(({ person }) => !person.listed).map(({ person }) => person.id),
   );
   return list.map(({ person, next }) => ({
-    person: toPersonRef(person),
+    person: toPersonRef(person, names),
     birthday: person.birthday!,
     ...next,
     relatedTo: related.get(person.id) ?? null,
@@ -88,6 +93,7 @@ export function upcomingDates(
   today: string,
   options: { spaceId?: string; days?: number; personId?: string } = {},
 ): TodayDate[] {
+  const names = getNameFormat(db);
   const list = db
     .select({ day: personDates, person: people })
     .from(personDates)
@@ -106,14 +112,16 @@ export function upcomingDates(
     .sort(
       (a, b) =>
         a.next.inDays - b.next.inDays ||
-        toPersonRef(a.person).displayName.localeCompare(toPersonRef(b.person).displayName),
+        personSortName(a.person, names.sortOrder).localeCompare(
+          personSortName(b.person, names.sortOrder),
+        ),
     );
   const related = relatedToFor(
     db,
     list.filter(({ person }) => !person.listed).map(({ person }) => person.id),
   );
   return list.map(({ day, person, next }) => ({
-    person: toPersonRef(person),
+    person: toPersonRef(person, names),
     dateId: day.id,
     kind: day.kind,
     label: day.label,
@@ -127,6 +135,7 @@ export function upcomingDates(
 
 /** People with a contact rhythm whose last call, meeting or message is too long ago. */
 function overdueContacts(db: Db, today: string, spaceId?: string): OverdueContact[] {
+  const names = getNameFormat(db);
   const rows = db
     .select()
     .from(people)
@@ -161,7 +170,14 @@ function overdueContacts(db: Db, today: string, spaceId?: string): OverdueContac
       const due = utc(since.slice(0, 10)) + every * DAY;
       const overdueDays = Math.round((utc(today) - due) / DAY);
       return overdueDays > 0
-        ? [{ person: toPersonRef(person), contactEveryDays: every, lastContactAt, overdueDays }]
+        ? [
+            {
+              person: toPersonRef(person, names),
+              contactEveryDays: every,
+              lastContactAt,
+              overdueDays,
+            },
+          ]
         : [];
     })
     .sort(
@@ -173,6 +189,7 @@ function overdueContacts(db: Db, today: string, spaceId?: string): OverdueContac
 }
 
 function recent(db: Db, spaceId?: string): RecentPerson[] {
+  const names = getNameFormat(db);
   const rows = db
     .select({ person: people, viewedAt: personViews.viewedAt })
     .from(personViews)
@@ -190,7 +207,7 @@ function recent(db: Db, spaceId?: string): RecentPerson[] {
     rows.filter((r) => !r.person.listed).map((r) => r.person.id),
   );
   return rows.map(({ person, viewedAt }) => ({
-    person: toPersonRef(person),
+    person: toPersonRef(person, names),
     subtitle: subtitles.get(person.id) ?? null,
     relatedTo: related.get(person.id) ?? null,
     viewedAt,

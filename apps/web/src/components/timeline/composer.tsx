@@ -7,7 +7,7 @@ import {
   ENTRY_KINDS,
   type EntryDirection,
   type EntryKind,
-  foldText,
+  containsWords,
   type PersonRef,
 } from '@app/shared';
 import { Avatar } from '@/components/avatar';
@@ -67,10 +67,9 @@ export function TimelineComposer({ person, initialKind }: ComposerProps) {
 
   const suggestions = useMemo(() => {
     if (!mention) return [];
-    const q = foldText(mention.query);
     const taken = new Set([person.id, ...others.map((o) => o.id)]);
     return people
-      .filter((p) => !taken.has(p.id) && foldText(p.displayName).includes(q))
+      .filter((p) => !taken.has(p.id) && containsWords(p.displayName, mention.query))
       .slice(0, 6);
   }, [mention, people, person.id, others]);
 

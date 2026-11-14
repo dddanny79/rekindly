@@ -2,17 +2,24 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { personDisplayName, type MergeField, type Person } from '@app/shared';
+import {
+  type NameDisplayOrder,
+  personDisplayName,
+  type MergeField,
+  type Person,
+} from '@app/shared';
 import { FormMessage } from '@/components/form-field';
 import { SegmentedControl } from '@/components/segmented-control';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { duplicateApi, personQuery, spacesQuery, useWrite } from '@/lib/data';
+import { instanceSettingsQuery } from '@/lib/auth';
 import { errorMessage } from '@/lib/errors';
 import { spaceName } from '@/lib/labels';
 
 /** Full name without the nickname: what “Name” means when merging. */
-const fullName = (p: Person) => personDisplayName({ ...p, nickname: null });
+const fullName = (p: Person, order?: NameDisplayOrder) =>
+  personDisplayName({ ...p, nickname: null }, order);
 
 /** How much there is about a person: the richer one stays by default. */
 const weight = (p: Person) =>
@@ -37,6 +44,7 @@ export function MergeDialog({ ids, open, onOpenChange }: Props) {
   const { data: a } = useQuery({ ...personQuery(ids[0]), enabled: open });
   const { data: b } = useQuery({ ...personQuery(ids[1]), enabled: open });
   const { data: spaces = [] } = useQuery(spacesQuery);
+  const order = useQuery(instanceSettingsQuery).data?.nameDisplayOrder;
   const [keepId, setKeepId] = useState<string | null>(null);
   const [take, setTake] = useState<Set<MergeField>>(new Set());
   const merge = useWrite(duplicateApi.merge, {
@@ -76,7 +84,7 @@ export function MergeDialog({ ids, open, onOpenChange }: Props) {
     const add = (field: MergeField, label: string, k: string | null, o: string | null) => {
       if (k && o && k !== o) choices.push({ field, label, keep: k, other: o });
     };
-    add('name', t('merge.fields.name'), fullName(keep), fullName(other));
+    add('name', t('merge.fields.name'), fullName(keep, order), fullName(other, order));
     add('nickname', t('person.name.nickname'), keep.nickname, other.nickname);
     add('maidenName', t('person.name.maidenName'), keep.maidenName, other.maidenName);
     add('pronouns', t('person.name.pronouns'), keep.pronouns, other.pronouns);

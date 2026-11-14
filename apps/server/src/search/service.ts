@@ -26,6 +26,7 @@ import {
   type SearchDocument,
   type StoredField,
 } from './document';
+import { getNameFormat } from '../settings/service';
 
 type In<T extends z.ZodType> = z.output<T>;
 
@@ -206,6 +207,7 @@ interface Row {
 }
 
 export function search(db: Db, query: In<typeof searchQuerySchema>): SearchResponse {
+  const names = getNameFormat(db);
   const started = performance.now();
   flushSearchQueue(db);
   const tokens = searchTokens(query.q);
@@ -273,7 +275,7 @@ export function search(db: Db, query: In<typeof searchQuerySchema>): SearchRespo
           type: 'person',
           id: person.id,
           spaceId: person.spaceId,
-          person: toPersonRef(person),
+          person: toPersonRef(person, names),
           subtitle: subtitles.get(person.id) ?? null,
           archived: !!person.archivedAt,
           relatedTo: related.get(person.id) ?? null,

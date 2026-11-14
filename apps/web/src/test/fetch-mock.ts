@@ -32,7 +32,11 @@ export function mockApi(status: AuthStatusResponse, routes: Record<string, Handl
     if (key === 'GET /api/health') return Response.json({ status: 'ok', version: '0.0.0-test' });
     if (key === 'GET /api/v1/auth/passkeys') return Response.json({ passkeys: [] });
     if (key === 'GET /api/v1/settings') {
-      return Response.json({ passkeysEnabled: status.passkeysEnabled });
+      return Response.json({
+        passkeysEnabled: status.passkeysEnabled,
+        nameDisplayOrder: 'firstLast',
+        nameSortOrder: 'lastName',
+      });
     }
     return Response.json({ error: 'not_found' }, { status: 404 });
   });

@@ -27,6 +27,7 @@ import {
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { getNameFormat } from '../settings/service';
 
 type Locale = 'en' | 'de';
 
@@ -257,8 +258,9 @@ export async function applyCard(db: Db, options: ApplyOptions): Promise<string> 
         );
         // The old value stays in the timeline entry, so it can be restored by hand.
         const noted = changes.length;
+        const { displayOrder } = getNameFormat(db);
         const fullName = (n: Parameters<typeof personDisplayName>[0]) =>
-          personDisplayName({ ...n, nickname: null });
+          personDisplayName({ ...n, nickname: null }, displayOrder);
         if (nameChanged) changes.push(fromTo(t, t.name!, fullName(current), fullName(names)));
         if ((current.nickname ?? null) !== (card.nickname ?? null))
           changes.push(fromTo(t, t.nickname!, current.nickname, card.nickname));

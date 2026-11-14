@@ -996,6 +996,16 @@ export const en = {
     en: 'English',
     de: 'German',
   },
+  names: {
+    title: 'Names',
+    lead: 'How names are written and sorted – in lists, search, Today, briefings, mails and the calendar subscription. Contacts on the iPhone have their own settings for this.',
+    displayOrder: 'Show',
+    sortOrder: 'Sort by',
+    firstLast: 'First Last',
+    lastFirst: 'Last, First',
+    lastName: 'Last name',
+    firstName: 'First name',
+  },
   theme: {
     label: 'Light or dark',
     hint: 'Saved on this device.',

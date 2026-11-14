@@ -1005,6 +1005,16 @@ export const de: Translations = {
     en: 'Englisch',
     de: 'Deutsch',
   },
+  names: {
+    title: 'Namen',
+    lead: 'Wie Namen geschrieben und sortiert werden – in Listen, Suche, Heute, Briefings, Mails und im Kalender-Abo. Kontakte auf dem iPhone haben dafür eigene Einstellungen.',
+    displayOrder: 'Anzeige',
+    sortOrder: 'Sortieren nach',
+    firstLast: 'Vorname Nachname',
+    lastFirst: 'Nachname, Vorname',
+    lastName: 'Nachname',
+    firstName: 'Vorname',
+  },
   theme: {
     label: 'Hell oder dunkel',
     hint: 'Gilt für dieses Gerät.',

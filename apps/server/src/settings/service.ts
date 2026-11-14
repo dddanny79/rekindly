@@ -1,11 +1,13 @@
 import { eq } from 'drizzle-orm';
-import type { InstanceSettings, UpdateInstanceSettingsRequest } from '@app/shared';
+import type { InstanceSettings, NameFormat, UpdateInstanceSettingsRequest } from '@app/shared';
 import type { Db } from '../db/client';
 import { settings } from '../db/schema';
 
 /** Storage key and default per instance setting. */
 const DEFINITIONS = {
   passkeysEnabled: { key: 'auth.passkeysEnabled', default: false },
+  nameDisplayOrder: { key: 'names.displayOrder', default: 'firstLast' },
+  nameSortOrder: { key: 'names.sortOrder', default: 'lastName' },
 } as const satisfies Record<keyof InstanceSettings, { key: string; default: unknown }>;
 
 export function getInstanceSettings(db: Db): InstanceSettings {
@@ -20,7 +22,11 @@ export function getInstanceSettings(db: Db): InstanceSettings {
     const { key, default: fallback } = DEFINITIONS[name];
     return (rows.has(key) ? rows.get(key) : fallback) as InstanceSettings[K];
   };
-  return { passkeysEnabled: read('passkeysEnabled') };
+  return {
+    passkeysEnabled: read('passkeysEnabled'),
+    nameDisplayOrder: read('nameDisplayOrder'),
+    nameSortOrder: read('nameSortOrder'),
+  };
 }
 
 export function updateInstanceSettings(
@@ -43,3 +49,9 @@ export function updateInstanceSettings(
 export const passkeysEnabled = (db: Db) =>
   db.select().from(settings).where(eq(settings.key, DEFINITIONS.passkeysEnabled.key)).get()
     ?.value === true;
+
+/** How the app writes and sorts people's names (Settings → General). */
+export function getNameFormat(db: Db): NameFormat {
+  const { nameDisplayOrder, nameSortOrder } = getInstanceSettings(db);
+  return { displayOrder: nameDisplayOrder, sortOrder: nameSortOrder };
+}
