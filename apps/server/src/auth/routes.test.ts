@@ -226,7 +226,9 @@ describe('passkey switch', () => {
   beforeEach(() => setupOwner(t));
 
   it('is off by default and blocks passkey sign-in and registration', async () => {
-    expect(await (await t.request('/api/v1/settings')).json()).toEqual({ passkeysEnabled: false });
+    expect(await (await t.request('/api/v1/settings')).json()).toMatchObject({
+      passkeysEnabled: false,
+    });
     for (const path of [
       '/api/v1/auth/passkeys/register/options',
       '/api/v1/auth/passkeys/login/options',
@@ -244,7 +246,7 @@ describe('passkey switch', () => {
 
   it('can be switched on and off and is reported in the public status', async () => {
     const on = await enablePasskeys();
-    expect(await on.json()).toEqual({ passkeysEnabled: true });
+    expect(await on.json()).toMatchObject({ passkeysEnabled: true });
     t.clearCookies();
     expect((await status()).passkeysEnabled).toBe(true);
     expect(

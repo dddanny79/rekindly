@@ -52,6 +52,7 @@ import {
 import { readVcards } from './vcf';
 import { isMonicaExport, monicaBundle, readMonicaExport, type MonicaData } from './monica';
 import { isMonicaApiFile } from './monica-api';
+import { getNameFormat } from '../settings/service';
 
 type Locale = 'en' | 'de';
 
@@ -103,6 +104,7 @@ interface Planned {
  */
 function plan(db: Db, contacts: ImportContact[], completeExisting = false): Planned[] {
   const matcher = Matcher.fromDb(db);
+  const { displayOrder } = getNameFormat(db);
   return contacts.map((contact, index) => {
     const keys = contactKeys(contact);
     const match = matcher.find(keys);
@@ -110,7 +112,7 @@ function plan(db: Db, contacts: ImportContact[], completeExisting = false): Plan
       personId: null,
       organizationId: null,
       fileIndex: index,
-      displayName: contactName(contact),
+      displayName: contactName(contact, displayOrder),
       spaceId: null,
     });
     const action: ImportAction = !match
@@ -130,6 +132,7 @@ export function previewImport(
 ): ContactImportPreview {
   const read = readImportFile(file, locale, mapping);
   const monica = read.format === 'monica';
+  const { displayOrder } = getNameFormat(db);
   return {
     format: read.format,
     fileName: file.name,
@@ -146,7 +149,7 @@ export function previewImport(
       index,
       kind: contact.kind,
       indirect: contact.listed === false,
-      displayName: contactName(contact),
+      displayName: contactName(contact, displayOrder),
       details: contactDetails(contact),
       match: match && {
         personId: match.candidate.personId,

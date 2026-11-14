@@ -16,11 +16,13 @@ import { notDeleted, nowIso } from '../lib/sql';
 import { OrgIndex } from '../organizations';
 import { livePeopleByIds, toPersonRef, touchPerson } from '../people/refs';
 import { addReminder } from '../reminders/service';
+import { getNameFormat } from '../settings/service';
 
 type In<T extends z.ZodType> = z.output<T>;
 type EntryRow = typeof entries.$inferSelect;
 
 function hydrate(db: Db, rows: EntryRow[]): Entry[] {
+  const names = getNameFormat(db);
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
   // rowid keeps the order in which people were linked (the page person first).
@@ -55,7 +57,7 @@ function hydrate(db: Db, rows: EntryRow[]): Entry[] {
       .filter((l) => l.entryId === row.id)
       .flatMap((l) => {
         const person = people.get(l.personId);
-        return person ? [toPersonRef(person)] : [];
+        return person ? [toPersonRef(person, names)] : [];
       }),
     source: row.source,
     createdAt: row.createdAt,

@@ -1,5 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import { personDisplayName, personInitials, type PersonRef } from '@app/shared';
+import { type NameFormat, personDisplayName, personInitials, type PersonRef } from '@app/shared';
 import type { Db } from '../db/client';
 import { people } from '../db/schema';
 import { fileUrl } from '../files/service';
@@ -8,9 +8,10 @@ import { notDeleted, nowIso } from '../lib/sql';
 
 export type PersonRow = typeof people.$inferSelect;
 
-export const toPersonRef = (row: PersonRow): PersonRef => ({
+/** `names` from `getNameFormat(db)`, read once per request. */
+export const toPersonRef = (row: PersonRow, names: NameFormat): PersonRef => ({
   id: row.id,
-  displayName: personDisplayName(row),
+  displayName: personDisplayName(row, names.displayOrder),
   initials: personInitials(row),
   spaceId: row.spaceId,
   photoUrl: fileUrl(row.photoFileId),

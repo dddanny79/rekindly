@@ -1,4 +1,4 @@
-import { personDisplayName } from '@app/shared';
+import { type NameDisplayOrder, personDisplayName } from '@app/shared';
 import type { CardAddress, CardDate, CardPoint } from '../dav/vcard';
 
 /** A contact read from an import file, before it becomes a person or organization. */
@@ -111,8 +111,8 @@ export function finishContact(c: ImportContact): ImportContact | null {
   return null;
 }
 
-export const contactName = (c: ImportContact) =>
-  c.kind === 'organization' ? c.organization.join(' › ') : personDisplayName(c);
+export const contactName = (c: ImportContact, order?: NameDisplayOrder) =>
+  c.kind === 'organization' ? c.organization.join(' › ') : personDisplayName(c, order);
 
 /** "Beispiel GmbH · erika@example.com": helps to recognize a contact in the preview. */
 export function contactDetails(c: ImportContact): string | null {

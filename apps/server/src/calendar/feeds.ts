@@ -21,6 +21,7 @@ import { relatedToFor } from '../people/related';
 import { listReminders } from '../reminders/service';
 import { getLiveSpace } from '../spaces/service';
 import { type AllDayEvent, buildCalendar } from './ics';
+import { getNameFormat } from '../settings/service';
 
 type Row = typeof calendarFeeds.$inferSelect;
 
@@ -57,6 +58,7 @@ function localToday() {
 export function feedCalendar(db: Db, feed: Row, origin: string): string {
   const locale = getAccountRow(db)?.locale === 'de' ? 'de' : 'en';
   const t = TEXT[locale];
+  const { displayOrder } = getNameFormat(db);
   const today = localToday();
   const inSpaces = (spaceId: string | undefined) =>
     !feed.spaceIds || (!!spaceId && feed.spaceIds.includes(spaceId));
@@ -103,7 +105,7 @@ export function feedCalendar(db: Db, feed: Row, origin: string): string {
         uid: `birthday-${p.id}@${new URL(origin).host}`,
         date,
         yearly: true,
-        summary: `${t.birthday}: ${personDisplayName(p)}${via ? ` (${t.via} ${via.person.displayName})` : ''}`,
+        summary: `${t.birthday}: ${personDisplayName(p, displayOrder)}${via ? ` (${t.via} ${via.person.displayName})` : ''}`,
         url: `${origin}/people/${p.id}`,
         updatedAt: p.updatedAt,
       });
@@ -135,7 +137,7 @@ export function feedCalendar(db: Db, feed: Row, origin: string): string {
         uid: `date-${day.id}@${new URL(origin).host}`,
         date: day.date.startsWith('--') ? `2000${day.date.slice(1)}` : day.date,
         yearly: true,
-        summary: `${personDateLabel(day, locale)}: ${personDisplayName(person)}${via ? ` (${t.via} ${via.person.displayName})` : ''}`,
+        summary: `${personDateLabel(day, locale)}: ${personDisplayName(person, displayOrder)}${via ? ` (${t.via} ${via.person.displayName})` : ''}`,
         url: `${origin}/people/${person.id}`,
         updatedAt: day.updatedAt,
       });

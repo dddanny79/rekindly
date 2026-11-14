@@ -1,5 +1,5 @@
 import { createMemoryHistory } from '@tanstack/react-router';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
@@ -78,12 +78,45 @@ describe('App shell', () => {
 
   it('switches passkeys on in settings', async () => {
     mockApi(SIGNED_IN, {
-      'PATCH /api/v1/settings': () => Response.json({ passkeysEnabled: true }),
+      'PATCH /api/v1/settings': () =>
+        Response.json({
+          passkeysEnabled: true,
+          nameDisplayOrder: 'firstLast',
+          nameSortOrder: 'lastName',
+        }),
     });
     renderApp('/settings');
     await userEvent.click(await screen.findByRole('radio', { name: 'On' }));
     expect(await screen.findByText('No passkeys yet.')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'On' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('switches the name order in settings', async () => {
+    const fetchMock = mockApi(SIGNED_IN, {
+      'PATCH /api/v1/settings': (init) =>
+        Response.json({
+          passkeysEnabled: false,
+          nameDisplayOrder: 'firstLast',
+          nameSortOrder: 'lastName',
+          ...(JSON.parse(String(init?.body)) as object),
+        }),
+    });
+    renderApp('/settings');
+    const show = await screen.findByRole('radiogroup', { name: 'Show' });
+    expect(within(show).getByRole('radio', { name: 'First Last' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await userEvent.click(within(show).getByRole('radio', { name: 'Last, First' }));
+    expect(
+      await within(show).findByRole('radio', { name: 'Last, First', checked: true }),
+    ).toBeInTheDocument();
+    const sort = screen.getByRole('radiogroup', { name: 'Sort by' });
+    await userEvent.click(within(sort).getByRole('radio', { name: 'First name' }));
+    const patches = fetchMock.mock.calls
+      .filter(([, init]) => init?.method === 'PATCH')
+      .map(([, init]) => JSON.parse(String(init?.body)) as unknown);
+    expect(patches).toEqual([{ nameDisplayOrder: 'lastFirst' }, { nameSortOrder: 'firstName' }]);
   });
 
   it('switches the appearance on the settings page', async () => {

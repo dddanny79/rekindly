@@ -4,6 +4,7 @@ import type { Db } from '../db/client';
 import { contactPoints, organizations, people } from '../db/schema';
 import { notDeleted } from '../lib/sql';
 import type { ImportContact } from './contact';
+import { getNameFormat } from '../settings/service';
 
 export type MatchReason = 'email' | 'phone' | 'name';
 
@@ -91,6 +92,7 @@ export class Matcher {
   /** All live people (also indirect contacts) and organizations of the instance. */
   static fromDb(db: Db): Matcher {
     const matcher = new Matcher();
+    const { displayOrder } = getNameFormat(db);
     const rows = db.select().from(people).where(notDeleted(people)).all();
     const byId = new Map(rows.map((p) => [p.id, p]));
     const candidates = new Map(
@@ -100,7 +102,7 @@ export class Matcher {
           personId: p.id,
           organizationId: null,
           fileIndex: null,
-          displayName: personDisplayName(p),
+          displayName: personDisplayName(p, displayOrder),
           spaceId: p.spaceId,
         },
       ]),

@@ -1,17 +1,19 @@
 import type { ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { Plus, Star } from 'lucide-react';
+import { Columns3, Plus, Star } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { PersonListItem } from '@app/shared';
 import { Avatar } from '@/components/avatar';
 import { PageHeader } from '@/components/page-header';
+import { ColumnsDialog } from '@/components/columns-dialog';
 import { CreatePersonDialog } from '@/components/person/create-person-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { duplicatesQuery, organizationsQuery, peopleQuery, tagsQuery } from '@/lib/data';
+import { useVisibleColumns } from '@/lib/people-column-defs';
+import { columnIncludes } from '@/lib/people-columns';
 import { useSelectedSpace } from '@/lib/space-selection';
 import { useSessionState } from '@/lib/session-state';
 import { useKeyShortcut } from '@/lib/shortcuts';
@@ -28,16 +30,8 @@ interface PeopleFilters {
   sort?: 'updated' | 'lastContact';
 }
 
-function useRelativeDate() {
-  const { i18n } = useTranslation();
-  const format = new Intl.DateTimeFormat(i18n.resolvedLanguage, { dateStyle: 'medium' });
-  return (iso: string | null) => (iso ? format.format(new Date(iso)) : '–');
-}
-
-function roleLine(person: PersonListItem) {
-  if (person.role && person.organization) return `${person.role} @ ${person.organization.name}`;
-  return person.organization?.name ?? person.role ?? person.summary ?? '';
-}
+/** On the phone, the line under the name shows the first columns. */
+const PHONE_LINE_COLUMNS = 2;
 
 export function PeoplePage(): ReactElement {
   const { t } = useTranslation();
@@ -45,7 +39,8 @@ export function PeoplePage(): ReactElement {
   const [search, setFilters] = useSessionState<PeopleFilters>('people-filters', {});
   const { spaceId, spaces } = useSelectedSpace();
   const [creating, setCreating] = useState(false);
-  const formatDate = useRelativeDate();
+  const [choosingColumns, setChoosingColumns] = useState(false);
+  const { visible: columns } = useVisibleColumns();
 
   const people = useQuery(
     peopleQuery({
@@ -57,6 +52,7 @@ export function PeoplePage(): ReactElement {
       archived: search.archived ? 'true' : undefined,
       listed: search.indirect ? 'indirect' : undefined,
       sort: search.sort,
+      include: columnIncludes(columns.map((column) => column.id)),
     }),
   );
   const { data: tags = [] } = useQuery(tagsQuery);
@@ -173,6 +169,10 @@ export function PeoplePage(): ReactElement {
           >
             {t('people.filter.archived')}
           </Button>
+          <Button variant="secondary" onClick={() => setChoosingColumns(true)} className="flex-1">
+            <Columns3 aria-hidden />
+            {t('people.columns.button')}
+          </Button>
         </div>
       </div>
 
@@ -195,14 +195,20 @@ export function PeoplePage(): ReactElement {
           <table className="mt-5 hidden w-full border-collapse text-left md:table">
             <thead>
               <tr className="border-b border-border-strong">
-                <th className="kicker py-1.5 pr-3 font-bold">{t('people.columns.name')}</th>
-                <th className="kicker py-1.5 pr-3 font-bold">{t('people.columns.role')}</th>
-                <th className="kicker py-1.5 pr-3 font-bold">{t('people.columns.tags')}</th>
-                <th className="kicker py-1.5 pr-3 text-right font-bold">
-                  {search.sort === 'updated'
-                    ? t('people.columns.updated')
-                    : t('people.columns.lastContact')}
+                <th className="kicker py-1.5 pr-3 font-bold whitespace-nowrap">
+                  {t('people.columns.name')}
                 </th>
+                {columns.map((column) => (
+                  <th
+                    key={column.id}
+                    className={cn(
+                      'kicker py-1.5 pr-3 font-bold whitespace-nowrap',
+                      column.numeric && 'text-right',
+                    )}
+                  >
+                    {column.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -219,7 +225,7 @@ export function PeoplePage(): ReactElement {
                         photoUrl={person.photoUrl}
                         color={colorOf(person.spaceId)}
                       />
-                      <span className="font-semibold">
+                      <span className="font-semibold whitespace-nowrap">
                         {person.displayName || t('people.unnamed')}
                       </span>
                       {person.favorite && (
@@ -230,15 +236,25 @@ export function PeoplePage(): ReactElement {
                       )}
                     </Link>
                   </td>
-                  <td className="py-2 pr-3 text-foreground-2">{roleLine(person)}</td>
-                  <td className="py-2 pr-3 text-meta text-muted-foreground">
-                    {person.tags.map((tag) => `#${tag.name}`).join(' ')}
-                  </td>
-                  <td className="num py-2 pr-3 text-right text-meta text-muted-foreground">
-                    {formatDate(
-                      search.sort === 'updated' ? person.updatedAt : person.lastContactAt,
-                    )}
-                  </td>
+                  {columns.map((column) => {
+                    const value = column.value(person);
+                    return (
+                      <td
+                        key={column.id}
+                        title={value ?? undefined}
+                        className={cn(
+                          'max-w-64 truncate py-2 pr-3',
+                          column.numeric
+                            ? 'num text-right text-meta text-muted-foreground'
+                            : column.id === 'tags'
+                              ? 'text-meta text-muted-foreground'
+                              : 'text-foreground-2',
+                        )}
+                      >
+                        {value ?? <span className="text-muted-foreground">–</span>}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -269,7 +285,11 @@ export function PeoplePage(): ReactElement {
                       )}
                     </span>
                     <span className="block truncate text-meta text-muted-foreground">
-                      {roleLine(person)}
+                      {columns
+                        .slice(0, PHONE_LINE_COLUMNS)
+                        .map((column) => column.value(person))
+                        .filter(Boolean)
+                        .join(' · ')}
                     </span>
                   </span>
                 </Link>
@@ -280,6 +300,7 @@ export function PeoplePage(): ReactElement {
       )}
 
       <CreatePersonDialog open={creating} onOpenChange={setCreating} />
+      <ColumnsDialog open={choosingColumns} onOpenChange={setChoosingColumns} />
     </>
   );
 }

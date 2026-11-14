@@ -46,8 +46,10 @@ import { OrgIndex } from '../organizations';
 import { listReminders } from '../reminders/service';
 import { getLiveSpace } from '../spaces/service';
 import { listAddresses } from './addresses';
+import { listExtras } from './list-extras';
 import { relatedToFor } from './related';
 import { getLivePerson, livePeopleByIds, type PersonRow, toPersonRef, touchPerson } from './refs';
+import { getNameFormat } from '../settings/service';
 
 type In<T extends z.ZodType> = z.output<T>;
 
@@ -114,6 +116,7 @@ export function personSubtitles(db: Db, rows: PersonRow[]): Map<string, string |
 // List ------------------------------------------------------------------------------
 
 export function listPeople(db: Db, query: In<typeof peopleQuerySchema>): PersonListItem[] {
+  const names = getNameFormat(db);
   const conditions = [notDeleted(people)];
   if (query.spaceId) conditions.push(eq(people.spaceId, query.spaceId));
   if (query.favorite !== undefined) conditions.push(eq(people.favorite, query.favorite));
@@ -173,15 +176,21 @@ export function listPeople(db: Db, query: In<typeof peopleQuerySchema>): PersonL
     affiliationsByPerson.set(a.personId, [...(affiliationsByPerson.get(a.personId) ?? []), a]);
   }
 
+  const extras = listExtras(
+    db,
+    rows.map((r) => r.person),
+    query.include ?? [],
+    names,
+  );
   const items = rows.map(({ person, lastContactAt }) => {
     const main = mainAffiliation(affiliationsByPerson.get(person.id) ?? []);
     const org = main ? orgIndex.byId.get(main.organizationId) : undefined;
     return {
-      sortName: personSortName(person),
+      sortName: personSortName(person, names.sortOrder),
       item: {
         id: person.id,
         spaceId: person.spaceId,
-        displayName: personDisplayName(person),
+        displayName: personDisplayName(person, names.displayOrder),
         initials: personInitials(person),
         summary: person.summary,
         photoUrl: fileUrl(person.photoFileId),
@@ -193,6 +202,7 @@ export function listPeople(db: Db, query: In<typeof peopleQuerySchema>): PersonL
         tags: tagsByPerson.get(person.id) ?? [],
         lastContactAt: (lastContactAt as string | null) ?? null,
         updatedAt: person.updatedAt,
+        ...extras.get(person.id),
       } satisfies PersonListItem,
     };
   });
@@ -226,6 +236,7 @@ function toContactPoint(row: typeof contactPoints.$inferSelect): ContactPoint {
 }
 
 export function getPerson(db: Db, id: string): Person {
+  const names = getNameFormat(db);
   const person = getLivePerson(db, id);
   const orgIndex = OrgIndex.load(db);
 
@@ -288,7 +299,7 @@ export function getPerson(db: Db, id: string): Person {
         label: outgoing
           ? { name: type.name, nameKey: type.nameKey }
           : { name: type.reverseName, nameKey: type.reverseNameKey },
-        person: toPersonRef(other),
+        person: toPersonRef(other, names),
         note: r.note,
       },
     ];
@@ -301,7 +312,7 @@ export function getPerson(db: Db, id: string): Person {
   return {
     id: person.id,
     spaceId: person.spaceId,
-    displayName: personDisplayName(person),
+    displayName: personDisplayName(person, names.displayOrder),
     initials: personInitials(person),
     prefix: person.prefix,
     firstName: person.firstName,
@@ -315,7 +326,7 @@ export function getPerson(db: Db, id: string): Person {
     summary: person.summary,
     metWhere: person.metWhere,
     metWhen: person.metWhen,
-    metThrough: metThrough ? toPersonRef(metThrough) : null,
+    metThrough: metThrough ? toPersonRef(metThrough, names) : null,
     photoUrl: fileUrl(person.photoFileId),
     favorite: person.favorite,
     listed: person.listed,
