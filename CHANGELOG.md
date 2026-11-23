@@ -6,6 +6,46 @@ breaking changes (always with a migration path for your data).
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-11-23
+
+### Fixed
+
+- **Each device sees only its own spaces, also when syncing changes:** a device
+  connected to some spaces no longer hears about cards of other spaces. Before,
+  changed or deleted cards of all spaces were reported to it as removed, with
+  their resource names. Now a removed card is reported only to devices that could
+  see it.
+- **A new contact from a device never replaces a contact of another space:** a
+  new card under a name that belongs to a contact in a space the device does not
+  see is refused (`409`) instead of taking over that name.
+- **No missed changes after a contact was created on a device:** reusing the name
+  of a deleted card could make the newest change number go back, so a device could
+  miss changes.
+- **Two changes at the same time:** changes from devices are applied one after the
+  other. Of two changes to the same version of a contact, the second has to fetch
+  the contact first instead of silently undoing the first (this could happen when a
+  photo was part of the change).
+
+### Security
+
+- **Failed sign-ins on CardDAV:** after 20 failed attempts within 15 minutes from
+  one address, that address waits, even with the right password. Before, the right
+  password still got in, so guessing was hardly slowed down.
+- The log no longer contains the user name of a rejected CardDAV sign-in.
+
+### Changed
+
+- **Sync tokens belong to one instance:** after a restore onto a new server,
+  devices notice that their sync state is from somewhere else and sync everything
+  once.
+
+### Upgrading from 0.3.4
+
+One database migration runs automatically (the spaces each synced card has been
+in); the copy from before the update is kept in `/data/backups`. After the update
+every connected device syncs its address book once completely. This happens on its
+own and creates no duplicates.
+
 ## [0.3.4] — 2026-11-14
 
 ### Added
@@ -222,7 +262,8 @@ First public release:
 - API tokens, OpenAPI reference at `/api/docs`, MCP server for Claude
 - One Docker image (amd64, arm64), SQLite, no telemetry
 
-[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/dddanny79/rekindly/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/dddanny79/rekindly/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/dddanny79/rekindly/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/dddanny79/rekindly/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/dddanny79/rekindly/compare/v0.3.1...v0.3.2

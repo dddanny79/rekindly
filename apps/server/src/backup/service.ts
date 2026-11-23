@@ -37,6 +37,7 @@ import { reindexAll } from '../search/service';
 import { APP_VERSION } from '../version';
 import { getAccountRow } from '../auth/account';
 import { adoptKeptDates } from '../dav/inbound';
+import { DAV_INSTANCE_SETTING } from '../dav/sync-token';
 
 export const EXPORT_FORMAT = 'rekindly-export';
 /** Exports from before the app was named Rekindly. */
@@ -81,10 +82,14 @@ const TABLES = {
  * Settings that belong to the instance, not to the data: the backup target and its
  * password, the sign-in-code switch (on another server the stored SMTP password
  * cannot be read, so codes could not be sent and nobody could sign in) and the
- * delivery state of mail. They are neither exported nor replaced by an import.
+ * delivery state of mail, and the CardDAV instance id in sync tokens. They are
+ * neither exported nor replaced by an import.
  */
 export const instanceSetting = (key: unknown) =>
-  String(key).startsWith('backup.') || key === TWO_FACTOR_SETTING || key === MAIL_STATUS_SETTING;
+  String(key).startsWith('backup.') ||
+  key === TWO_FACTOR_SETTING ||
+  key === MAIL_STATUS_SETTING ||
+  key === DAV_INSTANCE_SETTING;
 
 type TableName = keyof typeof TABLES;
 

@@ -73,7 +73,7 @@ API: `GET /api/v1/export/json`, `GET /api/v1/export/vcf?spaceId=…`,
 - **Not included:** the account (name, email, password), passkeys, sessions, app
   passwords, API tokens and calendar links (credentials stay with the instance), the
   settings that belong to the instance (backup target, the sign-in-code switch, mail
-  delivery state), and data the app derives itself (search index, CardDAV cache,
+  delivery state, the CardDAV instance id), and data the app derives itself (search index, CardDAV cache,
   recently viewed). The stored SMTP password and AI key are included only sealed with
   the instance's key; on another server, enter them again.
 - Version 3 added `questions` and `personDates`, version 2 `themes`; older files

@@ -30,7 +30,10 @@ test('connect a device: app password, then the address book answers with it', as
     headers: { authorization: auth, depth: '0', cookie: '' },
   });
   expect(res.status()).toBe(207);
-  expect(await res.text()).toContain('Test-iPhone');
+  const book = await res.text();
+  expect(book).toContain('Test-iPhone');
+  // The sync token carries the instance id (a restore elsewhere means a full sync).
+  expect(book).toMatch(/\/dav\/sync\/[0-9a-f]+-\d+<\/d:sync-token>/);
 
   await shown.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByText('Test-iPhone', { exact: true })).toBeVisible();
