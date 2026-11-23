@@ -21,6 +21,14 @@ export class RateLimiter {
     return entry.count > this.limit ? Math.ceil((entry.resetAt - now) / 1000) : 0;
   }
 
+  /** Seconds to wait if the limit is already used up, without counting; else 0. */
+  waiting(key: string): number {
+    const now = this.now();
+    const entry = this.hits.get(key);
+    if (!entry || entry.resetAt <= now || entry.count < this.limit) return 0;
+    return Math.ceil((entry.resetAt - now) / 1000);
+  }
+
   reset(key: string) {
     this.hits.delete(key);
   }

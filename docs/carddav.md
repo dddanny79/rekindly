@@ -97,6 +97,18 @@ Endpoint: `GET /ics/<secret>.ics` (iCalendar, all-day events).
   (`addressbook-multiget`, `sync-collection`, `addressbook-query` without filters),
   `GET`, `PUT`, `DELETE`. vCard 3.0.
 - HTTP Basic authentication with the account email and an app password (stored
-  as SHA-256). Failed attempts are rate-limited per client address.
+  as SHA-256). After 20 failed attempts within 15 minutes from one client address,
+  that address waits, even with the right password. The log never contains the
+  user name that was tried.
+- Each app password sees only its spaces. `sync-collection` reports a card as
+  removed only to address books that could see it (moved to another space, deleted
+  or archived); cards of other spaces never show up, not even by name. A new card
+  from a device never replaces a card of another space.
+- Sync tokens carry an id of the instance. After a restore onto a new instance a
+  device notices that its token is from elsewhere and syncs everything once. The
+  update to 0.3.5 does this once for every device, too.
+- Changes from devices are applied one after the other; of two changes to the
+  same version of a card, the second gets `412` and the device fetches the card
+  first.
 - A reverse proxy must pass the WebDAV methods `PROPFIND` and `REPORT` (Coolify,
   Traefik, Caddy and nginx do by default).

@@ -35,6 +35,12 @@ export const davCards = sqliteTable(
     /** vCard UID; the client's for cards it created, else the person id. */
     uid: text('uid').notNull(),
     spaceId: text('space_id').notNull(),
+    /**
+     * Every space the card has been in. A card that left an address book (moved to
+     * another space, or deleted) is reported as removed only to address books that
+     * could see it; others never learn its name.
+     */
+    spaceHistory: text('space_history', { mode: 'json' }).$type<string[]>().notNull().default([]),
     etag: text('etag').notNull(),
     vcard: text('vcard').notNull(),
     photoFileId: text('photo_file_id'),

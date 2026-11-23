@@ -1,10 +1,14 @@
 import sharp from 'sharp';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CreateAppPasswordResponse, Entry, Person, TrashItem } from '@app/shared';
 import { createSignedInApp, OWNER } from '../test/helpers';
 import { unfold } from './vcard';
 import { adoptKeptDates } from './inbound';
-import { davExtras } from '../db/schema';
+import { davExtras, settings } from '../db/schema';
+import { instanceSetting } from '../backup/service';
+import { log } from '../lib/log';
+import { DAV_INSTANCE_SETTING } from './sync-token';
 
 let t: Awaited<ReturnType<typeof createSignedInApp>>;
 beforeEach(async () => {
@@ -223,7 +227,7 @@ describe('CardDAV', () => {
     const first = await sync('');
     expect(hrefs(first).length).toBe(2);
     const token = /<d:sync-token>([^<]+)<\/d:sync-token>/.exec(first)![1]!;
-    expect(token).toMatch(/^http:\/\/localhost:3000\/dav\/sync\/\d+$/);
+    expect(token).toMatch(/^http:\/\/localhost:3000\/dav\/sync\/[0-9a-f]+-\d+$/);
 
     expect(hrefs(await sync(token))).toEqual([]);
     await patch(`/people/${jana.id}`, { lastName: 'Berger-Klein' });
@@ -626,5 +630,164 @@ describe('CardDAV', () => {
     await new Promise((resolve) => setTimeout(resolve, 5));
     expect((await remove(lea.id)).status).toBe(204);
     expect((await today()).syncDeletions?.count).toBe(1);
+  });
+});
+
+describe('CardDAV keeps address books apart (0.3.5)', () => {
+  const SYNC = (token: string) =>
+    `<d:sync-collection xmlns:d="DAV:"><d:sync-token>${token}</d:sync-token><d:sync-level>1</d:sync-level><d:prop><d:getetag/></d:prop></d:sync-collection>`;
+  const tokenOf = (xml: string) => /<d:sync-token>([^<]+)<\/d:sync-token>/.exec(xml)![1]!;
+  const href = (id: string) => `/dav/addressbooks/contacts/${id}.vcf`;
+  const removed = (id: string) =>
+    `<d:href>${href(id)}</d:href><d:status>HTTP/1.1 404 Not Found</d:status>`;
+
+  /** A client of these spaces with its current sync token. */
+  async function syncing(spaceIds: string[] | null) {
+    const dav = await davClient(spaceIds);
+    const report = async (token: string) => {
+      const res = await dav('REPORT', '/dav/addressbooks/contacts/', SYNC(token));
+      return { status: res.status, xml: await res.text() };
+    };
+    let token = tokenOf((await report('')).xml);
+    return {
+      dav,
+      report,
+      /** Changes since the last call. */
+      async changes() {
+        const { xml } = await report(token);
+        token = tokenOf(xml);
+        return xml;
+      },
+      get token() {
+        return token;
+      },
+    };
+  }
+
+  it('reports no cards of other spaces, only cards that left this address book', async () => {
+    const paul = await person('Paul', 'Privat', {}, t.privateSpace);
+    const mia = await person('Mia', 'Moved', {}, t.privateSpace);
+    const tom = await person('Tom', 'Weber');
+    const privat = await syncing([t.privateSpace]);
+    const business = await syncing([t.businessSpace]);
+
+    // Changes in the business space: the private address book learns nothing.
+    await patch(`/people/${tom.id}`, { lastName: 'Weber-Klein' });
+    const ben = await person('Ben', 'Business');
+    await t.request(`/api/v1/people/${ben.id}`, { method: 'DELETE' });
+    expect(hrefs(await privat.changes())).toEqual([]);
+
+    // Moved to business: gone from the private book, new in the business book.
+    await patch(`/people/${mia.id}`, { spaceId: t.businessSpace });
+    await t.request(`/api/v1/people/${paul.id}`, { method: 'DELETE' });
+    const privateChanges = await privat.changes();
+    expect(privateChanges).toContain(removed(mia.id));
+    expect(privateChanges).toContain(removed(paul.id));
+    expect(hrefs(privateChanges).sort()).toEqual([href(mia.id), href(paul.id)].sort());
+
+    const businessChanges = await business.changes();
+    expect(businessChanges).toContain(`<d:href>${href(mia.id)}</d:href><d:propstat>`);
+    expect(businessChanges).not.toContain(paul.id);
+    expect(businessChanges).toContain(`<d:href>${href(tom.id)}</d:href><d:propstat>`);
+  });
+
+  it('a new card from the phone never replaces a card of another space', async () => {
+    const jana = await person('Jana', 'Berger');
+    const business = await davClient([t.businessSpace]);
+    const privat = await davClient([t.privateSpace]);
+    const card = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Neu;Nora;;;', 'FN:Nora Neu', 'END:VCARD', ''];
+    const res = await privat('PUT', href(jana.id), card.join('\r\n'));
+    expect(res.status).toBe(409);
+    expect((await business('GET', href(jana.id))).status).toBe(200);
+    const { people } = await t.json<{ people: Person[] }>(t.request('/api/v1/people'));
+    expect(people.map((p) => p.id)).toEqual([jana.id]);
+  });
+
+  it('reuses the name of a deleted card and still tells the old address book', async () => {
+    const tom = await person('Tom', 'Weber');
+    const business = await syncing([t.businessSpace]);
+    const privat = await syncing([t.privateSpace]);
+    await t.request(`/api/v1/people/${tom.id}`, { method: 'DELETE' });
+
+    const card = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Neu;Nora;;;', 'FN:Nora Neu', 'END:VCARD', ''];
+    const res = await privat.dav('PUT', href(tom.id), card.join('\r\n'), {
+      'if-none-match': '*',
+    });
+    expect(res.status).toBe(201);
+    expect(await business.changes()).toContain(removed(tom.id));
+    expect(await privat.changes()).toContain(`<d:href>${href(tom.id)}</d:href><d:propstat>`);
+  });
+
+  it('sync tokens belong to one instance; older tokens sync everything once', async () => {
+    await person('Jana', 'Berger');
+    const client = await syncing(null);
+    expect((await client.report(client.token)).status).toBe(207);
+
+    // A token from before 0.3.5 (number only) or from another instance.
+    for (const token of [
+      'http://localhost:3000/dav/sync/1',
+      'http://localhost:3000/dav/sync/abcdef123456-1',
+    ]) {
+      const res = await client.report(token);
+      expect(res.status).toBe(403);
+      expect(res.xml).toContain('valid-sync-token');
+    }
+
+    // The id is not exported and an import keeps it; a new instance has another one.
+    expect(instanceSetting(DAV_INSTANCE_SETTING)).toBe(true);
+    t.db.delete(settings).where(eq(settings.key, DAV_INSTANCE_SETTING)).run();
+    expect((await client.report(client.token)).status).toBe(403);
+    const getctag = await (
+      await client.dav('PROPFIND', '/dav/addressbooks/contacts/', PROPFIND('<cs:getctag/>'))
+    ).text();
+    expect(getctag).toMatch(/<cs:getctag>[0-9a-f]+-\d+<\/cs:getctag>/);
+  });
+
+  it('waits after too many wrong passwords, even with the right one, and logs no user name', async () => {
+    const created = await appPassword();
+    const info = vi.spyOn(log, 'info');
+    const wrong = client(created.username, 'wrong-wrong-wrong-wrong');
+    for (let i = 0; i < 20; i++) expect((await wrong('PROPFIND', '/dav/')).status).toBe(401);
+    expect((await wrong('PROPFIND', '/dav/')).status).toBe(429);
+    const right = client(created.username, created.password);
+    const blocked = await right('PROPFIND', '/dav/');
+    expect(blocked.status).toBe(429);
+    expect(Number(blocked.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect(info.mock.calls.flat().join('\n')).not.toContain(created.username);
+    info.mockRestore();
+  });
+
+  it('two changes to one card at the same time: one wins, the other has to fetch first', async () => {
+    const jana = await person('Jana', 'Berger');
+    const dav = await davClient();
+    const etag = (await dav('GET', href(jana.id))).headers.get('etag')!;
+    // A photo makes the server wait (image processing) in the middle of a change.
+    const jpeg = (
+      await sharp({ create: { width: 40, height: 40, channels: 3, background: '#3a3' } })
+        .jpeg()
+        .toBuffer()
+    ).toString('base64');
+    const edit = (nickname: string) =>
+      dav(
+        'PUT',
+        href(jana.id),
+        [
+          'BEGIN:VCARD',
+          'VERSION:3.0',
+          `UID:${jana.id}`,
+          'N:Berger;Jana;;;',
+          'FN:Jana Berger',
+          `NICKNAME:${nickname}`,
+          `PHOTO;ENCODING=b;TYPE=JPEG:${jpeg}`,
+          'END:VCARD',
+          '',
+        ].join('\r\n'),
+        { 'if-match': etag },
+      );
+    const names = ['Jani', 'Janne'];
+    const statuses = (await Promise.all(names.map(edit))).map((r) => r.status);
+    expect([...statuses].sort()).toEqual([204, 412]);
+    const after = await t.json<Person>(t.request(`/api/v1/people/${jana.id}`));
+    expect(after.nickname).toBe(names[statuses.indexOf(204)]);
   });
 });
