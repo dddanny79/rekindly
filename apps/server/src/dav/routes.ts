@@ -15,7 +15,9 @@ import { RateLimiter } from '../lib/rate-limit';
 import { deletePerson } from '../people/service';
 import { flushSearchQueue } from '../search/service';
 import { verifyAppPassword } from './app-passwords';
+import { wasInBook } from './cards';
 import { applyCard, photoHash } from './inbound';
+import { davInstance, syncState, tokenSeq } from './sync-token';
 import { type ParsedCard, parseVcard, sameContent, servedVcard } from './vcard';
 import {
   type DavResponse,
@@ -125,9 +127,25 @@ const P = {
 const values = (entries: [PropName, string][]) =>
   new Map(entries.map(([p, xml]) => [propKey(p), xml]));
 
+/**
+ * Runs writes one after the other. A PUT waits for photos and the like; two
+ * changes to the same card at once would otherwise both pass the ETag check and
+ * the second would silently undo the first.
+ */
+function serial() {
+  let last: Promise<unknown> = Promise.resolve();
+  return <T>(work: () => Promise<T>): Promise<T> => {
+    const run = last.then(work, work);
+    last = run.catch(() => undefined);
+    return run;
+  };
+}
+
 export function davRoutes({ db, config }: Deps) {
   const limiter = new RateLimiter(20, 15 * 60 * 1000);
-  const syncTokenUrl = (seq: number) => `${config.publicUrl.origin}/dav/sync/${seq}`;
+  const exclusive = serial();
+  const syncTokenUrl = (seq: number) =>
+    `${config.publicUrl.origin}/dav/sync/${syncState(davInstance(db), seq)}`;
   const locale = () => (getAccountRow(db)?.locale === 'de' ? 'de' : 'en') as 'de' | 'en';
   const personLink = (personId: string) => ({
     url: `${config.publicUrl.origin}/people/${personId}`,
@@ -193,7 +211,7 @@ export function davRoutes({ db, config }: Deps) {
       [P.resourcetype, '<d:collection/><card:addressbook/>'],
       [P.displayname, escapeXml(`${APP_NAME} · ${book.name}`)],
       [P.description, escapeXml(APP_NAME)],
-      [P.getctag, String(seq)],
+      [P.getctag, syncState(davInstance(db), seq)],
       [P.syncToken, escapeXml(syncTokenUrl(seq))],
       [
         P.supportedReports,
@@ -270,11 +288,15 @@ export function davRoutes({ db, config }: Deps) {
     if (colon < 0) return challenge();
     const username = decoded.slice(0, colon);
     const password = decoded.slice(colon + 1);
+    // Checked before the password: once the limit is used up, even the right
+    // password waits, so guessing gains nothing.
+    const ip = clientIp(c, config.trustProxy);
+    const waiting = limiter.waiting(ip);
+    if (waiting) return c.text('Too many attempts', 429, { 'Retry-After': String(waiting) });
     const row = verifyAppPassword(db, username, password);
     if (!row) {
-      const wait = limiter.hit(clientIp(c, config.trustProxy));
-      if (wait) return c.text('Too many attempts', 429, { 'Retry-After': String(wait) });
-      log.info(`CardDAV: rejected credentials for "${username}"`);
+      limiter.hit(ip);
+      log.info('CardDAV: rejected credentials');
       return challenge();
     }
     c.set('book', { appPasswordId: row.id, name: row.name, spaceIds: row.spaceIds ?? null });
@@ -334,9 +356,10 @@ export function davRoutes({ db, config }: Deps) {
       const current = maxSeq(db);
       let since = 0;
       if (token) {
-        const match = /(\d+)$/.exec(token);
-        since = match ? Number(match[1]) : -1;
-        if (since < 0 || since > current) return davXml(c, davError('valid-sync-token'), 403);
+        // A token of another instance (restore) or an older version: sync everything.
+        const seq = tokenSeq(token, davInstance(db));
+        if (seq === null || seq > current) return davXml(c, davError('valid-sync-token'), 403);
+        since = seq;
       }
       const rows = token
         ? db.select().from(davCards).where(gt(davCards.seq, since)).all()
@@ -345,7 +368,10 @@ export function davRoutes({ db, config }: Deps) {
       for (const card of rows) {
         const visible = !card.deleted && (!book.spaceIds || book.spaceIds.includes(card.spaceId));
         if (visible) responses.push(await cardResponse(card, requested));
-        else if (token) responses.push({ href: cardHref(card.name), status: '404 Not Found' });
+        // Removed only for address books that could see the card.
+        else if (token && wasInBook(card, book.spaceIds)) {
+          responses.push({ href: cardHref(card.name), status: '404 Not Found' });
+        }
       }
       return davXml(c, multistatus(responses, syncTokenUrl(current)));
     }
@@ -415,87 +441,108 @@ export function davRoutes({ db, config }: Deps) {
     async (c) => {
       const name = cardName(c);
       if (!name || !validName(name)) return c.text('Bad resource name', 400);
-      const book = c.var.book;
-      const card = cardByName(db, book, name);
-      if (card && c.req.header('if-none-match')?.trim() === '*') return c.text('Exists', 412);
-      if (card && !etagMatches(c.req.header('if-match'), card.etag)) {
-        // The client edited an older version; it has to fetch the current one first.
-        log.info(
-          `CardDAV: PUT ${name} rejected (412): client has ${c.req.header('if-match')}, current "${card.etag}"`,
-        );
-        return c.text('Changed', 412);
-      }
-      if (!card && c.req.header('if-match')) return c.text('Gone', 412);
-
-      const parsed = parseVcard(await c.req.text(), {
-        locale: locale(),
-        isOwnLink: (url) => url.startsWith(`${config.publicUrl.origin}/people/`),
-      });
-      if (card) {
-        const person = db.select().from(people).where(eq(people.id, card.personId)).get()!;
-        await applyCard(db, {
-          personId: person.id,
-          spaceId: person.spaceId,
-          card: parsed,
-          locale: locale(),
-          dataDir: config.dataDir,
-          knownPhotoHash: card.clientPhotoHash,
-        });
-        flushSearchQueue(db);
-        rememberPhoto(name, parsed);
-        log.info(`CardDAV: PUT ${name} updated person ${person.id}`);
-        return c.body(null, 204, etagHeader(name, parsed));
-      }
-      // A new card from the client: it keeps its resource name and UID.
-      const spaceId =
-        book.spaceIds?.[0] ??
-        db
-          .select({ id: spaces.id })
-          .from(spaces)
-          .where(notDeleted(spaces))
-          .orderBy(spaces.sort)
-          .get()?.id;
-      if (!spaceId) return c.text('No space', 409);
-      db.delete(davCards).where(eq(davCards.name, name)).run(); // an old tombstone
-      const personId = await applyCard(db, {
-        spaceId,
-        card: parsed,
-        locale: locale(),
-        dataDir: config.dataDir,
-      });
-      db.insert(davCards)
-        .values({
-          personId,
-          name,
-          uid: parsed.uid ?? personId,
-          spaceId,
-          etag: '',
-          vcard: '',
-          seq: 0,
-        })
-        .onConflictDoUpdate({
-          target: davCards.personId,
-          set: { name, uid: parsed.uid ?? personId },
-        })
-        .run();
-      flushSearchQueue(db);
-      rememberPhoto(name, parsed);
-      log.info(`CardDAV: PUT ${name} created person ${personId}`);
-      return c.body(null, 201, etagHeader(name, parsed));
+      const body = await c.req.text();
+      return exclusive(() => putCard(c, name, body));
     },
   );
 
-  dav.delete('/addressbooks/contacts/:file', async (c) => {
-    const name = cardName(c);
-    const card = name ? cardByName(db, c.var.book, name) : undefined;
-    if (!card) return c.text('Not Found', 404);
-    if (!etagMatches(c.req.header('if-match'), card.etag)) return c.text('Changed', 412);
-    // Defensive: a delete on a phone moves the person to the trash (30 days).
-    deletePerson(db, card.personId, 'sync');
+  async function putCard(c: Context<DavEnv>, name: string, body: string) {
+    const book = c.var.book;
+    flushSearchQueue(db); // a write that just finished changed the ETag
+    const card = cardByName(db, book, name);
+    if (card && c.req.header('if-none-match')?.trim() === '*') return c.text('Exists', 412);
+    if (card && !etagMatches(c.req.header('if-match'), card.etag)) {
+      // The client edited an older version; it has to fetch the current one first.
+      log.info(
+        `CardDAV: PUT ${name} rejected (412): client has ${c.req.header('if-match')}, current "${card.etag}"`,
+      );
+      return c.text('Changed', 412);
+    }
+    if (!card && c.req.header('if-match')) return c.text('Gone', 412);
+
+    const parsed = parseVcard(body, {
+      locale: locale(),
+      isOwnLink: (url) => url.startsWith(`${config.publicUrl.origin}/people/`),
+    });
+    if (card) {
+      const person = db.select().from(people).where(eq(people.id, card.personId)).get()!;
+      await applyCard(db, {
+        personId: person.id,
+        spaceId: person.spaceId,
+        card: parsed,
+        locale: locale(),
+        dataDir: config.dataDir,
+        knownPhotoHash: card.clientPhotoHash,
+      });
+      flushSearchQueue(db);
+      rememberPhoto(name, parsed);
+      log.info(`CardDAV: PUT ${name} updated person ${person.id}`);
+      return c.body(null, 204, etagHeader(name, parsed));
+    }
+    // The name may only be reused when it belongs to a card that is gone. A live
+    // card of a space this address book does not see is not touched.
+    const old = db.select().from(davCards).where(eq(davCards.name, name)).get();
+    if (old && !old.deleted) {
+      log.info(`CardDAV: PUT ${name} rejected (409): the name belongs to another address book`);
+      return c.text('Name in use', 409);
+    }
+    // A new card from the client: it keeps its resource name and UID.
+    const spaceId =
+      book.spaceIds?.[0] ??
+      db.select({ id: spaces.id }).from(spaces).where(notDeleted(spaces)).orderBy(spaces.sort).get()
+        ?.id;
+    if (!spaceId) return c.text('No space', 409);
+    const personId = await applyCard(db, {
+      spaceId,
+      card: parsed,
+      locale: locale(),
+      dataDir: config.dataDir,
+    });
+    // Address books that saw the old card still learn that it is gone from them
+    // (also when a search built the new card in the meantime).
+    const built = db.select().from(davCards).where(eq(davCards.personId, personId)).get();
+    const spaceHistory = [
+      ...new Set([...(old?.spaceHistory ?? []), ...(built?.spaceHistory ?? [])]),
+    ];
+    if (old) db.delete(davCards).where(eq(davCards.name, name)).run(); // the tombstone
+    db.insert(davCards)
+      .values({
+        personId,
+        name,
+        uid: parsed.uid ?? personId,
+        spaceId,
+        spaceHistory,
+        etag: '',
+        vcard: '',
+        // Keeps the tombstone's change number, so the newest number never goes back
+        // (the rebuild right after gives the card the next one).
+        seq: old?.seq ?? 0,
+      })
+      .onConflictDoUpdate({
+        target: davCards.personId,
+        set: { name, uid: parsed.uid ?? personId, spaceHistory },
+      })
+      .run();
     flushSearchQueue(db);
-    log.info(`CardDAV: DELETE ${name} moved person ${card.personId} to the trash`);
-    return c.body(null, 204);
-  });
+    rememberPhoto(name, parsed);
+    log.info(`CardDAV: PUT ${name} created person ${personId}`);
+    return c.body(null, 201, etagHeader(name, parsed));
+  }
+
+  dav.delete('/addressbooks/contacts/:file', (c) =>
+    exclusive(async () => {
+      flushSearchQueue(db);
+      const name = cardName(c);
+      const card = name ? cardByName(db, c.var.book, name) : undefined;
+      if (!card) return c.text('Not Found', 404);
+      if (!etagMatches(c.req.header('if-match'), card.etag)) return c.text('Changed', 412);
+      // Defensive: a delete on a phone moves the person to the trash (30 days).
+      deletePerson(db, card.personId, 'sync');
+      flushSearchQueue(db);
+      log.info(`CardDAV: DELETE ${name} moved person ${card.personId} to the trash`);
+      return c.body(null, 204);
+    }),
+  );
 
   return dav;
 }

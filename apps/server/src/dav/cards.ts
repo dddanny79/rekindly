@@ -111,6 +111,14 @@ export function cardData(db: Db, orgs: OrgIndex, rows: PersonRow[]): Map<string,
   return result;
 }
 
+/**
+ * Whether a card that is not (or no longer) in this address book has to be
+ * reported as removed: only when the address book could see it before. Others
+ * never learn its name.
+ */
+export const wasInBook = (card: CardRow, spaceIds: string[] | null) =>
+  !spaceIds || card.spaceHistory.some((id) => spaceIds.includes(id));
+
 export const extraLinesOf = (text: string | undefined) =>
   text ? text.split('\n').filter(Boolean) : [];
 
@@ -180,6 +188,7 @@ export function rebuildCards(db: Db, orgs: OrgIndex, personIds: string[]) {
       if (card && !card.deleted && card.etag === etag && card.spaceId === person.spaceId) continue;
       const values = {
         spaceId: person.spaceId,
+        spaceHistory: [...new Set([...(card?.spaceHistory ?? []), person.spaceId])],
         etag,
         vcard,
         photoFileId: person.photoFileId,

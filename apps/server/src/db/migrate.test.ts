@@ -128,6 +128,10 @@ describe('migrations on a filled database', () => {
     expect(result.applied).toBeGreaterThan(0);
     const after = counts(sqlite);
     expect(Object.fromEntries(Object.keys(before).map((t) => [t, after[t]]))).toEqual(before);
+    // 0.3.5: a card has been in the space it is in.
+    expect(sqlite.prepare(`select space_history from dav_cards`).get()).toEqual({
+      space_history: '["sp1"]',
+    });
     expect(sqlite.pragma('foreign_key_check')).toEqual([]);
     expect(sqlite.pragma('foreign_keys', { simple: true })).toBe(1);
     sqlite.close();
